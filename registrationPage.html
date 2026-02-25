@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Registration Page</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-right" onclick="needHelp()">
+      NEED HELP? <span class="help-icon">?</span>
+    </div>
+  </div>
+
+  <div class="main-wrapper">
+    <div class="sidebar">
+      <div class="nav" onclick="goHome()">HOME PAGE</div>
+      <div class="nav active">REGISTRATION PAGE</div>
+      <div class="nav" onclick="goRegistered()">REGISTERED PAGE</div>
+
+      <div class="logout" onclick="logout()">LOGOUT ↩</div>
+    </div>
+
+    <div class="content">
+
+      <div class="registration-content">
+        <div class="registration-layout">
+          <div class="profile-wrapper">
+            <div class="profile-circle" id="profileImage"></div>
+            <input type="file" id="imageInput" accept="image/*" onchange="loadImage(event)">
+            <label for="imageInput" class="image-upload-btn">📷 Upload Photo</label>
+          </div>
+
+          <div>
+            <div class="registration-form">
+
+              <div class="form-column">
+                <label>RFID NUMBER <span class="required">*</span></label>
+                <input type="text" id="rfidNumber" placeholder="Enter RFID" onchange="clearFieldError('rfidNumber')">
+
+                <label>PROGRAM <span class="required">*</span></label>
+                <input type="text" id="program" placeholder="Enter program" onchange="clearFieldError('program')">
+
+                <label>STUDENT NUMBER <span class="required">*</span></label>
+                <input type="text" id="studentNumber" placeholder="Enter student number" onchange="clearFieldError('studentNumber')">
+
+                <label>SEMESTER <span class="required">*</span></label>
+                <input type="text" id="semester" placeholder="Enter semester" onchange="clearFieldError('semester')">
+              </div>
+
+              <div class="form-column">
+                <label>NAME <span class="required">*</span></label>
+                <input type="text" id="name" placeholder="Enter full name" onchange="clearFieldError('name')">
+
+                <label>YEAR LEVEL <span class="required">*</span></label>
+                <input type="text" id="yearLevel" placeholder="Enter year level" onchange="clearFieldError('yearLevel')">
+
+                <label>DATE <span class="required">*</span></label>
+                <input type="date" id="date" onchange="clearFieldError('date')">
+
+                <label>ACADEMIC YEAR <span class="required">*</span></label>
+                <input type="text" id="academicYear" placeholder="Enter academic year" onchange="clearFieldError('academicYear')">
+              </div>
+
+            </div>
+
+            <button class="register-btn" onclick="validateAndRegister()">REGISTER</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script src="script.js"></script>
+</body>
+</html>

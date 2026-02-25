@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clearance - Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="topbar"></div>
+    <div class="need-help-wrapper">
+      <span class="need-help" onclick="needHelp()">
+        NEED HELP? <span class="help-icon">?</span>
+      </span>
+    </div>
+
+  <div class="login-container">
+    <h1>Clearance</h1>
+
+    <div class="field">
+      <label>USERNAME</label>
+      <input type="text" id="username">
+    </div>
+
+    <div class="field">
+      <label>PASSWORD</label>
+      <input type="password" id="password">
+    </div>
+
+    <div class="show-password">
+      <span>SHOW PASSWORD</span>
+      <input type="checkbox" onclick="togglePassword()">
+    </div>
+
+    <button onclick="login()">LOGIN</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

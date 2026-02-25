@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Registered Page</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-right" onclick="needHelp()">
+      NEED HELP? <span class="help-icon">?</span>
+    </div>
+  </div>
+
+  <div class="main-wrapper">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="nav" onclick="goHome()">HOME PAGE</div>
+      <div class="nav" onclick="goRegister()">REGISTRATION PAGE</div>
+      <div class="nav active">REGISTERED PAGE</div>
+      <div class="logout" onclick="logout()">LOGOUT ↩</div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- EXPORT -->
+      <div style="position:absolute; top:20px; right:20px;">
+        <select id="exportType" onchange="exportData(this.value)">
+          <option value="">Export to</option>
+          <option value="pdf">PDF</option>
+          <option value="excel">Excel</option>
+        </select>
+      </div>
+
+      <!-- SEARCH -->
+      <div class="search-wrapper">
+        <input type="text" id="search" placeholder="Search" onkeyup="searchTable()">
+        <span class="search-icon">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16" y1="16" x2="22" y2="22"></line>
+          </svg>
+        </span>
+      </div>
+
+      <!-- TABLE -->
+      <table id="registeredTable">
+        <thead>
+          <tr>
+            <th>RFID NUMBER</th>
+            <th>NAME</th>
+            <th>PROGRAM</th>
+            <th>YEAR LEVEL</th>
+            <th>STUDENT NUMBER</th>
+            <th>DATE & TIME</th>
+            <th>SEMESTER</th>
+            <th>ACADEMIC YEAR</th>
+            <th>CLEARANCE PAPER<br>(CLAIMED / RETURNED)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- sample row -->
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+<script src="script.js"></script>
+</body>
+</html>

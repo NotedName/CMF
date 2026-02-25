@@ -67,9 +67,9 @@ body {
   height: 50px;
   background: linear-gradient(135deg, #7fb3ff 0%, #5a9cff 100%);
   display: flex;
-  justify-content: space-between;  /* Changed from flex-end to space-between */
+  justify-content: space-between;
   align-items: center;
-  padding: 0 20px;                 /* Added horizontal padding */
+  padding: 0 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -79,7 +79,7 @@ body {
 }
 
 .logo {
-  height: 40px;      /* Adjust as needed to fit the top bar */
+  height: 40px;
   width: auto;
   display: block;
 }
@@ -420,6 +420,63 @@ body {
   transform: scale(0.98);
 }
 
+.clear-btn {
+  padding: 6px 12px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.clear-btn:hover {
+  background: #5a6268;
+}
+
+.export-btn {
+  padding: 8px 12px;
+  background: #2f80ed;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+}
+
+.export-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+}
+
+.export-btn:active {
+  transform: scale(0.98);
+}
+
+.delete-btn {
+  padding: 8px 12px;
+  background: #d32f2f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+}
+
+.delete-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(211, 47, 47, 0.45);
+}
+
+.delete-btn:active {
+  transform: scale(0.98);
+}
+
 /* TABLE */
 table {
   width: 100%;
@@ -471,7 +528,21 @@ table tbody tr:nth-child(even):hover {
   background: rgba(127, 179, 255, 0.12);
 }
 
-/* REGISTRATION PAGE */
+th.sort-asc::after,
+th.sort-desc::after {
+  display: block;
+  font-size: 10px;
+  margin-top: 2px;
+  text-align: center;
+}
+th.sort-asc::after {
+  content: "▲";
+}
+th.sort-desc::after {
+  content: "▼";
+}
+
+/* REGISTRATION PAGE (cleaned up) */
 .registration-content {
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(12px);
@@ -484,8 +555,8 @@ table tbody tr:nth-child(even):hover {
 
 .registration-layout {
   display: flex;
-  flex-direction: column;  /* Stack form above button */
-  gap: 30px;               /* Space between form and button */
+  flex-direction: column;
+  gap: 30px;
 }
 
 /* Two-column form container */
@@ -536,28 +607,20 @@ table tbody tr:nth-child(even):hover {
   background: #ffcdd2 !important;
 }
 
-/* FORM */
-.registration-layout .registration-form {
-  display: flex;
-  gap: 50px;
-  flex: 1;
+.registration-layout .form-column input::placeholder {
+  color: #aaa;
 }
 
-.registration-layout .form-column {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  flex: 1;
-}
-
-.registration-layout .form-column label {
+.rfid-container label {
   font-size: 11px;
   font-weight: 600;
   color: #555;
   letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 6px;
 }
 
-.registration-layout .form-column input {
+#rfidNumber {
   width: 100%;
   height: 36px;
   border: 1.5px solid #ddd;
@@ -568,14 +631,19 @@ table tbody tr:nth-child(even):hover {
   background: rgba(255, 255, 255, 0.8);
 }
 
-.registration-layout .form-column input:focus {
+#rfidNumber:focus {
   outline: none;
   border-color: #2f80ed;
   background: #fff;
   box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
 }
 
-.registration-layout .form-column input::placeholder {
+#rfidNumber.error-field {
+  border-color: #d32f2f !important;
+  background: #ffcdd2 !important;
+}
+
+#rfidNumber::placeholder {
   color: #aaa;
 }
 
@@ -604,7 +672,7 @@ table tbody tr:nth-child(even):hover {
   transform: scale(0.98);
 }
 
-/* EXPORT DROPDOWN */
+/* EXPORT DROPDOWN (general) */
 select {
   padding: 8px 12px;
   border-radius: 8px;
@@ -645,18 +713,6 @@ button,
 .required {
   color: #d32f2f;
   font-weight: bold;
-}
-
-/* INPUT FIELD WITH ERROR STATE - RED BACKGROUND */
-.registration-layout .form-column input.error-field {
-  border-color: #d32f2f !important;
-  background: #ffcdd2 !important;
-}
-
-.registration-layout .form-column input.error-field:focus {
-  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.2);
-  border-color: #d32f2f !important;
-  background: #ffebee !important;
 }
 
 /* ERROR MESSAGE TEXT - HIDDEN */

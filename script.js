@@ -1,148 +1,57 @@
-// ==================== STORAGE HELPERS ====================
-const STORAGE_KEY = 'clearanceStudents';
+// ==================== API BASE URL ====================
+const API_BASE = 'http://localhost:8000'; // adjust if server is on a different host/port
 
-function getStudents() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? JSON.parse(stored) : [];
-}
+// ==================== GLOBAL VARIABLES ====================
+let allStudents = [];               // stores the current list from server
+let pendingDeleteRfids = [];         // for delete modal
+let homeSort = { column: 0, direction: 'asc' };
+let registeredSort = { column: 1, direction: 'asc' };
 
-function saveStudents(students) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
-}
-
-function addStudent(student) {
-  const students = getStudents();
-  students.push(student);
-  saveStudents(students);
-}
-
-// ==================== PAGE RENDERING ====================
+// ==================== PAGE INIT ====================
 document.addEventListener('DOMContentLoaded', function() {
-  const path = window.location.pathname;
+  // Load data once – this will update any table that exists on the current page
+  loadStudents();
 
-  if (path.includes('home.html')) {
-    renderHomeTable();
-  } else if (path.includes('registeredPage.html')) {
-    renderRegisteredTable();
-    handleUrlHighlight();   // <-- add this line
-  } else if (path.includes('registrationPage.html')) {
+  // Attach sort listeners to existing tables (only once)
+  attachSortListeners();
+
+  // Academic year dropdown (registration page)
+  if (document.getElementById('academicYear')) {
     populateAcademicYear();
   }
 });
 
-// ==================== GLOBAL VARIABLES FOR MODALS ====================
-let pendingDeleteRfids = [];   // Store RFID(s) to delete when confirmed
+// ==================== DATA FETCHING ====================
+function loadStudents() {
+  fetch(`${API_BASE}/api/students.php`)
+    .then(res => res.json())
+    .then(students => {
+      allStudents = students; // store globally for filters & sorting
 
-// ==================== DELETE CONFIRMATION MODAL ====================
-function deleteSelected() {
-  const selectedCheckboxes = document.querySelectorAll('#registeredTable tbody .student-checkbox:checked');
-  if (selectedCheckboxes.length === 0) {
-    alert('Please select at least one student to delete.');
-    return;
-  }
+      // Home page
+      if (document.getElementById('homeTable')) {
+        renderHomeTable(students, true);
+        updateSortIndicators(homeSort.column, homeSort.direction, false);
+      }
 
-  // Store the RFID numbers of selected students
-  pendingDeleteRfids = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-rfid'));
-
-  // Show the confirmation modal
-  const modal = document.getElementById('confirmModal');
-  const message = `Are you sure you want to delete ${selectedCheckboxes.length} selected student(s)?`;
-  document.getElementById('confirmMessage').textContent = message;
-  modal.style.display = 'flex';
+      // Registered page
+      if (document.getElementById('registeredTable')) {
+        renderRegisteredTable(students, true);
+        updateSortIndicators(registeredSort.column, registeredSort.direction, true);
+        handleUrlHighlight();   // after rendering
+      }
+    })
+    .catch(err => console.error('Failed to load students:', err));
 }
 
-function closeConfirmModal() {
-  document.getElementById('confirmModal').style.display = 'none';
-  pendingDeleteRfids = [];
-}
-
-function confirmDelete() {
-  const rfidsToDelete = [...pendingDeleteRfids]; // copy before clearing
-  closeConfirmModal(); // this clears pendingDeleteRfids
-
-  // Perform deletion using the copied list
-  let students = getStudents();
-  students = students.filter(s => !rfidsToDelete.includes(s.rfidNumber));
-  saveStudents(students);
-
-  // Re-render tables
-  if (document.querySelector('#registeredTable')) renderRegisteredTable();
-  if (document.querySelector('#homeTable')) renderHomeTable();
-}
-
-// ==================== HELP MODAL ====================
-function showHelpModal() {
-  document.getElementById('helpModal').style.display = 'flex';
-}
-
-function closeHelpModal() {
-  document.getElementById('helpModal').style.display = 'none';
-}
-
-// ==================== LOGOUT CONFIRMATION MODAL ====================
-function showLogoutModal() {
-  document.getElementById('logoutModal').style.display = 'flex';
-}
-
-function closeLogoutModal() {
-  document.getElementById('logoutModal').style.display = 'none';
-}
-
-function confirmLogout() {
-  closeLogoutModal();
-  window.location.href = 'login.html';
-}
-
-// ==================== EXPORT MODAL ====================
-function showExportModal() {
-  document.getElementById('exportModal').style.display = 'flex';
-}
-
-function closeExportModal() {
-  document.getElementById('exportModal').style.display = 'none';
-}
-
-function exportChosen(type) {
-  closeExportModal();
-  exportData(type);
-}
-
-// ==================== REGISTRATION SUCCESS MODAL ====================
-function registerStudent(formData) {
-  const dateObj = new Date(formData.date + 'T00:00:00');
-  const now = new Date();
-  dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-  const dateTime = dateObj.toLocaleString();
-
-  const student = {
-    rfidNumber: formData.rfidNumber,
-    name: formData.name,
-    program: formData.program,
-    yearLevel: formData.yearLevel,
-    studentNumber: formData.studentNumber,
-    dateTime: dateTime,
-    semester: formData.semester,
-    academicYear: formData.academicYear,
-    clearanceStatus: ''
-  };
-
-  addStudent(student);
-
-  // Show success modal instead of alert
-  document.getElementById('successModal').style.display = 'flex';
-}
-
-function closeSuccessModalAndRedirect() {
-  document.getElementById('successModal').style.display = 'none';
-  window.location.href = 'home.html';
-}
-
-// Render table on home.html (status as text)
-function renderHomeTable() {
+// ==================== RENDERING ====================
+function renderHomeTable(students, keepSort = false) {
   const tbody = document.querySelector('#homeTable tbody');
   if (!tbody) return;
-  const students = getStudents();
-  tbody.innerHTML = students.map(student => `
+
+  let data = keepSort ? sortStudents(students, homeSort.column, homeSort.direction, false) : students;
+
+  tbody.innerHTML = data.map(student => `
     <tr ondblclick="goToRegistered('${student.rfidNumber}')">
       <td>${student.rfidNumber || ''}</td>
       <td>${student.name || ''}</td>
@@ -155,30 +64,17 @@ function renderHomeTable() {
       <td>${student.clearanceStatus || 'Pending'}</td>
     </tr>
   `).join('');
+
+  applyFilters(); // re‑apply any active filters
 }
 
-// Update the state of the "select all" checkbox based on individual checkboxes
-function updateSelectAllState() {
-  const selectAll = document.getElementById('selectAll');
-  if (!selectAll) return;
-  const checkboxes = document.querySelectorAll('#registeredTable tbody .student-checkbox');
-  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-  selectAll.checked = allChecked;
-}
-
-// Toggle all checkboxes (existing, but now calls updateSelectAllState)
-function toggleSelectAll(selectAllCheckbox) {
-  const checkboxes = document.querySelectorAll('#registeredTable tbody .student-checkbox');
-  checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
-  updateSelectAllState(); // Ensure consistency
-}
-
-// Modified renderRegisteredTable (add onchange to each checkbox)
-function renderRegisteredTable() {
+function renderRegisteredTable(students, keepSort = false) {
   const tbody = document.querySelector('#registeredTable tbody');
   if (!tbody) return;
-  const students = getStudents();
-  tbody.innerHTML = students.map(student => {
+
+  let data = keepSort ? sortStudents(students, registeredSort.column, registeredSort.direction, true) : students;
+
+  tbody.innerHTML = data.map(student => {
     const status = student.clearanceStatus || '';
     return `
       <tr>
@@ -203,21 +99,164 @@ function renderRegisteredTable() {
       </tr>
     `;
   }).join('');
-  
-  // Uncheck select all after re-render
+
   const selectAll = document.getElementById('selectAll');
   if (selectAll) selectAll.checked = false;
+  applyFilters();
 }
 
-// Update clearance status for a student
-function updateClearanceStatus(rfid, newStatus) {
-  const students = getStudents();
-  const student = students.find(s => s.rfidNumber === rfid);
-  if (student) {
-    student.clearanceStatus = newStatus;
-    saveStudents(students);
-    renderRegisteredTable(); // Refresh the table to reflect change
+// ==================== SORTING ====================
+function getSortProperty(columnIndex, isRegistered) {
+  if (isRegistered) {
+    const map = {
+      1: 'rfidNumber', 2: 'name', 3: 'program', 4: 'yearLevel',
+      5: 'studentNumber', 6: 'dateTime', 7: 'semester', 8: 'academicYear', 9: 'clearanceStatus'
+    };
+    return map[columnIndex];
+  } else {
+    const map = {
+      0: 'rfidNumber', 1: 'name', 2: 'program', 3: 'yearLevel',
+      4: 'studentNumber', 5: 'dateTime', 6: 'semester', 7: 'academicYear', 8: 'clearanceStatus'
+    };
+    return map[columnIndex];
   }
+}
+
+function sortStudents(students, columnIndex, direction, isRegistered) {
+  const prop = getSortProperty(columnIndex, isRegistered);
+  if (!prop) return students;
+  return [...students].sort((a, b) => {
+    let valA = a[prop] || '';
+    let valB = b[prop] || '';
+    if (typeof valA === 'string') valA = valA.toLowerCase();
+    if (typeof valB === 'string') valB = valB.toLowerCase();
+    if (valA < valB) return direction === 'asc' ? -1 : 1;
+    if (valA > valB) return direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+function updateSortIndicators(columnIndex, direction, isRegistered) {
+  const tableId = isRegistered ? '#registeredTable' : '#homeTable';
+  const headers = document.querySelectorAll(`${tableId} th`);
+  headers.forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
+  if (headers[columnIndex]) {
+    headers[columnIndex].classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
+  }
+}
+
+function handleSort(columnIndex) {
+  const isRegistered = window.location.pathname.includes('registeredPage.html');
+  let sort = isRegistered ? registeredSort : homeSort;
+
+  if (sort.column === columnIndex) {
+    sort.direction = sort.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    sort.column = columnIndex;
+    sort.direction = 'asc';
+  }
+
+  if (isRegistered) {
+    registeredSort = sort;
+    renderRegisteredTable(allStudents, true);
+  } else {
+    homeSort = sort;
+    renderHomeTable(allStudents, true);
+  }
+  updateSortIndicators(columnIndex, sort.direction, isRegistered);
+}
+
+function attachSortListeners() {
+  // Home table headers
+  if (document.getElementById('homeTable')) {
+    const homeHeaders = document.querySelectorAll('#homeTable th');
+    homeHeaders.forEach((th, index) => {
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', () => handleSort(index));
+    });
+  }
+  // Registered table headers (skip first checkbox column)
+  if (document.getElementById('registeredTable')) {
+    const regHeaders = document.querySelectorAll('#registeredTable th');
+    regHeaders.forEach((th, index) => {
+      if (index === 0) return; // skip checkbox
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', () => handleSort(index));
+    });
+  }
+}
+
+// ==================== HIGHLIGHT FROM URL ====================
+function handleUrlHighlight() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const rfid = urlParams.get('rfid');
+  if (!rfid) return;
+  setTimeout(() => {
+    const checkbox = document.querySelector(`#registeredTable tbody .student-checkbox[data-rfid="${rfid}"]`);
+    if (checkbox) {
+      checkbox.checked = true;
+      updateSelectAllState();
+      const row = checkbox.closest('tr');
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.style.backgroundColor = '#ffffcc';
+        setTimeout(() => row.style.backgroundColor = '', 2000);
+      }
+    }
+  }, 100);
+}
+
+// ==================== DELETE ====================
+function deleteSelected() {
+  const selectedCheckboxes = document.querySelectorAll('#registeredTable tbody .student-checkbox:checked');
+  if (selectedCheckboxes.length === 0) {
+    alert('Please select at least one student to delete.');
+    return;
+  }
+  pendingDeleteRfids = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-rfid'));
+  const modal = document.getElementById('confirmModal');
+  document.getElementById('confirmMessage').textContent = `Are you sure you want to delete ${selectedCheckboxes.length} selected student(s)?`;
+  modal.style.display = 'flex';
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirmModal').style.display = 'none';
+  pendingDeleteRfids = [];
+}
+
+function confirmDelete() {
+  const rfidsToDelete = [...pendingDeleteRfids];
+  closeConfirmModal();
+  fetch(`${API_BASE}/api/delete_students.php`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rfids: rfidsToDelete })
+})
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      loadStudents(); // refresh both tables (only the one that exists will update)
+    } else {
+      alert('Delete failed: ' + data.error);
+    }
+  })
+  .catch(err => alert('Network error: ' + err.message));
+}
+
+// ==================== UPDATE STATUS ====================
+function updateClearanceStatus(rfid, newStatus) {
+  fetch(`${API_BASE}/api/update_status.php?rfid=${rfid}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: newStatus })
+})
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      loadStudents(); // refresh registered table (and home if open)
+    }
+  })
+  .catch(err => console.error('Update failed:', err));
 }
 
 // ==================== REGISTRATION ====================
@@ -232,11 +271,11 @@ function validateAndRegister() {
     studentNumber: document.getElementById('studentNumber').value.trim(),
     date: document.getElementById('date').value.trim(),
     semester: document.getElementById('semester').value,
-    academicYear: document.getElementById('academicYear').value
+    academicYear: document.getElementById('academicYear').value,
+    status: document.getElementById('status').value
   };
 
   let hasErrors = false;
-
   if (!formData.rfidNumber) { showFieldError('rfidNumber'); hasErrors = true; }
   if (!formData.name) { showFieldError('name'); hasErrors = true; }
   if (!formData.program) { showFieldError('program'); hasErrors = true; }
@@ -245,10 +284,66 @@ function validateAndRegister() {
   if (!formData.date) { showFieldError('date'); hasErrors = true; }
   if (!formData.semester) { showFieldError('semester'); hasErrors = true; }
   if (!formData.academicYear) { showFieldError('academicYear'); hasErrors = true; }
-
   if (hasErrors) return;
 
   registerStudent(formData);
+}
+
+function registerStudent(formData) {
+  const dateObj = new Date(formData.date + 'T00:00:00');
+  const now = new Date();
+  dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+  const dateTime = dateObj.toLocaleString(); // adjust format if needed
+
+  const student = {
+    rfidNumber: formData.rfidNumber,
+    name: formData.name,
+    program: formData.program,
+    yearLevel: formData.yearLevel,
+    studentNumber: formData.studentNumber,
+    dateTime: dateTime,
+    semester: formData.semester,
+    academicYear: formData.academicYear,
+    clearanceStatus: formData.status
+  };
+
+  fetch(`${API_BASE}/api/register.php`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(student)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      resetRegistrationForm();
+      document.getElementById('successModal').style.display = 'flex';
+    } else {
+      alert('Registration failed: ' + (data.error || 'Unknown error'));
+    }
+  })
+  .catch(err => alert('Network error: ' + err.message));
+}
+
+function closeSuccessModal() {
+  document.getElementById('successModal').style.display = 'none';
+}
+
+function resetRegistrationForm() {
+  document.getElementById('rfidNumber').value = '';
+  document.getElementById('name').value = '';
+  document.getElementById('studentNumber').value = '';
+  document.getElementById('date').value = '';
+  const program = document.getElementById('program');
+  if (program) program.selectedIndex = 0;
+  const year = document.getElementById('yearLevel');
+  if (year) year.selectedIndex = 0;
+  const sem = document.getElementById('semester');
+  if (sem) sem.selectedIndex = 0;
+  const acad = document.getElementById('academicYear');
+  if (acad) acad.selectedIndex = 0;
+  const status = document.getElementById('status');
+  if (status) status.selectedIndex = 0;
+  clearAllFieldErrors();
 }
 
 // ==================== ACADEMIC YEAR DROPDOWN ====================
@@ -271,176 +366,117 @@ function populateAcademicYear() {
 function showFieldError(fieldId) {
   document.getElementById(fieldId).classList.add('error-field');
 }
-
 function clearAllFieldErrors() {
-  document.querySelectorAll('.registration-layout input, .registration-layout select').forEach(field => {
-    field.classList.remove('error-field');
-  });
+  document.querySelectorAll('.registration-layout input, .registration-layout select').forEach(f => f.classList.remove('error-field'));
 }
-
 function clearFieldError(fieldId) {
   document.getElementById(fieldId).classList.remove('error-field');
 }
+
+// ==================== FILTERING ====================
+function applyFilters() {
+  const searchInput = document.getElementById('search')?.value.toLowerCase() || '';
+  const statusFilter = document.getElementById('statusFilter')?.value || '';
+  const isRegistered = window.location.pathname.includes('registeredPage.html');
+  const tableId = isRegistered ? '#registeredTable' : '#homeTable';
+  const rows = document.querySelectorAll(`${tableId} tbody tr`);
+
+  rows.forEach(row => {
+    let show = true;
+    if (searchInput && !row.innerText.toLowerCase().includes(searchInput)) show = false;
+    if (statusFilter && show) {
+      const statusCellIndex = isRegistered ? 9 : 8;
+      const statusCell = row.cells[statusCellIndex];
+      if (statusCell && statusCell.innerText.trim() !== statusFilter) show = false;
+    }
+    row.style.display = show ? '' : 'none';
+  });
+
+  if (isRegistered) updateSelectAllState();
+}
+
+function clearFilters() {
+  document.getElementById('search').value = '';
+  const filter = document.getElementById('statusFilter');
+  if (filter) filter.value = '';
+  applyFilters();
+}
+
+// ==================== SELECT ALL ====================
+function updateSelectAllState() {
+  const selectAll = document.getElementById('selectAll');
+  if (!selectAll) return;
+  const checkboxes = document.querySelectorAll('#registeredTable tbody .student-checkbox');
+  selectAll.checked = Array.from(checkboxes).every(cb => cb.checked);
+}
+function toggleSelectAll(selectAllCheckbox) {
+  const checkboxes = document.querySelectorAll('#registeredTable tbody .student-checkbox');
+  checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+  updateSelectAllState();
+}
+
+// ==================== MODALS ====================
+function showHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
+function closeHelpModal() { document.getElementById('helpModal').style.display = 'none'; }
+function showLogoutModal() { document.getElementById('logoutModal').style.display = 'flex'; }
+function closeLogoutModal() { document.getElementById('logoutModal').style.display = 'none'; }
+function confirmLogout() { closeLogoutModal(); window.location.href = 'login.html'; }
+function showExportModal() { document.getElementById('exportModal').style.display = 'flex'; }
+function closeExportModal() { document.getElementById('exportModal').style.display = 'none'; }
+function exportChosen(type) { closeExportModal(); exportData(type); }
 
 // ==================== LOGIN ====================
 function togglePassword() {
   const pass = document.getElementById('password');
   pass.type = pass.type === 'password' ? 'text' : 'password';
 }
-
 function login() {
   const user = document.getElementById('username').value.trim();
   const pass = document.getElementById('password').value.trim();
-
   if (user === '' || pass === '') {
     alert('Please enter username and password');
     return;
   }
-
   if (user === 'admin' && pass === 'admin1') {
     window.location.href = 'home.html';
   } else {
-    showModal();
+    document.getElementById('errorModal').style.display = 'flex';
   }
 }
-
-function showModal() {
-  document.getElementById('errorModal').style.display = 'flex';
-}
-
-function closeModal() {
-  document.getElementById('errorModal').style.display = 'none';
-}
+function closeModal() { document.getElementById('errorModal').style.display = 'none'; }
 
 // ==================== NAVIGATION ====================
-function needHelp() {
-  showHelpModal();
-}
+function needHelp() { showHelpModal(); }
+function goHome() { window.location.href = 'home.html'; }
+function goRegister() { window.location.href = 'registrationPage.html'; }
+function goRegistered() { window.location.href = 'registeredPage.html'; }
+function logout() { showLogoutModal(); }
+function goToRegistered(rfid) { window.location.href = 'registeredPage.html?rfid=' + encodeURIComponent(rfid); }
 
-function goHome() {
-  window.location.href = 'home.html';
-}
-
-function goRegister() {
-  window.location.href = 'registrationPage.html';
-}
-
-function goRegistered() {
-  window.location.href = 'registeredPage.html';
-}
-
-function logout() {
-  showLogoutModal();
-}
-
-function goToRegistered(rfid) {
-  window.location.href = 'registeredPage.html?rfid=' + encodeURIComponent(rfid);
-}
-
-// ==================== IMAGE UPLOAD ====================
-function loadImage(event) {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const profileImage = document.getElementById('profileImage');
-      profileImage.style.backgroundImage = `url('${e.target.result}')`;
-      profileImage.style.backgroundSize = 'cover';
-      profileImage.style.backgroundPosition = 'center';
-    };
-    reader.readAsDataURL(file);
-  }
-}
-
-// ==================== SEARCH & EXPORT ====================
-// ==================== FILTERING ====================
-function applyFilters() {
-  const searchInput = document.getElementById('search').value.toLowerCase();
-  const statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
-  
-  const isRegistered = window.location.pathname.includes('registeredPage.html');
-  const tableId = isRegistered ? '#registeredTable' : '#homeTable';
-  const rows = document.querySelectorAll(`${tableId} tbody tr`);
-  
-  rows.forEach(row => {
-    let show = true;
-    
-    // Search filter (check entire row text)
-    if (searchInput && !row.innerText.toLowerCase().includes(searchInput)) {
-      show = false;
-    }
-    
-    // Status filter
-    if (statusFilter && show) {
-      // Status column index: registered = 9 (after checkbox), home = 8
-      const statusCellIndex = isRegistered ? 9 : 8;
-      const statusCell = row.cells[statusCellIndex];
-      if (statusCell) {
-        const statusText = statusCell.innerText.trim();
-        if (statusText !== statusFilter) {
-          show = false;
-        }
-      }
-    }
-    
-    row.style.display = show ? '' : 'none';
-  });
-  
-  // Update select all state on registered page
-  if (isRegistered) {
-    updateSelectAllState();
-  }
-}
-
-function clearFilters() {
-  document.getElementById('search').value = '';
-  if (document.getElementById('statusFilter')) {
-    document.getElementById('statusFilter').value = '';
-  }
-  applyFilters();
-}
-
-// Remove old searchTable function – we no longer need it.
-// But keep it if referenced elsewhere; we can redirect:
-function searchTable() {
-  applyFilters();
-}
-
+// ==================== EXPORT ====================
 function exportData(type) {
   if (!type) return;
-
   const isRegistered = window.location.pathname.includes('registeredPage.html');
   const table = document.getElementById(isRegistered ? 'registeredTable' : 'homeTable');
   if (!table) return;
 
-  // Clone the table
   const clone = table.cloneNode(true);
-
-  // Remove rows that are hidden in the original table
   const originalRows = table.tBodies[0].rows;
   const clonedTBody = clone.tBodies[0];
-  // Iterate backwards to avoid index issues
   for (let i = clonedTBody.rows.length - 1; i >= 0; i--) {
     if (originalRows[i] && originalRows[i].style.display === 'none') {
       clonedTBody.deleteRow(i);
     }
   }
 
-  // If registered, remove the first column (checkbox)
   if (isRegistered) {
     const headerRow = clone.querySelector('thead tr');
-    if (headerRow && headerRow.cells.length > 0) {
-      headerRow.deleteCell(0);
-    }
-    const rows = clone.querySelectorAll('tbody tr');
-    rows.forEach(row => {
-      if (row.cells.length > 0) {
-        row.deleteCell(0);
-      }
+    if (headerRow && headerRow.cells.length > 0) headerRow.deleteCell(0);
+    clone.querySelectorAll('tbody tr').forEach(row => {
+      if (row.cells.length > 0) row.deleteCell(0);
     });
   }
 
-  // Export
   if (type === 'excel') {
     const tableHTML = clone.outerHTML.replace(/ /g, '%20');
     const a = document.createElement('a');
@@ -448,6 +484,6 @@ function exportData(type) {
     a.download = isRegistered ? 'registered_students.xls' : 'students.xls';
     a.click();
   } else if (type === 'pdf') {
-    window.print(); // Print CSS hides UI and checkbox column
+    window.print();
   }
 }

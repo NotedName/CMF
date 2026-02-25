@@ -21,20 +21,23 @@
       <div class="nav" onclick="goHome()">HOME PAGE</div>
       <div class="nav active">REGISTRATION PAGE</div>
       <div class="nav" onclick="goRegistered()">REGISTERED PAGE</div>
-
       <div class="logout" onclick="logout()">LOGOUT ↩</div>
     </div>
 
     <div class="content">
-
       <div class="registration-content">
         <div class="registration-layout">
+          <!-- RFID field above both columns, centered -->
+          <div class="rfid-container" style="display: flex; justify-content: center; margin-bottom: 20px;">
+            <div style="width: 50%;">
+              <label>RFID NUMBER <span class="required">*</span></label>
+              <input type="text" id="rfidNumber" placeholder="Enter RFID" onchange="clearFieldError('rfidNumber')" style="width: 100%;">
+            </div>
+          </div>
+
           <div class="registration-form">
             <!-- Left Column -->
             <div class="form-column">
-              <label>RFID NUMBER <span class="required">*</span></label>
-              <input type="text" id="rfidNumber" placeholder="Enter RFID" onchange="clearFieldError('rfidNumber')">
-
               <label>PROGRAM <span class="required">*</span></label>
               <select id="program" onchange="clearFieldError('program')">
                 <option value="" disabled selected>Select Program</option>
@@ -55,6 +58,13 @@
                 <option value="" disabled selected>Select Semester</option>
                 <option value="1st">1st Semester</option>
                 <option value="2nd">2nd Semester</option>
+              </select>
+
+              <label>STATUS (optional)</label>
+              <select id="status" onchange="clearFieldError('status')">
+                <option value="Pending" selected>Pending</option>
+                <option value="Claimed">Claimed</option>
+                <option value="Returned">Returned</option>
               </select>
             </div>
 
@@ -79,42 +89,40 @@
               <select id="academicYear" onchange="clearFieldError('academicYear')">
                 <!-- populated by JavaScript -->
               </select>
+
             </div>
           </div>
 
           <button class="register-btn" onclick="validateAndRegister()">REGISTER</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <!-- Success Modal -->
+  <div id="successModal" class="modal">
+    <div class="modal-content">
+      <p>Registration successful!</p>
+      <button onclick="closeSuccessModal()">OK</button>
+    </div>
+  </div>
+  <!-- Help Modal -->
+  <div id="helpModal" class="modal">
+    <div class="modal-content">
+      <p>Please contact the system administrator for assistance.</p>
+      <button onclick="closeHelpModal()">OK</button>
+    </div>
+  </div>
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="modal">
+    <div class="modal-content">
+      <p id="logoutMessage">Are you sure you want to logout?</p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button onclick="confirmLogout()">Yes</button>
+        <button onclick="closeLogoutModal()">No</button>
       </div>
-
     </div>
   </div>
-
-<script src="script.js"></script>
-<!-- Success Modal -->
-<div id="successModal" class="modal">
-  <div class="modal-content">
-    <p>Registration successful!</p>
-    <button onclick="closeSuccessModalAndRedirect()">OK</button>
-  </div>
-</div>
-<!-- Help Modal -->
-<div id="helpModal" class="modal">
-  <div class="modal-content">
-    <p>Please contact the system administrator for assistance.</p>
-    <button onclick="closeHelpModal()">OK</button>
-  </div>
-</div>
-
-<!-- Logout Confirmation Modal -->
-<div id="logoutModal" class="modal">
-  <div class="modal-content">
-    <p id="logoutMessage">Are you sure you want to logout?</p>
-    <div style="display: flex; gap: 10px; justify-content: center;">
-      <button onclick="confirmLogout()">Yes</button>
-      <button onclick="closeLogoutModal()">No</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>

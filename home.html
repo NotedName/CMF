@@ -27,21 +27,11 @@
 </div>
 
     <div class="content">
-
-      <!-- Filter Row -->
-      <div style="margin-bottom: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        <label for="statusFilter">Filter by Status:</label>
-        <select id="statusFilter" onchange="applyFilters()">
-          <option value="">All</option>
-          <option value="Pending">Pending</option>
-          <option value="Claimed">Claimed</option>
-          <option value="Returned">Returned</option>
-        </select>
-        <button onclick="clearFilters()" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">Clear</button>
-      </div>
-
-      <!-- SEARCH -->
-      <div class="search-wrapper">
+  <!-- Top bar with filter and export -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+    <!-- Left: search + status filter + clear -->
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <div class="search-wrapper" style="margin:0;">
         <input type="text" id="search" placeholder="Search" onkeyup="applyFilters()">
         <span class="search-icon">
           <svg viewBox="0 0 24 24">
@@ -50,10 +40,22 @@
           </svg>
         </span>
       </div>
-
-<div style="position:absolute; top:20px; right:20px;">
-  <button onclick="showExportModal()" style="padding: 8px 12px; background: #2f80ed; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 12px;">Export</button>
-</div>
+      <div style="display: flex; gap:5px; align-items:center;">
+        <label for="statusFilter" style="font-size:12px;">Status:</label>
+        <select id="statusFilter" onchange="applyFilters()" style="padding:6px; border-radius:5px;">
+          <option value="">All</option>
+          <option value="Pending">Pending</option>
+          <option value="Claimed">Claimed</option>
+          <option value="Returned">Returned</option>
+        </select>
+        <button onclick="clearFilters()" class="clear-btn">Clear</button>
+      </div>
+    </div>
+    <!-- Right: export button -->
+    <div>
+      <button onclick="showExportModal()" class="export-btn">Export</button>
+    </div>
+  </div>
 
       <table id="homeTable">
         <thead>

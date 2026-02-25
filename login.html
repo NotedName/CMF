@@ -7,15 +7,18 @@
 </head>
 <body>
 
-  <div class="topbar"></div>
-    <div class="need-help-wrapper">
-      <span class="need-help" onclick="needHelp()">
-        NEED HELP? <span class="help-icon">?</span>
-      </span>
+  <!-- TOP BAR (same as other pages) -->
+  <div class="topbar">
+    <div class="topbar-left" style="cursor: pointer;">
+      <img src="smcmilogo.png" alt="SMCMI Logo" class="logo">
     </div>
+    <div class="topbar-right" onclick="needHelp()">
+      NEED HELP? <span class="help-icon">?</span>
+    </div>
+  </div>
 
   <div class="login-container">
-    <h1>Clearance</h1>
+    <h1>Clearance Monitoring System</h1>
 
     <div class="field">
       <label>USERNAME</label>
@@ -35,21 +38,30 @@
     <button onclick="login()">LOGIN</button>
   </div>
   
-<!-- Error Modal -->
-<div id="errorModal" class="modal">
-  <div class="modal-content">
-    <p>Invalid username or password</p>
-    <button onclick="closeModal()">OK</button>
+  <!-- Error Modal -->
+  <div id="errorModal" class="modal" onclick="if(event.target === this) closeErrorModal()">
+    <div class="modal-content">
+      <p>Invalid username or password</p>
+      <button onclick="closeErrorModal()">OK</button>   <!-- updated -->
+    </div>
   </div>
-</div>
 
-  <script src="script.js"></script>
-</body>
-<!-- Help Modal -->
-<div id="helpModal" class="modal">
-  <div class="modal-content">
-    <p>Please contact the system administrator for assistance.</p>
-    <button onclick="closeHelpModal()">OK</button>
+  <!-- Help Modal (now inside body) -->
+  <div id="helpModal" class="modal">
+    <div class="modal-content">
+      <p>Please contact the system administrator for assistance.</p>
+      <button onclick="closeHelpModal()">OK</button>
+    </div>
   </div>
-</div>
+
+  <!-- Script at the end so DOM is ready -->
+  <script src="script.js"></script>
+  <!-- Message Modal (for empty fields, etc.) -->
+  <div id="messageModal" class="modal">
+    <div class="modal-content">
+      <p id="messageModalText">Message</p>
+      <button onclick="closeMessageModal()">OK</button>
+    </div>
+  </div>
+</body>
 </html>

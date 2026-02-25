@@ -26,21 +26,18 @@ function loadStudents() {
   fetch(`${API_BASE}/api/students.php`)
     .then(res => res.json())
     .then(students => {
-      allStudents = students; // store globally for filters & sorting
-
-      // Home page
+      allStudents = students;
       if (document.getElementById('homeTable')) {
         renderHomeTable(students, true);
         updateSortIndicators(homeSort.column, homeSort.direction, false);
       }
-
-      // Registered page
       if (document.getElementById('registeredTable')) {
         renderRegisteredTable(students, true);
         updateSortIndicators(registeredSort.column, registeredSort.direction, true);
-        handleUrlHighlight();   // after rendering
+        handleUrlHighlight();
       }
-    })
+      applyFilters();
+    }) // <-- missing closing brace and parenthesis
     .catch(err => console.error('Failed to load students:', err));
 }
 
@@ -75,7 +72,7 @@ function renderRegisteredTable(students, keepSort = false) {
   let data = keepSort ? sortStudents(students, registeredSort.column, registeredSort.direction, true) : students;
 
   tbody.innerHTML = data.map(student => {
-    const status = student.clearanceStatus || '';
+    const displayStatus = student.clearanceStatus || 'Pending'; // ✅ moved outside
     return `
       <tr>
         <td style="width: 30px; text-align: center;">
@@ -91,9 +88,9 @@ function renderRegisteredTable(students, keepSort = false) {
         <td>${student.academicYear || ''}</td>
         <td>
           <select class="status-select" data-rfid="${student.rfidNumber}" onchange="updateClearanceStatus('${student.rfidNumber}', this.value)">
-            <option value="" ${status === '' ? 'selected' : ''}>Pending</option>
-            <option value="Claimed" ${status === 'Claimed' ? 'selected' : ''}>Claimed</option>
-            <option value="Returned" ${status === 'Returned' ? 'selected' : ''}>Returned</option>
+            <option value="Pending" ${displayStatus === 'Pending' ? 'selected' : ''}>Pending</option>
+            <option value="Claimed" ${displayStatus === 'Claimed' ? 'selected' : ''}>Claimed</option>
+            <option value="Returned" ${displayStatus === 'Returned' ? 'selected' : ''}>Returned</option>
           </select>
         </td>
       </tr>
@@ -259,6 +256,31 @@ function updateClearanceStatus(rfid, newStatus) {
   .catch(err => console.error('Update failed:', err));
 }
 
+// ==================== MESSAGE MODAL ====================
+function showMessageModal(text) {
+    document.getElementById('messageModalText').innerText = text;
+    document.getElementById('messageModal').style.display = 'flex';
+}
+
+function closeMessageModal() {
+    document.getElementById('messageModal').style.display = 'none';
+}
+
+// ==================== ERROR MODAL ====================
+function closeErrorModal() {
+    document.getElementById('errorModal').style.display = 'none';
+}
+
+// ==================== TOGGLE PASSWORD ====================
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+    } else {
+        passwordInput.type = 'password';
+    }
+}
+
 // ==================== REGISTRATION ====================
 function validateAndRegister() {
   clearAllFieldErrors();
@@ -290,10 +312,22 @@ function validateAndRegister() {
 }
 
 function registerStudent(formData) {
-  const dateObj = new Date(formData.date + 'T00:00:00');
+  // Parse the selected date (YYYY-MM-DD) into local date parts
+  const [year, month, day] = formData.date.split('-').map(Number);
+  const dateObj = new Date(year, month - 1, day); // local midnight of that day
+
+  // Get current local time
   const now = new Date();
   dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-  const dateTime = dateObj.toLocaleString(); // adjust format if needed
+
+  // Format as YYYY-MM-DD HH:MM:SS (MySQL datetime format)
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  const h = String(dateObj.getHours()).padStart(2, '0');
+  const i = String(dateObj.getMinutes()).padStart(2, '0');
+  const s = String(dateObj.getSeconds()).padStart(2, '0');
+  const dateTime = `${y}-${m}-${d} ${h}:${i}:${s}`;
 
   const student = {
     rfidNumber: formData.rfidNumber,
@@ -383,11 +417,18 @@ function applyFilters() {
 
   rows.forEach(row => {
     let show = true;
-    if (searchInput && !row.innerText.toLowerCase().includes(searchInput)) show = false;
+    if (searchInput && !row.innerText.toLowerCase().includes(searchInput)) {
+      show = false;
+    }
     if (statusFilter && show) {
-      const statusCellIndex = isRegistered ? 9 : 8;
-      const statusCell = row.cells[statusCellIndex];
-      if (statusCell && statusCell.innerText.trim() !== statusFilter) show = false;
+      if (isRegistered) {
+        const select = row.querySelector('.status-select');
+        // select.value is now "Pending", "Claimed", or "Returned"
+        if (select && select.value !== statusFilter) show = false;
+      } else {
+        const statusCell = row.cells[8]; // home table status column index
+        if (statusCell && statusCell.innerText.trim() !== statusFilter) show = false;
+      }
     }
     row.style.display = show ? '' : 'none';
   });
@@ -426,24 +467,53 @@ function closeExportModal() { document.getElementById('exportModal').style.displ
 function exportChosen(type) { closeExportModal(); exportData(type); }
 
 // ==================== LOGIN ====================
-function togglePassword() {
-  const pass = document.getElementById('password');
-  pass.type = pass.type === 'password' ? 'text' : 'password';
-}
 function login() {
-  const user = document.getElementById('username').value.trim();
-  const pass = document.getElementById('password').value.trim();
-  if (user === '' || pass === '') {
-    alert('Please enter username and password');
-    return;
-  }
-  if (user === 'admin' && pass === 'admin1') {
-    window.location.href = 'home.html';
-  } else {
-    document.getElementById('errorModal').style.display = 'flex';
-  }
+    const user = document.getElementById('username').value.trim();
+    const pass = document.getElementById('password').value.trim();
+
+    if (user === '' || pass === '') {
+        showMessageModal('Please enter username and password');
+        return;
+    }
+
+    fetch(`${API_BASE}/api/login.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass })
+    })
+    .then(res => {
+        if (!res.ok) {
+            if (res.status === 401) {
+                document.getElementById('errorModal').style.display = 'flex';
+            }
+            throw new Error('Login failed');
+        }
+        return res.json();
+    })
+    .then(data => {
+        if (data.success) {
+            window.location.href = 'home.html';
+        }
+    })
+    .catch(err => console.error('Login error:', err));
 }
-function closeModal() { document.getElementById('errorModal').style.display = 'none'; }
+
+// ==================== LOGOUT ====================
+function logout() {
+  showLogoutModal(); // show confirmation modal
+}
+
+function confirmLogout() {
+  closeLogoutModal();
+  fetch(`${API_BASE}/api/logout.php`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(() => {
+      window.location.href = 'login.html';
+    })
+    .catch(err => console.error('Logout error:', err));
+}
 
 // ==================== NAVIGATION ====================
 function needHelp() { showHelpModal(); }

@@ -34,7 +34,22 @@
 
     <button onclick="login()">LOGIN</button>
   </div>
+  
+<!-- Error Modal -->
+<div id="errorModal" class="modal">
+  <div class="modal-content">
+    <p>Invalid username or password</p>
+    <button onclick="closeModal()">OK</button>
+  </div>
+</div>
 
   <script src="script.js"></script>
 </body>
+<!-- Help Modal -->
+<div id="helpModal" class="modal">
+  <div class="modal-content">
+    <p>Please contact the system administrator for assistance.</p>
+    <button onclick="closeHelpModal()">OK</button>
+  </div>
+</div>
 </html>

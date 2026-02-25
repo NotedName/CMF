@@ -8,6 +8,9 @@
 <body>
 
   <div class="topbar">
+    <div class="topbar-left" onclick="goHome()" style="cursor: pointer;">
+      <img src="smcmilogo.png" alt="SMCMI Logo" class="logo">
+    </div>
     <div class="topbar-right" onclick="needHelp()">
       NEED HELP? <span class="help-icon">?</span>
     </div>
@@ -26,54 +29,92 @@
 
       <div class="registration-content">
         <div class="registration-layout">
-          <div class="profile-wrapper">
-            <div class="profile-circle" id="profileImage"></div>
-            <input type="file" id="imageInput" accept="image/*" onchange="loadImage(event)">
-            <label for="imageInput" class="image-upload-btn">📷 Upload Photo</label>
-          </div>
+          <div class="registration-form">
+            <!-- Left Column -->
+            <div class="form-column">
+              <label>RFID NUMBER <span class="required">*</span></label>
+              <input type="text" id="rfidNumber" placeholder="Enter RFID" onchange="clearFieldError('rfidNumber')">
 
-          <div>
-            <div class="registration-form">
+              <label>PROGRAM <span class="required">*</span></label>
+              <select id="program" onchange="clearFieldError('program')">
+                <option value="" disabled selected>Select Program</option>
+                <option value="BEED">(BEED) Bachelor of Elementary Education</option>
+                <option value="BSA">(BSA) Bachelor of Science in Accountancy</option>
+                <option value="BSBA">(BSBA) Bachelor of Science in Business Administration</option>
+                <option value="BSED">(BSED) Bachelor of Science in Education</option>
+                <option value="BSHM">(BSHM) Bachelor of Science in Hospitality Management</option>
+                <option value="BSIT">(BSIT) Bachelor of Science in Information Technology</option>
+                <option value="BSTM">(BSTM) Bachelor of Science in Tourism Management</option>
+              </select>
 
-              <div class="form-column">
-                <label>RFID NUMBER <span class="required">*</span></label>
-                <input type="text" id="rfidNumber" placeholder="Enter RFID" onchange="clearFieldError('rfidNumber')">
+              <label>STUDENT NUMBER <span class="required">*</span></label>
+              <input type="text" id="studentNumber" placeholder="Enter student number" onchange="clearFieldError('studentNumber')">
 
-                <label>PROGRAM <span class="required">*</span></label>
-                <input type="text" id="program" placeholder="Enter program" onchange="clearFieldError('program')">
-
-                <label>STUDENT NUMBER <span class="required">*</span></label>
-                <input type="text" id="studentNumber" placeholder="Enter student number" onchange="clearFieldError('studentNumber')">
-
-                <label>SEMESTER <span class="required">*</span></label>
-                <input type="text" id="semester" placeholder="Enter semester" onchange="clearFieldError('semester')">
-              </div>
-
-              <div class="form-column">
-                <label>NAME <span class="required">*</span></label>
-                <input type="text" id="name" placeholder="Enter full name" onchange="clearFieldError('name')">
-
-                <label>YEAR LEVEL <span class="required">*</span></label>
-                <input type="text" id="yearLevel" placeholder="Enter year level" onchange="clearFieldError('yearLevel')">
-
-                <label>DATE <span class="required">*</span></label>
-                <input type="date" id="date" onchange="clearFieldError('date')">
-
-                <label>ACADEMIC YEAR <span class="required">*</span></label>
-                <input type="text" id="academicYear" placeholder="Enter academic year" onchange="clearFieldError('academicYear')">
-              </div>
-
+              <label>SEMESTER <span class="required">*</span></label>
+              <select id="semester" onchange="clearFieldError('semester')">
+                <option value="" disabled selected>Select Semester</option>
+                <option value="1st">1st Semester</option>
+                <option value="2nd">2nd Semester</option>
+              </select>
             </div>
 
-            <button class="register-btn" onclick="validateAndRegister()">REGISTER</button>
+            <!-- Right Column -->
+            <div class="form-column">
+              <label>NAME <span class="required">*</span></label>
+              <input type="text" id="name" placeholder="Enter full name" onchange="clearFieldError('name')">
+
+              <label>YEAR LEVEL <span class="required">*</span></label>
+              <select id="yearLevel" onchange="clearFieldError('yearLevel')">
+                <option value="" disabled selected>Select Year Level</option>
+                <option value="1st">1st Year</option>
+                <option value="2nd">2nd Year</option>
+                <option value="3rd">3rd Year</option>
+                <option value="4th">4th Year</option>
+              </select>
+
+              <label>DATE <span class="required">*</span></label>
+              <input type="date" id="date" onchange="clearFieldError('date')">
+
+              <label>ACADEMIC YEAR <span class="required">*</span></label>
+              <select id="academicYear" onchange="clearFieldError('academicYear')">
+                <!-- populated by JavaScript -->
+              </select>
+            </div>
           </div>
 
+          <button class="register-btn" onclick="validateAndRegister()">REGISTER</button>
         </div>
+      </div>
       </div>
 
     </div>
   </div>
 
 <script src="script.js"></script>
+<!-- Success Modal -->
+<div id="successModal" class="modal">
+  <div class="modal-content">
+    <p>Registration successful!</p>
+    <button onclick="closeSuccessModalAndRedirect()">OK</button>
+  </div>
+</div>
+<!-- Help Modal -->
+<div id="helpModal" class="modal">
+  <div class="modal-content">
+    <p>Please contact the system administrator for assistance.</p>
+    <button onclick="closeHelpModal()">OK</button>
+  </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div id="logoutModal" class="modal">
+  <div class="modal-content">
+    <p id="logoutMessage">Are you sure you want to logout?</p>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+      <button onclick="confirmLogout()">Yes</button>
+      <button onclick="closeLogoutModal()">No</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

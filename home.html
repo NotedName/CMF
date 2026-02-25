@@ -8,6 +8,9 @@
 <body>
 
   <div class="topbar">
+    <div class="topbar-left" onclick="goHome()" style="cursor: pointer;">
+      <img src="smcmilogo.png" alt="SMCMI Logo" class="logo">
+    </div>
     <div class="topbar-right" onclick="needHelp()">
       NEED HELP? <span class="help-icon">?</span>
     </div>
@@ -25,18 +28,34 @@
 
     <div class="content">
 
-      <div class="search-wrapper">
-  <input type="text" id="search" placeholder="Search" onkeyup="searchTable()">
+      <!-- Filter Row -->
+      <div style="margin-bottom: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <label for="statusFilter">Filter by Status:</label>
+        <select id="statusFilter" onchange="applyFilters()">
+          <option value="">All</option>
+          <option value="Pending">Pending</option>
+          <option value="Claimed">Claimed</option>
+          <option value="Returned">Returned</option>
+        </select>
+        <button onclick="clearFilters()" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">Clear</button>
+      </div>
 
-  <span class="search-icon">
-    <svg viewBox="0 0 24 24">
-      <circle cx="11" cy="11" r="7"></circle>
-      <line x1="16" y1="16" x2="22" y2="22"></line>
-    </svg>
-  </span>
+      <!-- SEARCH -->
+      <div class="search-wrapper">
+        <input type="text" id="search" placeholder="Search" onkeyup="applyFilters()">
+        <span class="search-icon">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16" y1="16" x2="22" y2="22"></line>
+          </svg>
+        </span>
+      </div>
+
+<div style="position:absolute; top:20px; right:20px;">
+  <button onclick="showExportModal()" style="padding: 8px 12px; background: #2f80ed; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 12px;">Export</button>
 </div>
 
-      <table>
+      <table id="homeTable">
         <thead>
           <tr>
             <th>RFID NUMBER</th>
@@ -68,5 +87,36 @@
   </div>
 
 <script src="script.js"></script>
+<!-- Help Modal -->
+<div id="helpModal" class="modal">
+  <div class="modal-content">
+    <p>Please contact the system administrator for assistance.</p>
+    <button onclick="closeHelpModal()">OK</button>
+  </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div id="logoutModal" class="modal">
+  <div class="modal-content">
+    <p id="logoutMessage">Are you sure you want to logout?</p>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+      <button onclick="confirmLogout()">Yes</button>
+      <button onclick="closeLogoutModal()">No</button>
+    </div>
+  </div>
+</div>
+<!-- Export Modal -->
+<div id="exportModal" class="modal">
+  <div class="modal-content">
+    <p>Choose export format:</p>
+    <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
+      <button onclick="exportChosen('pdf')">PDF</button>
+      <button onclick="exportChosen('excel')">Excel</button>
+    </div>
+    <div style="display: flex; justify-content: center;">
+      <button onclick="closeExportModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

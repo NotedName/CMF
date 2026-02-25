@@ -14,15 +14,74 @@ body {
   min-height: 100vh;
 }
 
+/* Modal styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.modal-content p {
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.modal-content button {
+  padding: 8px 20px;
+  background: #2f80ed;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.status-select {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 11px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.status-select option[value="Claimed"] { background-color: #c8e6c9; }  /* light green */
+.status-select option[value="Returned"] { background-color: #ffcdd2; } /* light red */
+
 /* TOP BAR */
 .topbar {
   height: 50px;
   background: linear-gradient(135deg, #7fb3ff 0%, #5a9cff 100%);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;  /* Changed from flex-end to space-between */
   align-items: center;
-  padding-right: 20px;
+  padding: 0 20px;                 /* Added horizontal padding */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  height: 40px;      /* Adjust as needed to fit the top bar */
+  width: auto;
+  display: block;
 }
 
 .topbar-right {
@@ -347,6 +406,20 @@ body {
   fill: none;
 }
 
+#deleteSelectedBtn {
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+}
+
+#deleteSelectedBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(211, 47, 47, 0.45);
+}
+
+#deleteSelectedBtn:active {
+  transform: scale(0.98);
+}
+
 /* TABLE */
 table {
   width: 100%;
@@ -411,61 +484,56 @@ table tbody tr:nth-child(even):hover {
 
 .registration-layout {
   display: flex;
-  align-items: flex-start;
-  gap: 80px;
+  flex-direction: column;  /* Stack form above button */
+  gap: 30px;               /* Space between form and button */
 }
 
-/* PROFILE CIRCLE */
-.registration-layout .profile-circle {
-  width: 200px;
-  height: 200px;
-  background: linear-gradient(135deg, #e1e5ea 0%, #f5f7fa 100%);
-  border-radius: 50%;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  flex-shrink: 0;
-  background-size: cover;
-  background-position: center;
-  border: 3px solid #ddd;
-  transition: all 0.3s ease;
+/* Two-column form container */
+.registration-layout .registration-form {
+  display: flex;
+  gap: 50px;
+  flex: 1;
 }
 
-.registration-layout .profile-circle:hover {
-  border-color: #2f80ed;
-  box-shadow: 0 8px 24px rgba(47, 128, 237, 0.2);
-}
-
-/* PROFILE IMAGE UPLOAD */
-#imageInput {
-  display: none;
-}
-
-.profile-wrapper {
+.registration-layout .form-column {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 15px;
+  gap: 18px;
+  flex: 1;
 }
 
-.image-upload-btn {
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #2f80ed 0%, #1e5bb8 100%);
-  color: white;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 12px;
+.registration-layout .form-column label {
+  font-size: 11px;
   font-weight: 600;
+  color: #555;
+  letter-spacing: 0.5px;
+}
+
+.registration-layout .form-column input,
+.registration-layout .form-column select {
+  width: 100%;
+  height: 36px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
-  text-align: center;
+  background: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
 }
 
-.image-upload-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+.registration-layout .form-column input:focus,
+.registration-layout .form-column select:focus {
+  outline: none;
+  border-color: #2f80ed;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
 }
 
-.image-upload-btn:active {
-  transform: scale(0.98);
+.registration-layout .form-column input.error-field,
+.registration-layout .form-column select.error-field {
+  border-color: #d32f2f !important;
+  background: #ffcdd2 !important;
 }
 
 /* FORM */
@@ -524,7 +592,6 @@ table tbody tr:nth-child(even):hover {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
-  margin-top: 25px;
   letter-spacing: 0.5px;
 }
 
@@ -685,11 +752,6 @@ button,
     align-items: center;
   }
 
-  .registration-layout .profile-circle {
-    width: 160px;
-    height: 160px;
-  }
-
   .registration-layout .registration-form {
     flex-direction: column;
     gap: 20px;
@@ -739,6 +801,10 @@ button,
     padding-right: 12px;
   }
 
+  .logo {
+    height: 30px;
+  }
+  
   .topbar-right {
     font-size: 11px;
   }
@@ -842,30 +908,30 @@ button,
     height: 38px;
     margin-top: 15px;
   }
-
-  .image-upload-btn {
-    padding: 8px 16px;
-    font-size: 11px;
-  }
 }
 
 @media print {
-  .sidebar,
-  .topbar,
-  .search-wrapper,
-  .need-help-wrapper,
-  select {
+  .sidebar, .topbar, .search-wrapper, .need-help-wrapper, select,
+  #deleteSelectedBtn, button, .content > :not(table) {
+    display: none !important;
+  }
+  .content, .main-wrapper {
+    padding: 0;
+    margin: 0;
+    background: none;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    box-shadow: none;
+    background: white;
+  }
+  #registeredTable th:first-child,
+  #registeredTable td:first-child {
     display: none;
   }
-
-  table {
-    margin-top: 0;
-    box-shadow: none;
-  }
-
-  .login-container,
-  .registration-content {
-    box-shadow: none;
-    border: 1px solid #ddd;
+  th, td {
+    border: 1px solid #000;
   }
 }

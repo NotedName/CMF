@@ -1,0 +1,993 @@
+/* ==================== GLOBAL ==================== */
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  background: url('Resources/backgroundImage.jpg') no-repeat center center fixed;
+  background-size: cover;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+body.dark-mode {
+  background: url('Resources/backgroundImageDark.png') no-repeat center center fixed;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+/* ==================== MODALS ==================== */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  max-width: 90%;
+}
+
+.modal-content p {
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.modal-content button {
+  padding: 8px 20px;
+  background: #2f80ed;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+/* ==================== TOP BAR ==================== */
+.topbar {
+  height: 50px;
+  background: linear-gradient(135deg, #7fb3ff 0%, #5a9cff 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+}
+
+.need-help-text {
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.need-help-text:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.help-icon {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.help-icon:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(15deg);
+}
+
+.darkmode-icon {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  color: #fff;
+}
+
+.darkmode-icon:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(15deg);
+}
+
+/* ==================== LOGIN PAGE ==================== */
+.login-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 80px auto;
+  padding: 45px 40px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-container h1 {
+  font-size: 42px;
+  margin-bottom: 35px;
+  color: #333;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.field {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: #555;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.field input {
+  width: 100%;
+  height: 38px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: #2f80ed;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+}
+
+.show-password {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 25px;
+  color: #666;
+}
+
+.show-password input {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #2f80ed;
+}
+
+.login-container button {
+  width: 100%;
+  height: 38px;
+  background: linear-gradient(135deg, #2f80ed 0%, #1e5bb8 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+}
+
+.login-container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+}
+
+/* ==================== MAIN LAYOUT ==================== */
+.main-wrapper {
+  display: flex;
+  min-height: calc(100vh - 50px);
+}
+
+/* ----- SIDEBAR (desktop) ----- */
+.sidebar {
+  width: 200px;
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+  padding-top: 20px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.nav, .logout {
+  padding: 14px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #555;
+  position: relative;
+  overflow: hidden;
+  height: 50px;
+  display: flex;
+  align-items: center;
+}
+
+.nav::before, .logout::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.nav::before { background: #2f80ed; }
+.logout::before { background: #d32f2f; }
+
+.nav:hover {
+  background: rgba(47, 128, 237, 0.08);
+  color: #2f80ed;
+  padding-left: 18px;
+}
+
+.nav:hover::before, .logout:hover::before {
+  transform: scaleY(1);
+}
+
+.nav.active {
+  background: linear-gradient(135deg, rgba(207, 238, 255, 0.6), rgba(234, 246, 255, 0.6));
+  color: #2f80ed;
+  font-weight: 600;
+}
+
+.nav.active::before {
+  transform: scaleY(1);
+}
+
+.logout {
+  margin-top: auto;
+  color: #d32f2f;
+}
+
+.logout:hover {
+  background: rgba(211, 47, 47, 0.08);
+  padding-left: 18px;
+}
+
+/* ----- CONTENT AREA ----- */
+.content {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+/* ==================== SEARCH & FILTER BAR ==================== */
+.content > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.search-wrapper {
+  position: relative;
+  width: 280px;
+}
+
+.search-wrapper input {
+  width: 100%;
+  height: 38px;
+  padding: 8px 12px 8px 40px;
+  border: 1.5px solid #ddd;
+  border-radius: 10px;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.search-wrapper input:focus {
+  outline: none;
+  border-color: #2f80ed;
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+  background: #fff;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #aaa;
+  pointer-events: none;
+}
+
+.search-icon svg {
+  width: 100%;
+  height: 100%;
+  stroke: #2f80ed;
+  stroke-width: 2;
+  fill: none;
+}
+
+/* ----- Buttons (unified height 38px) ----- */
+button, .register-btn, .delete-btn, .export-btn, .clear-btn, #deleteSelectedBtn {
+  height: 38px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.delete-btn, #deleteSelectedBtn {
+  background: #d32f2f;
+  color: white;
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+}
+
+.delete-btn:hover, #deleteSelectedBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(211, 47, 47, 0.45);
+}
+
+.export-btn {
+  background: #2f80ed;
+  color: white;
+  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+}
+
+.export-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+}
+
+.clear-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.clear-btn:hover {
+  background: #5a6268;
+}
+
+button:active, .register-btn:active, .delete-btn:active, .export-btn:active {
+  transform: scale(0.98);
+}
+
+/* Make filter dropdown match height */
+#statusFilter {
+  height: 38px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1.5px solid #ddd;
+  background: white;
+}
+
+/* ==================== TABLES ==================== */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 10px 0 20px;
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+table thead {
+  background: linear-gradient(135deg, #cfe8ff 0%, #e1f0ff 100%);
+}
+
+table th {
+  border: 1px solid rgba(207, 232, 255, 0.6);
+  padding: 12px 8px;
+  text-align: center;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+table td {
+  border: 1px solid rgba(207, 232, 255, 0.4);
+  padding: 8px 6px;
+  color: #666;
+  text-align: center;
+  white-space: nowrap;
+}
+
+table tbody tr {
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+table tbody tr:hover {
+  background: rgba(127, 179, 255, 0.12);
+  box-shadow: inset 0 0 8px rgba(47, 128, 237, 0.1);
+}
+
+table tbody tr:nth-child(even) {
+  background: rgba(240, 249, 255, 0.5);
+}
+
+table tbody tr:nth-child(even):hover {
+  background: rgba(127, 179, 255, 0.12);
+}
+
+/* Table dropdowns – unified */
+.status-select, .remarks-select {
+  height: 36px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #ddd;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #555;
+  width: 100%;
+  min-width: 100px;
+  box-sizing: border-box;
+}
+
+.status-select:hover, .remarks-select:hover {
+  border-color: #2f80ed;
+  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.2);
+}
+
+.status-select:focus, .remarks-select:focus {
+  outline: none;
+  border-color: #2f80ed;
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+}
+
+.status-select option[value="Claimed"] { background-color: #c8e6c9; }
+.status-select option[value="Returned"] { background-color: #ffcdd2; }
+
+/* Sort indicators */
+th.sort-asc::after { content: " ▲"; font-size: 10px; }
+th.sort-desc::after { content: " ▼"; font-size: 10px; }
+
+/* ==================== REGISTRATION PAGE – RESPONSIVE FORM ==================== */
+.registration-content {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.registration-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* RFID field – centered, max width */
+.rfid-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.rfid-container > div {
+  width: 100%;
+  max-width: 400px;
+}
+
+.rfid-container label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 4px;
+  display: block;
+  letter-spacing: 0.5px;
+}
+
+#rfidNumber {
+  width: 100%;
+  height: 38px;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+}
+
+#rfidNumber:focus {
+  outline: none;
+  border-color: #2f80ed;
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+  background: #fff;
+}
+
+/* Two‑column grid */
+.registration-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-column label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 2px;
+  letter-spacing: 0.5px;
+}
+
+.form-column input,
+.form-column select {
+  width: 100%;
+  height: 38px;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+}
+
+.form-column input:focus,
+.form-column select:focus {
+  outline: none;
+  border-color: #2f80ed;
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+  background: #fff;
+}
+
+.form-column input.error-field,
+.form-column select.error-field,
+#rfidNumber.error-field {
+  border-color: #d32f2f !important;
+  background: #ffcdd2 !important;
+}
+
+/* Register button */
+.register-btn {
+  width: 100%;
+  height: 38px;
+  background: linear-gradient(135deg, #2f80ed 0%, #1e5bb8 100%);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+  margin-top: 20px;
+}
+
+.register-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+}
+
+/* Remove left padding on registration page for a flush left form */
+.registration-content-page {
+  padding-left: 30px;
+}
+
+/* ==================== FORM VALIDATION ==================== */
+.required { color: #d32f2f; font-weight: bold; }
+.field-error { display: none; }
+
+/* ==================== MOBILE STYLES ==================== */
+@media (max-width: 768px) {
+  /* ----- Top bar ----- */
+  .need-help-text { display: none; }
+
+  .help-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+  }
+
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1001;
+  }
+
+  /* ----- Sidebar as off-canvas menu ----- */
+  .sidebar {
+    position: fixed;
+    top: 50px;
+    left: -250px;
+    width: 250px;
+    height: calc(100vh - 50px);
+    transition: left 0.3s ease;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    padding-top: 20px;
+    overflow-y: auto;
+    padding-bottom: 20px;  
+  }
+  .sidebar.mobile-open { left: 0; }
+
+  /* Hamburger button */
+  .hamburger {
+    display: inline-block;
+    cursor: pointer;
+    width: 30px;
+    height: 24px;
+    position: relative;
+    margin-right: 12px;
+  }
+  .hamburger span {
+    display: block;
+    position: absolute;
+    height: 3px;
+    width: 100%;
+    background: white;
+    border-radius: 3px;
+    left: 0;
+    transition: all 0.3s ease;
+  }
+  .hamburger span:nth-child(1) { top: 0; }
+  .hamburger span:nth-child(2) { top: 10px; }
+  .hamburger span:nth-child(3) { top: 20px; }
+
+  /* Overlay */
+  .menu-overlay {
+    display: none;
+    position: fixed;
+    top: 50px;
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 50px);
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+  }
+  .menu-overlay.active { display: block; }
+
+  /* ----- Main layout adjustments ----- */
+  .main-wrapper { 
+    flex-direction: column;
+    margin-top: 50px;
+    min-height: calc(100vh - 50px);
+  }
+  .content { padding: 20px; }
+
+  /* ----- Search bar full width ----- */
+  .search-wrapper { width: 100%; margin-bottom: 20px; }
+
+  /* ----- Registration form single column ----- */
+  .registration-content { padding: 20px; }
+  .registration-form {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .rfid-container > div {
+    max-width: 100%;
+  }
+  .form-column input,
+  .form-column select,
+  #rfidNumber {
+    height: 48px;
+    font-size: 16px;
+  }
+  .register-btn {
+    height: 50px;
+    font-size: 16px;
+  }
+
+  /* Table adjustments */
+  table { font-size: 11px; }
+  table th { padding: 10px 6px; }
+  table td { height: auto; padding: 8px 4px; white-space: nowrap; }
+
+  /* Login page adjustments */
+  .login-container { margin: 40px auto; max-width: 90%; padding: 35px 25px; }
+  .login-container h1 { font-size: 36px; margin-bottom: 25px; }
+  .field input { height: 44px; font-size: 16px; }
+  .login-container button { height: 48px; font-size: 16px; }
+}
+
+/* ==================== VERY SMALL DEVICES ==================== */
+@media (max-width: 480px) {
+  .topbar { height: 45px; padding-right: 12px; }
+  .logo { height: 30px; }
+  .content { padding: 15px; }
+  .registration-content { padding: 15px; }
+  .registration-layout { gap: 15px; }
+  .form-column { gap: 12px; }
+  .form-column label { font-size: 11px; }
+  .form-column input { font-size: 14px; }
+  .login-container { padding: 30px 20px; }
+  .login-container h1 { font-size: 32px; }
+  .field label { font-size: 11px; }
+}
+
+/* ==================== DARK MODE ENHANCEMENTS ==================== */
+.dark-mode .content,
+.dark-mode .registration-content,
+.dark-mode .login-container {
+  background: rgba(30, 30, 40, 0.85) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #eee;
+}
+
+.dark-mode .sidebar {
+  background: rgba(25, 25, 35, 0.9) !important;
+  border-right-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .nav,
+.dark-mode .logout {
+  color: #ccc;
+}
+
+.dark-mode .nav.active {
+  background: linear-gradient(135deg, rgba(60, 100, 200, 0.5), rgba(40, 70, 150, 0.5));
+  color: white;
+}
+
+.dark-mode table {
+  background: rgba(30, 30, 40, 0.8);
+  color: #ddd;
+}
+
+.dark-mode table thead {
+  background: linear-gradient(135deg, #2a3f5e, #1c2a40);
+}
+
+.dark-mode table th {
+  color: #eee;
+  border-color: #444;
+}
+
+.dark-mode table td {
+  border-color: #444;
+  color: #ccc;
+}
+
+.dark-mode table tbody tr {
+  background: rgba(40, 40, 50, 0.6);
+}
+
+.dark-mode table tbody tr:nth-child(even) {
+  background: rgba(30, 30, 40, 0.8);
+}
+
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+  background: rgba(20, 20, 30, 0.8) !important;
+  border-color: #555 !important;
+  color: #eee !important;
+}
+
+.dark-mode input:focus,
+.dark-mode select:focus {
+  border-color: #5a9cff !important;
+  box-shadow: 0 0 0 3px rgba(90, 156, 255, 0.3) !important;
+  background: rgba(30, 30, 40, 0.9) !important;
+}
+
+.dark-mode .status-select,
+.dark-mode .remarks-select {
+  background: rgba(30, 30, 40, 0.9) !important;
+  color: #eee !important;
+}
+
+.dark-mode .export-btn {
+  background: #3a6ea5;
+}
+
+.dark-mode .delete-btn,
+.dark-mode #deleteSelectedBtn {
+  background: #a53a3a;
+}
+
+.dark-mode .clear-btn {
+  background: #5a5a5a;
+}
+
+.dark-mode .modal-content {
+  background: #2a2a2a;
+  color: #eee;
+  border: 1px solid #555;
+}
+
+.dark-mode .modal-content button {
+  background: #3a6ea5;
+}
+
+/* Additional dark mode text visibility */
+.dark-mode label {
+  color: #ddd !important;
+}
+
+.dark-mode input::placeholder,
+.dark-mode select::placeholder,
+.dark-mode textarea::placeholder {
+  color: #aaa !important;
+  opacity: 1;
+}
+
+.dark-mode .search-wrapper input::placeholder {
+  color: #aaa !important;
+}
+
+/* Status Update page headings */
+.status-update-heading {
+  margin-bottom: 30px;
+}
+.student-details-heading {
+  margin-bottom: 20px;
+}
+
+/* ==================== PRINT STYLES ==================== */
+@media print {
+  /* Hide all non‑essential elements */
+  .sidebar,
+  .topbar,
+  .search-wrapper,
+  .need-help-wrapper,
+  .hamburger,
+  .menu-overlay,
+  .modal,
+  select,
+  button,
+  #deleteSelectedBtn,
+  .content > div:first-child { /* filter bar */
+    display: none !important;
+  }
+
+  /* Make content area full width and visible */
+  .content, .main-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: none !important;
+    display: block !important;
+  }
+
+  /* Center the table when printing */
+  .content {
+    display: flex !important;
+    justify-content: center !important;
+    padding: 20px !important;
+  }
+  table {
+    margin: 0 auto !important;
+    width: auto !important;  /* allows table to shrink to content */
+  }
+
+  /* Ensure the responsive wrapper doesn't clip the table */
+  .table-responsive {
+    overflow: visible !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Table styling for print */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 10pt !important;
+    background: white !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  /* Hide checkbox column on registered page */
+  #registeredTable th:first-child,
+  #registeredTable td:first-child {
+    display: none !important;
+  }
+
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 4px 2px !important;
+    text-align: left !important;
+    white-space: normal !important;
+  }
+
+  th {
+    background-color: #f0f0f0 !important;
+    font-weight: bold !important;
+  }
+}

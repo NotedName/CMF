@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Home Page</title>
+  <link rel="icon" href="data:,"> <!-- empty favicon -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Inline script to apply dark mode before paint -->
+  <script>
+    (function() {
+      const darkMode = localStorage.getItem('darkMode');
+      if (darkMode === 'enabled') {
+        document.body.classList.add('dark-mode');
+      }
+    })();
+  </script>
+  <!-- Firebase SDK (modular) -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
+    import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
+    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
+      authDomain: "cmf-mcs.firebaseapp.com",
+      projectId: "cmf-mcs",
+      storageBucket: "cmf-mcs.firebasestorage.app",
+      messagingSenderId: "156302336546",
+      appId: "1:156302336546:web:373c1b25d24c4a9131e07b",
+      measurementId: "G-PJY3RN9XLH"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.auth = auth;
+    window.db = db;
+    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+    window.signOut = signOut;
+    window.collection = collection;
+    window.getDocs = getDocs;
+    window.getDoc = getDoc;
+    window.setDoc = setDoc;
+    window.updateDoc = updateDoc;
+    window.deleteDoc = deleteDoc;
+    window.doc = doc;
+    window.query = query;
+    window.orderBy = orderBy;
+  </script>
+  <!-- SheetJS (XLSX) for proper Excel export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-left" onclick="goHome()" style="cursor: pointer;">
+      <img src="Resources/smcmilogo.png" alt="SMCMI Logo" class="logo">
+    </div>
+    <div class="topbar-right">
+      <!-- Help first -->
+      <div onclick="needHelp()" style="display: flex; align-items: center; cursor: pointer;">
+        <span class="need-help-text">NEED HELP</span>
+        <span class="help-icon">?</span>
+      </div>
+      <!-- Dark mode toggle second -->
+      <div onclick="toggleDarkMode()" style="display: flex; align-items: center; cursor: pointer; margin-right: 8px;">
+        <span class="darkmode-icon" id="darkModeIcon">☾</span>
+      </div>
+      <!-- Hamburger last (mobile only) -->
+      <div class="hamburger" onclick="toggleMobileMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-wrapper">
+
+    <div class="sidebar">
+      <div class="nav" onclick="goHome()">HOME</div>          <!-- removed active -->
+      <div class="nav" onclick="goRegister()">REGISTRATION</div>
+      <div class="nav" onclick="goStatusUpdate()">STATUS UPDATE</div>
+      <div class="nav" onclick="goRegistered()">REGISTERED</div>
+      <div class="logout" onclick="logout()">LOGOUT</div>
+    </div>
+
+    <div class="content">
+  <!-- Top bar with filter and export -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+    <!-- Left: search + status filter + clear -->
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <div class="search-wrapper" style="margin:0;">
+        <input type="text" id="search" placeholder="Search" onkeyup="applyFilters()">
+        <span class="search-icon">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16" y1="16" x2="22" y2="22"></line>
+          </svg>
+        </span>
+      </div>
+      <div style="display: flex; gap:5px; align-items:center;">
+        <label for="statusFilter" style="font-size:12px;">Status:</label>
+        <select id="statusFilter" onchange="applyFilters()" style="padding:6px; border-radius:5px;">
+          <option value="">All</option>
+          <option value="Pending">Pending</option>
+          <option value="Claimed">Claimed</option>
+          <option value="Returned">Returned</option>
+        </select>
+        <button onclick="clearFilters()" class="clear-btn">Clear</button>
+      </div>
+    </div>
+    <!-- Right: export button -->
+    <div>
+      <button onclick="showExportModal()" class="export-btn">Export</button>
+    </div>
+  </div>
+    <div class="table-responsive">
+      <table id="homeTable">
+        <thead>
+          <tr>
+            <th>RFID NO.</th>
+            <th>NAME</th>
+            <th>COURSE</th>
+            <th>YEAR LEVEL</th>
+            <th>STUDENT NO.</th>
+            <th>DATE & TIME</th>
+            <th>SEMESTER</th>
+            <th>A.Y</th>
+            <th>GENDER</th>
+            <th>REMARKS</th>
+            <th>STATUS</th>
+          </tr>
+        </thead>
+        
+        <tbody>
+
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<!-- Help Modal -->
+<div id="helpModal" class="modal">
+  <div class="modal-content">
+    <p>Please contact the system administrator for assistance.</p>
+    <button onclick="closeHelpModal()">OK</button>
+  </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div id="logoutModal" class="modal">
+  <div class="modal-content">
+    <p id="logoutMessage">Are you sure you want to logout?</p>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+      <button onclick="confirmLogout()">Yes</button>
+      <button onclick="closeLogoutModal()">No</button>
+    </div>
+  </div>
+</div>
+<!-- Export Modal -->
+<div id="exportModal" class="modal">
+  <div class="modal-content">
+    <p>Choose export format:</p>
+    <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
+      <button onclick="exportChosen('pdf')">PDF</button>
+      <button onclick="exportChosen('excel')">Excel</button>
+    </div>
+    <div style="display: flex; justify-content: center;">
+      <button onclick="closeExportModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+<!-- Mobile menu overlay -->
+<div class="menu-overlay" onclick="closeMobileMenu()"></div>
+</body>
+</html>

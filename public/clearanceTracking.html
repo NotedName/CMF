@@ -6,7 +6,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Home Page</title>
+  <title>Clearance Tracking</title>
   <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
@@ -47,8 +47,6 @@
     window.where = where;
     window.limit = limit; 
   </script>
-  <!-- SheetJS for Excel export -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <script>
@@ -89,12 +87,12 @@
     </div>
 
     <div class="content">
-      <!-- FILTER BAR matching clearance tracking page design -->
+      <!-- FILTER BAR with improved responsive behavior -->
       <div class="filter-bar" style="justify-content: space-between;">
         <!-- Left section: search and filter dropdowns -->
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           <div class="search-wrapper" style="margin:0; min-width: 200px;">
-            <input type="text" id="search" placeholder="Search" onkeyup="applyFilters()">
+            <input type="text" id="search" placeholder="Search by any field" onkeyup="applyFilters()">
             <span class="search-icon">
               <svg viewBox="0 0 24 24">
                 <circle cx="11" cy="11" r="7"></circle>
@@ -104,20 +102,23 @@
           </div>
 
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <label for="courseFilter">Course:</label>
-            <select id="courseFilter" onchange="applyFilters()">
+            <label for="statusFilter">Status:</label>
+            <select id="statusFilter" onchange="applyFilters()">
               <option value="">All</option>
-              <!-- options will be added by JavaScript -->
+              <option value="Claimed">Claimed</option>
+              <option value="Returned">Returned</option>
             </select>
 
-            <label for="yearFilter">Year Level:</label>
-            <select id="yearFilter" onchange="applyFilters()">
+            <label for="semesterFilter">Semester:</label>
+            <select id="semesterFilter" onchange="applyFilters()">
               <option value="">All</option>
-              <option value="1st">1st Year</option>
-              <option value="2nd">2nd Year</option>
-              <option value="3rd">3rd Year</option>
-              <option value="4th">4th Year</option>
-              <option value="Irregular">Irregular</option>
+              <!-- options populated by JavaScript -->
+            </select>
+
+            <label for="remarksFilter">Remarks:</label>
+            <select id="remarksFilter" onchange="applyFilters()">
+              <option value="">All</option>
+              <!-- options populated by JavaScript -->
             </select>
 
             <button onclick="clearFilters()" class="clear-btn">Clear</button>
@@ -125,26 +126,25 @@
           </div>
         </div>
 
-        <!-- Right section: action buttons -->
-        <div style="display: flex; gap: 10px;">
-          <button onclick="deleteSelectedHome()" class="delete-btn">Delete Selected</button>
-          <button onclick="editSelectedHome()" class="export-btn">Edit Selected</button>
+        <!-- Right section: export button -->
+        <div>
           <button onclick="showExportModal()" class="export-btn">Export</button>
         </div>
       </div>
 
       <div class="table-responsive">
-        <table id="homeTable">
+        <table id="clearanceLogTable">
           <thead>
             <tr>
-              <th style="width: 30px;"><input type="checkbox" id="selectAllHome" onchange="toggleSelectAllHome(this)"></th>
               <th>RFID NO.</th>
+              <th>ID NUMBER</th>
               <th>NAME</th>
-              <th>COURSE</th>
-              <th>YEAR LEVEL</th>
-              <th>STUDENT NO.</th>
-              <th>DATE & TIME</th>
-              <th>GENDER</th>
+              <th>RELEASE DATE</th>
+              <th>RECEIVE DATE</th>
+              <th>ACADEMIC YEAR</th>
+              <th>SEMESTER</th>
+              <th>REMARKS</th>
+              <th>STATUS</th>
             </tr>
           </thead>
           <tbody>
@@ -164,13 +164,13 @@
       });
     })();
   </script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
 
-  <!-- Modals (help, logout, export, confirm, message) -->
+  <!-- Modals (help, logout, export, message) -->
   <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
   <div id="logoutModal" class="modal"><div class="modal-content"><p id="logoutMessage">Are you sure you want to logout?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmLogout()">Yes</button><button onclick="closeLogoutModal()">No</button></div></div></div>
   <div id="exportModal" class="modal"><div class="modal-content"><p>Choose export format:</p><div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;"><button onclick="exportChosen('pdf')">PDF</button><button onclick="exportChosen('excel')">Excel</button></div><div style="display: flex; justify-content: center;"><button onclick="closeExportModal()">Cancel</button></div></div></div>
-  <div id="confirmModal" class="modal"><div class="modal-content"><p id="confirmMessage">Are you sure?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmDelete()">Yes</button><button onclick="closeConfirmModal()">No</button></div></div></div>
   <div id="messageModal" class="modal"><div class="modal-content"><p id="messageModalText">Message</p><button onclick="closeMessageModal()">OK</button></div></div>
   <div class="menu-overlay" onclick="closeMobileMenu()"></div>
 </body>

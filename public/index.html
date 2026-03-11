@@ -4,22 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Clearance - Login</title>
+  <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
   <link rel="icon" href="data:,"> <!-- empty favicon -->
   <link rel="stylesheet" href="style.css">
-  <!-- Inline script to apply dark mode before paint -->
-  <script>
-    (function() {
-      const darkMode = localStorage.getItem('darkMode');
-      if (darkMode === 'enabled') {
-        document.body.classList.add('dark-mode');
-      }
-    })();
-  </script>
   <!-- Firebase SDK (modular) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
     import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
-    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
@@ -48,14 +40,38 @@
     window.doc = doc;
     window.query = query;
     window.orderBy = orderBy;
+    window.addDoc = addDoc;
+    window.where = where;
+    
   </script>
 </head>
 <body>
-
+<script>
+  (function() {
+    const darkMode = localStorage.getItem('darkMode');
+    if (darkMode === 'enabled') document.body.classList.add('dark-mode');
+  })();
+</script>
+<script>
+  (function() {
+    const unsubscribe = window.auth.onAuthStateChanged(function(user) {
+      if (user) {
+        window.location.href = 'home.html';
+      }
+      unsubscribe();
+    });
+  })();
+</script>
   <!-- TOP BAR (same as other pages) -->
   <div class="topbar">
     <div class="topbar-left">
-      <img src="Resources/smcmilogo.png" alt="SMCMI Logo" class="logo">
+      <div class="hamburger" onclick="toggleMobileMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon">
+      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text">
     </div>
     <div class="topbar-right">
       <!-- Help first -->
@@ -71,7 +87,10 @@
   </div>
 
   <div class="login-container">
-    <h1>Clearance Monitoring System</h1>
+    <div class="logo-container">
+      <img src="Resources/lightmodelogo.png" alt="Clearance Monitoring System" class="logo-light">
+      <img src="Resources/darkmodelogo.png" alt="Clearance Monitoring System" class="logo-dark">
+    </div>
 
     <div class="field">
       <label>USERNAME</label>
@@ -95,14 +114,14 @@
   <div id="errorModal" class="modal" onclick="if(event.target === this) closeErrorModal()">
     <div class="modal-content">
       <p>Invalid username or password</p>
-      <button onclick="closeErrorModal()">OK</button>   <!-- updated -->
+      <button onclick="closeErrorModal()">OK</button>
     </div>
   </div>
 
   <!-- Help Modal (now inside body) -->
   <div id="helpModal" class="modal">
     <div class="modal-content">
-      <p>Please contact the system administrator for assistance.</p>
+      <p>Please contact system developer for assistance.</p>
       <button onclick="closeHelpModal()">OK</button>
     </div>
   </div>

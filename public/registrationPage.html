@@ -2,24 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Registration Page</title>
-  <link rel="icon" href="data:,"> <!-- empty favicon -->
+  <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
   <link rel="stylesheet" href="style.css">
-  <!-- Inline script to apply dark mode before paint -->
-  <script>
-    (function() {
-      const darkMode = localStorage.getItem('darkMode');
-      if (darkMode === 'enabled') {
-        document.body.classList.add('dark-mode');
-      }
-    })();
-  </script>
   <!-- Firebase SDK (modular) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
     import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
-    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
@@ -48,29 +42,35 @@
     window.doc = doc;
     window.query = query;
     window.orderBy = orderBy;
+    window.addDoc = addDoc;
+    window.where = where;
+    window.limit = limit; 
   </script>
 </head>
 <body>
-
+  <script>
+    (function() {
+      const darkMode = localStorage.getItem('darkMode');
+      if (darkMode === 'enabled') document.body.classList.add('dark-mode');
+    })();
+  </script>
   <div class="topbar">
-    <div class="topbar-left" onclick="goHome()" style="cursor: pointer;">
-      <img src="Resources/smcmilogo.png" alt="SMCMI Logo" class="logo">
-    </div>
-    <div class="topbar-right">
-      <!-- Help first -->
-      <div onclick="needHelp()" style="display: flex; align-items: center; cursor: pointer;">
-        <span class="need-help-text">NEED HELP</span>
-        <span class="help-icon">?</span>
-      </div>
-      <!-- Dark mode toggle second -->
-      <div onclick="toggleDarkMode()" style="display: flex; align-items: center; cursor: pointer; margin-right: 8px;">
-        <span class="darkmode-icon" id="darkModeIcon">☾</span>
-      </div>
-      <!-- Hamburger last (mobile only) -->
+    <div class="topbar-left">
       <div class="hamburger" onclick="toggleMobileMenu()">
         <span></span>
         <span></span>
         <span></span>
+      </div>
+      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon">
+      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text">
+    </div>
+    <div class="topbar-right">
+      <div onclick="needHelp()" style="display: flex; align-items: center; cursor: pointer;">
+        <span class="need-help-text">NEED HELP</span>
+        <span class="help-icon">?</span>
+      </div>
+      <div onclick="toggleDarkMode()" style="display: flex; align-items: center; cursor: pointer; margin-right: 8px;">
+        <span class="darkmode-icon" id="darkModeIcon">☾</span>
       </div>
     </div>
   </div>
@@ -78,28 +78,44 @@
   <div class="main-wrapper">
     <div class="sidebar">
       <div class="nav" onclick="goHome()">HOME</div>
-      <div class="nav" onclick="goRegister()">REGISTRATION</div>   <!-- removed active -->
+      <div class="nav" onclick="goRegister()">REGISTRATION</div>
       <div class="nav" onclick="goStatusUpdate()">STATUS UPDATE</div>
-      <div class="nav" onclick="goRegistered()">REGISTERED</div>
+      <div class="nav" onclick="goRegistered()">CLEARANCE TRACKING</div>
+      <div class="sidebar-spacer"></div>
       <div class="logout" onclick="logout()">LOGOUT</div>
     </div>
 
     <div class="content registration-content-page">
       <div class="registration-content">
         <div class="registration-layout">
-          <!-- RFID field above both columns, centered -->
-          <div class="rfid-container" style="display: flex; justify-content: center; margin-bottom: 20px;">
-            <div style="width: 50%;">
-              <label>RFID NUMBER <span class="required">*</span></label>
-              <input type="text" id="rfidNumber" placeholder="Enter RFID" onchange="clearFieldError('rfidNumber')" style="width: 100%;">
+          <!-- RFID field centered with inline clear button -->
+          <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+            <div style="width: 100%; max-width: 400px;">
+              <label style="font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; display: block; letter-spacing: 0.5px;">
+                RFID NUMBER <span class="required">*</span>
+              </label>
+              <div style="display: flex; gap: 10px;">
+                <input type="text" id="rfidNumber" placeholder="Enter RFID" tabindex="1"
+                       onblur="checkRFID()" onkeypress="if(event.key==='Enter') checkRFID()" 
+                       onchange="clearFieldError('rfidNumber')" style="flex: 1;">
+                <button type="button" onclick="clearRegistrationForm()" class="clear-btn">Clear</button>
+              </div>
             </div>
           </div>
 
           <div class="registration-form">
-            <!-- Left Column -->
+            <!-- LEFT COLUMN: Surname, Middle Name, Program, Gender -->
             <div class="form-column">
+              <label>SURNAME <span class="required">*</span></label>
+              <input type="text" id="surname" data-field="surname" placeholder="Enter Surname" tabindex="2"
+                     onchange="clearFieldError('surname')">
+
+              <label>MIDDLE NAME</label>
+              <input type="text" id="middleName" data-field="middleName" placeholder="Enter Middle Name (optional)" tabindex="4"
+                     onchange="clearFieldError('middleName')">
+
               <label>PROGRAM / COURSE<span class="required">*</span></label>
-              <select id="program" onchange="clearFieldError('program')">
+              <select id="program" data-field="program" tabindex="6" onchange="clearFieldError('program')">
                 <option value="" disabled selected>Select Program</option>
                 <option value="BEED">(BEED) Bachelor of Elementary Education</option>
                 <option value="BSA">(BSA) Bachelor of Science in Accountancy</option>
@@ -108,43 +124,30 @@
                 <option value="BSHM">(BSHM) Bachelor of Science in Hospitality Management</option>
                 <option value="BSIT">(BSIT) Bachelor of Science in Information Technology</option>
                 <option value="BSTM">(BSTM) Bachelor of Science in Tourism Management</option>
-                <option value="Others">Others</option>   <!-- NEW OPTION -->
+                <option value="Others">Others</option>
               </select>
 
-              <label>STUDENT NUMBER <span class="required">*</span></label>
-              <input type="text" id="studentNumber" placeholder="Enter student number" onchange="clearFieldError('studentNumber')">
-
-              <label>SEMESTER <span class="required">*</span></label>
-              <select id="semester" onchange="clearFieldError('semester')">
-                <option value="" disabled selected>Select Semester</option>
-                <option value="1st">1st Semester</option>
-                <option value="2nd">2nd Semester</option>
-              </select>
-
-              <!-- NEW: Gender -->
               <label>GENDER <span class="required">*</span></label>
-              <select id="gender" onchange="clearFieldError('gender')">
+              <select id="gender" data-field="gender" tabindex="8" onchange="clearFieldError('gender')">
                 <option value="" disabled selected>Select Gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
               </select>
-
-              <label>STATUS</label>
-              <select id="status" onchange="clearFieldError('status')">
-                <option value="Pending" selected>Pending</option>
-                <option value="Claimed">Claimed</option>
-                <option value="Returned">Returned</option>
-              </select>
             </div>
 
-            <!-- Right Column -->
+            <!-- RIGHT COLUMN: First Name, Student Number, Year Level, Date -->
             <div class="form-column">
-              <label>NAME <span class="required">*</span></label>
-              <input type="text" id="name" placeholder="Enter full name" onchange="clearFieldError('name')">
+              <label>FIRST NAME <span class="required">*</span></label>
+              <input type="text" id="firstName" data-field="firstName" placeholder="Enter First Name" tabindex="3"
+                     onchange="clearFieldError('firstName')">
+
+              <label>STUDENT NUMBER <span class="required">*</span></label>
+              <input type="text" id="studentNumber" placeholder="Enter Student Number" tabindex="5"
+                     onchange="clearFieldError('studentNumber')">
 
               <label>YEAR LEVEL <span class="required">*</span></label>
-              <select id="yearLevel" onchange="clearFieldError('yearLevel')">
+              <select id="yearLevel" data-field="yearLevel" tabindex="7" onchange="clearFieldError('yearLevel')">
                 <option value="" disabled selected>Select Year Level</option>
                 <option value="1st">1st Year</option>
                 <option value="2nd">2nd Year</option>
@@ -154,57 +157,51 @@
               </select>
 
               <label>DATE <span class="required">*</span></label>
-              <input type="date" id="date" onchange="clearFieldError('date')">
-
-              <label>ACADEMIC YEAR <span class="required">*</span></label>
-              <select id="academicYear" onchange="clearFieldError('academicYear')">
-                <!-- populated by JavaScript -->
-              </select>
-
-              <!-- NEW: Remarks -->
-              <label>ADDITIONAL REMARKS</label>
-              <select id="remarks" onchange="clearFieldError('remarks')">
-                <option value="" selected>None</option>
-                <option value="Graduating">Graduating</option>
-                <option value="Moving Up">Moving Up</option>
-                <option value="Transferring">Transferring</option>
-              </select>
+              <input type="date" id="date" tabindex="9" readonly onchange="clearFieldError('date')">
             </div>
           </div>
 
-          <button class="register-btn" onclick="validateAndRegister()">REGISTER</button>
+          <button class="register-btn" id="registerButton" onclick="validateAndRegister()">REGISTER</button>
         </div>
       </div>
     </div>
   </div>
-<!-- SheetJS (XLSX) for proper Excel export -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <!-- The inline auth check script has been removed – authentication is handled in script.js -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
-  <!-- Success Modal -->
-  <div id="successModal" class="modal">
+
+  <!-- Modals -->
+  <div id="successModal" class="modal"><div class="modal-content"><p>Registration successful!</p><button onclick="closeSuccessModal()">OK</button></div></div>
+  <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
+  <div id="logoutModal" class="modal"><div class="modal-content"><p id="logoutMessage">Are you sure you want to logout?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmLogout()">Yes</button><button onclick="closeLogoutModal()">No</button></div></div></div>
+  
+  <!-- Update Confirmation Modal (Yes/No) -->
+  <div id="updateConfirmModal" class="modal">
     <div class="modal-content">
-      <p>Registration successful!</p>
-      <button onclick="closeSuccessModal()">OK</button>
-    </div>
-  </div>
-  <!-- Help Modal -->
-  <div id="helpModal" class="modal">
-    <div class="modal-content">
-      <p>Please contact the system administrator for assistance.</p>
-      <button onclick="closeHelpModal()">OK</button>
-    </div>
-  </div>
-  <!-- Logout Confirmation Modal -->
-  <div id="logoutModal" class="modal">
-    <div class="modal-content">
-      <p id="logoutMessage">Are you sure you want to logout?</p>
+      <p id="updateConfirmMessage">Are you sure you want to update this student?</p>
       <div style="display: flex; gap: 10px; justify-content: center;">
-        <button onclick="confirmLogout()">Yes</button>
-        <button onclick="closeLogoutModal()">No</button>
+        <button onclick="confirmUpdate()">Yes</button>
+        <button onclick="closeUpdateConfirmModal()">No</button>
       </div>
     </div>
   </div>
-  <!-- Mobile menu overlay -->
-<div class="menu-overlay" onclick="closeMobileMenu()"></div>
+
+  <!-- Update Success Modal (OK) -->
+  <div id="updateSuccessModal" class="modal">
+    <div class="modal-content">
+      <p id="updateSuccessMessage">Update successful!</p>
+      <button onclick="redirectAfterUpdate()">OK</button>
+    </div>
+  </div>
+
+  <!-- Message Modal (added) -->
+  <div id="messageModal" class="modal">
+    <div class="modal-content">
+      <p id="messageModalText">Message</p>
+      <button onclick="closeMessageModal()">OK</button>
+    </div>
+  </div>
+
+  <div class="menu-overlay" onclick="closeMobileMenu()"></div>
 </body>
 </html>

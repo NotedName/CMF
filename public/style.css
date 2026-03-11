@@ -6,17 +6,38 @@
   padding: 0;
 }
 
+html, body {
+  overflow: hidden;
+  height: 100%;
+}
+
 body {
   margin: 0;
-  background: url('Resources/backgroundImage.jpg') no-repeat center center fixed;
+  background: url('Resources/bgcmflight.svg') no-repeat center center fixed;
   background-size: cover;
   background-attachment: fixed;
   min-height: 100vh;
 }
 body.dark-mode {
-  background: url('Resources/backgroundImageDark.png') no-repeat center center fixed;
+  background: url('Resources/bgcmfdark.svg') no-repeat center center fixed;
   background-size: cover;
   background-attachment: fixed;
+}
+
+/* Smooth transitions for dark mode */
+body, .content, .registration-content, .login-container, .status-update-card,
+.sidebar, .nav, .logout, table, th, td, input, select, textarea, button {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Fade-in animation on content area only */
+.content {
+  animation: contentFadeIn 0.4s ease-out;
+}
+
+@keyframes contentFadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ==================== MODALS ==================== */
@@ -28,9 +49,18 @@ body.dark-mode {
   top: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0,0,0,0);
   align-items: center;
   justify-content: center;
+  opacity: 0;
+  transition: background-color 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.modal[style*="display: flex"] {
+  background-color: rgba(0,0,0,0.5);
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .modal-content {
@@ -40,6 +70,12 @@ body.dark-mode {
   text-align: center;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   max-width: 90%;
+  transform: scale(0.8);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal[style*="display: flex"] .modal-content {
+  transform: scale(1);
 }
 
 .modal-content p {
@@ -59,6 +95,11 @@ body.dark-mode {
 
 /* ==================== TOP BAR ==================== */
 .topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
   height: 50px;
   background: linear-gradient(135deg, #7fb3ff 0%, #5a9cff 100%);
   display: flex;
@@ -68,15 +109,34 @@ body.dark-mode {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+.main-wrapper {
+  margin-top: 50px;
+  display: flex;
+  min-height: calc(100vh - 50px);
+}
+
 .topbar-left {
   display: flex;
   align-items: center;
+  gap: 10px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
-.logo {
+.logo-icon {
   height: 40px;
   width: auto;
   display: block;
+  pointer-events: none;
+}
+
+.logo-text {
+  height: 30px;
+  width: auto;
+  display: block;
+  pointer-events: none;
 }
 
 .topbar-right {
@@ -111,12 +171,16 @@ body.dark-mode {
   justify-content: center;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s ease, transform 0.2s ease;
 }
 
 .help-icon:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: rotate(15deg);
+}
+
+.help-icon:active {
+  transform: scale(0.85);
 }
 
 .darkmode-icon {
@@ -130,7 +194,7 @@ body.dark-mode {
   justify-content: center;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s ease, transform 0.2s ease;
   background: transparent;
   color: #fff;
 }
@@ -140,16 +204,46 @@ body.dark-mode {
   transform: rotate(15deg);
 }
 
+.darkmode-icon:active {
+  transform: scale(0.85);
+}
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+  width: 30px;
+  height: 24px;
+  justify-content: space-between;
+  margin-right: 10px;
+}
+
+.hamburger span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background: white;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+/* Prevent text selection on top bar interactive elements */
+.topbar-right > div,
+.topbar-right .hamburger {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
 /* ==================== LOGIN PAGE ==================== */
 .login-container {
   width: 100%;
   max-width: 400px;
   margin: 80px auto;
-  padding: 45px 40px;
+  padding: 30px 30px;
   text-align: center;
   background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -167,12 +261,48 @@ body.dark-mode {
   }
 }
 
-.login-container h1 {
-  font-size: 42px;
-  margin-bottom: 35px;
-  color: #333;
-  font-weight: 700;
-  letter-spacing: -1px;
+/* Logo container for login page – smaller size */
+.logo-container {
+  position: relative;
+  width: 100%;
+  max-width: 250px;
+  margin: 0 auto 25px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.logo-light,
+.logo-dark {
+  width: 100%;
+  height: auto;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.logo-light {
+  opacity: 1;
+}
+
+.logo-dark {
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+}
+
+.dark-mode .logo-light {
+  opacity: 0;
+}
+
+.dark-mode .logo-dark {
+  opacity: 1;
 }
 
 .field {
@@ -223,6 +353,19 @@ body.dark-mode {
   accent-color: #2f80ed;
 }
 
+.show-password input {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #2f80ed;
+  transition: transform 0.2s ease, accent-color 0.2s ease;
+}
+
+.show-password input:checked {
+  transform: scale(1.1);
+  accent-color: #1e5bb8;
+}
+
 .login-container button {
   width: 100%;
   height: 38px;
@@ -247,6 +390,7 @@ body.dark-mode {
 .main-wrapper {
   display: flex;
   min-height: calc(100vh - 50px);
+  margin-top: 50px;
 }
 
 /* ----- SIDEBAR (desktop) ----- */
@@ -308,8 +452,12 @@ body.dark-mode {
   transform: scaleY(1);
 }
 
+/* Spacer to push logout to bottom with gap */
+.sidebar-spacer {
+  flex: 0 0 10%;
+}
+
 .logout {
-  margin-top: auto;
   color: #d32f2f;
 }
 
@@ -323,11 +471,11 @@ body.dark-mode {
   flex: 1;
   padding: 30px;
   overflow-y: auto;
+  animation: contentFadeIn 0.4s ease-out;
 }
 
 /* ==================== SEARCH & FILTER BAR ==================== */
 .content > div:first-child {
-  display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
@@ -377,8 +525,34 @@ body.dark-mode {
   fill: none;
 }
 
+.refresh-btn {
+  background: #2f80ed;
+  color: white;
+  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+}
+
+.refresh-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+}
+
+.refresh-btn:active {
+  animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Dark mode override */
+.dark-mode .refresh-btn {
+  background: #4d8cff;
+}
+
 /* ----- Buttons (unified height 38px) ----- */
-button, .register-btn, .delete-btn, .export-btn, .clear-btn, #deleteSelectedBtn {
+button, .register-btn, .delete-btn, .export-btn, .clear-btn, #deleteSelectedBtn, .update-btn {
   height: 38px;
   padding: 0 16px;
   font-size: 13px;
@@ -406,13 +580,13 @@ button, .register-btn, .delete-btn, .export-btn, .clear-btn, #deleteSelectedBtn 
   box-shadow: 0 6px 20px rgba(211, 47, 47, 0.45);
 }
 
-.export-btn {
+.export-btn, .update-btn {
   background: #2f80ed;
   color: white;
   box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
 }
 
-.export-btn:hover {
+.export-btn:hover, .update-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
 }
@@ -426,7 +600,7 @@ button, .register-btn, .delete-btn, .export-btn, .clear-btn, #deleteSelectedBtn 
   background: #5a6268;
 }
 
-button:active, .register-btn:active, .delete-btn:active, .export-btn:active {
+button:active, .register-btn:active, .delete-btn:active, .export-btn:active, .update-btn:active {
   transform: scale(0.98);
 }
 
@@ -437,6 +611,65 @@ button:active, .register-btn:active, .delete-btn:active, .export-btn:active {
   border-radius: 8px;
   border: 1.5px solid #ddd;
   background: white;
+}
+
+/* ==================== FILTER BAR (CLEARANCE TRACKING) ==================== */
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 10px 15px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  animation: slideDown 0.4s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-bar label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-right: 4px;
+}
+
+.filter-bar select {
+  height: 38px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1.5px solid #ddd;
+  background: white;
+  font-size: 12px;
+  min-width: 100px;
+}
+
+.filter-bar .clear-btn {
+  height: 38px;
+  padding: 0 16px;
+}
+
+/* Dark mode adjustments */
+.dark-mode .filter-bar {
+  background: rgba(30, 30, 40, 0.5);
+}
+.dark-mode .filter-bar label {
+  color: #ddd;
+}
+.dark-mode .filter-bar select {
+  background: rgba(20, 20, 30, 0.8);
+  border-color: #555;
+  color: #fff;
 }
 
 /* ==================== TABLES ==================== */
@@ -482,6 +715,12 @@ table td {
 table tbody tr {
   transition: all 0.2s ease;
   background: rgba(255, 255, 255, 0.8);
+  animation: rowFadeIn 0.3s ease-out;
+}
+
+@keyframes rowFadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 table tbody tr:hover {
@@ -498,7 +737,7 @@ table tbody tr:nth-child(even):hover {
 }
 
 /* Table dropdowns – unified */
-.status-select, .remarks-select {
+.status-select, .remarks-select, .acad-select, .semester-select {
   height: 36px;
   padding: 8px 12px;
   border-radius: 8px;
@@ -514,12 +753,12 @@ table tbody tr:nth-child(even):hover {
   box-sizing: border-box;
 }
 
-.status-select:hover, .remarks-select:hover {
+.status-select:hover, .remarks-select:hover, .acad-select:hover, .semester-select:hover {
   border-color: #2f80ed;
   box-shadow: 0 4px 12px rgba(47, 128, 237, 0.2);
 }
 
-.status-select:focus, .remarks-select:focus {
+.status-select:focus, .remarks-select:focus, .acad-select:focus, .semester-select:focus {
   outline: none;
   border-color: #2f80ed;
   box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
@@ -535,18 +774,15 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 /* ==================== REGISTRATION PAGE – RESPONSIVE FORM ==================== */
 .registration-content {
   background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 16px;
   padding: 30px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  max-width: 1000px;
+  max-width: 800px;
   margin: 0 auto;
 }
 
 .registration-layout {
-  display: flex;
   flex-direction: column;
   gap: 20px;
 }
@@ -594,7 +830,7 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 .registration-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px;
+  gap: 20px;
 }
 
 .form-column {
@@ -664,11 +900,151 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   padding-left: 30px;
 }
 
+/* ==================== STATUS UPDATE PAGE CARD ==================== */
+.status-update-card {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.status-title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.search-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+  flex-wrap: wrap;
+}
+
+.search-row input {
+  flex: 1;
+  height: 38px;
+  padding: 8px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 13px;
+  background: white;
+  min-width: 200px;
+}
+
+/* Student details layout */
+.student-details {
+  margin-top: 20px;
+}
+
+.student-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.student-info-table th,
+.student-info-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid rgba(207, 232, 255, 0.4);
+  word-break: break-word;
+}
+
+.student-info-table th {
+  background: rgba(47, 128, 237, 0.1);
+  font-weight: 600;
+  width: 40%;
+  color: #333;
+}
+
+.student-info-table td {
+  background: rgba(255, 255, 255, 0.7);
+  color: #555;
+}
+
+.button-group {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.btn-release, .btn-receive {
+  flex: 1;
+  max-width: 200px;
+  height: 38px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.btn-release {
+  background: #28a745;
+}
+.btn-release:hover {
+  background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.45);
+}
+
+.btn-receive {
+  background: #dc3545;
+}
+.btn-receive:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.45);
+}
+
+.dropdown-group {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.dropdown-item {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-item label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.update-btn {
+  width: 100%;
+  margin-top: 10px;
+}
+
 /* ==================== FORM VALIDATION ==================== */
 .required { color: #d32f2f; font-weight: bold; }
 .field-error { display: none; }
 
-/* ==================== MOBILE STYLES ==================== */
+/* ==================== MOBILE STYLES (UPDATED) ==================== */
 @media (max-width: 768px) {
   /* ----- Top bar ----- */
   .need-help-text { display: none; }
@@ -685,6 +1061,23 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     left: 0;
     width: 100%;
     z-index: 1001;
+  }
+
+  .topbar-left {
+    gap: 5px;
+  }
+
+  .logo-text {
+    display: none; /* hide text logo on mobile */
+  }
+
+  .hamburger {
+    display: flex;
+    order: -1; /* move to left of logo-icon */
+  }
+
+  .logo-icon {
+    height: 35px;
   }
 
   /* ----- Sidebar as off-canvas menu ----- */
@@ -704,29 +1097,6 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   }
   .sidebar.mobile-open { left: 0; }
 
-  /* Hamburger button */
-  .hamburger {
-    display: inline-block;
-    cursor: pointer;
-    width: 30px;
-    height: 24px;
-    position: relative;
-    margin-right: 12px;
-  }
-  .hamburger span {
-    display: block;
-    position: absolute;
-    height: 3px;
-    width: 100%;
-    background: white;
-    border-radius: 3px;
-    left: 0;
-    transition: all 0.3s ease;
-  }
-  .hamburger span:nth-child(1) { top: 0; }
-  .hamburger span:nth-child(2) { top: 10px; }
-  .hamburger span:nth-child(3) { top: 20px; }
-
   /* Overlay */
   .menu-overlay {
     display: none;
@@ -740,13 +1110,19 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   }
   .menu-overlay.active { display: block; }
 
-  /* ----- Main layout adjustments ----- */
+  /* ----- Main layout adjustments (FIX SCROLLING) ----- */
   .main-wrapper { 
     flex-direction: column;
     margin-top: 50px;
-    min-height: calc(100vh - 50px);
+    height: calc(100vh - 50px);  /* ensure full height */
+    min-height: 0;                /* override min-height */
   }
-  .content { padding: 20px; }
+  .content { 
+    flex: 1;                      /* take remaining space */
+    overflow-y: auto;              /* enable scrolling */
+    padding: 20px;
+    -webkit-overflow-scrolling: touch; /* smooth scroll on iOS */
+  }
 
   /* ----- Search bar full width ----- */
   .search-wrapper { width: 100%; margin-bottom: 20px; }
@@ -757,7 +1133,8 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     grid-template-columns: 1fr;
     gap: 20px;
   }
-  .rfid-container > div {
+  /* RFID field centered */
+  .rfid-field > div {
     max-width: 100%;
   }
   .form-column input,
@@ -777,16 +1154,22 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   table td { height: auto; padding: 8px 4px; white-space: nowrap; }
 
   /* Login page adjustments */
-  .login-container { margin: 40px auto; max-width: 90%; padding: 35px 25px; }
+  .login-container { margin: 40px auto auto auto auto; max-width: 90%; padding: 35px 25px; }
   .login-container h1 { font-size: 36px; margin-bottom: 25px; }
   .field input { height: 44px; font-size: 16px; }
   .login-container button { height: 48px; font-size: 16px; }
+
+  /* Status update card */
+  .status-update-card { padding: 20px; }
+  .search-row input { min-width: 100%; }
+  .button-group button { max-width: 100%; }
+  .dropdown-group { flex-direction: column; }
 }
 
 /* ==================== VERY SMALL DEVICES ==================== */
 @media (max-width: 480px) {
   .topbar { height: 45px; padding-right: 12px; }
-  .logo { height: 30px; }
+  .logo-icon { height: 30px; }
   .content { padding: 15px; }
   .registration-content { padding: 15px; }
   .registration-layout { gap: 15px; }
@@ -801,12 +1184,11 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 /* ==================== DARK MODE ENHANCEMENTS ==================== */
 .dark-mode .content,
 .dark-mode .registration-content,
-.dark-mode .login-container {
-  background: rgba(30, 30, 40, 0.85) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+.dark-mode .login-container,
+.dark-mode .status-update-card {
+  background: rgba(30, 30, 40, 0.37) !important;
   border-color: rgba(255, 255, 255, 0.15);
-  color: #eee;
+  color: #fff;
 }
 
 .dark-mode .sidebar {
@@ -856,7 +1238,7 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 .dark-mode textarea {
   background: rgba(20, 20, 30, 0.8) !important;
   border-color: #555 !important;
-  color: #eee !important;
+  color: #fff !important;
 }
 
 .dark-mode input:focus,
@@ -867,22 +1249,26 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 }
 
 .dark-mode .status-select,
-.dark-mode .remarks-select {
-  background: rgba(30, 30, 40, 0.9) !important;
-  color: #eee !important;
+.dark-mode .remarks-select,
+.dark-mode .acad-select,
+.dark-mode .semester-select {
+  background: rgba(20, 20, 30, 0.8) !important;
+  border-color: #555 !important;
+  color: #fff !important;
 }
 
-.dark-mode .export-btn {
-  background: #3a6ea5;
+.dark-mode .export-btn,
+.dark-mode .update-btn {
+  background: #4d8cff;
 }
 
 .dark-mode .delete-btn,
 .dark-mode #deleteSelectedBtn {
-  background: #a53a3a;
+  background: #cc5555;
 }
 
 .dark-mode .clear-btn {
-  background: #5a5a5a;
+  background: #7a7a7a;
 }
 
 .dark-mode .modal-content {
@@ -911,12 +1297,211 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   color: #aaa !important;
 }
 
-/* Status Update page headings */
-.status-update-heading {
-  margin-bottom: 30px;
+/* Keep logout button red in dark mode */
+.dark-mode .logout {
+  color: #d32f2f !important;
 }
-.student-details-heading {
+
+/* Brighten login page title (now for the new logo, this rule is kept for consistency but won't affect images) */
+.dark-mode .login-container h1 {
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Status update card dark mode */
+.dark-mode .info-grid {
+  background: rgba(20, 20, 30, 0.6);
+}
+
+.dark-mode .info-grid div {
+  color: #fff;
+}
+.dark-mode .info-grid strong {
+  color: #bbb;
+}
+
+.dark-mode .dropdown-item label {
+  color: #fff;
+}
+
+.dark-mode .search-row input {
+  background: rgba(20, 20, 30, 0.8);
+  border-color: #555;
+  color: #fff;
+}
+.dark-mode .search-row input::placeholder {
+  color: #aaa;
+}
+
+/* Improve status update dropdowns */
+.dark-mode .remarks-select,
+.dark-mode .acad-select,
+.dark-mode .semester-select {
+  background: rgba(40, 40, 50, 0.95) !important;
+  border-color: #666 !important;
+  color: #fff !important;
+}
+
+/* Dropdown options when expanded */
+.dark-mode .remarks-select option,
+.dark-mode .acad-select option,
+.dark-mode .semester-select option {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+/* Ensure labels are bright white */
+.dark-mode .dropdown-item label {
+  color: #fff !important;
+}
+
+/* ==================== UNIFY STATUS UPDATE PAGE WITH REGISTRATION PAGE DARK MODE ==================== */
+
+/* Search input */
+.dark-mode .search-row input {
+  background: rgba(20, 20, 30, 0.8) !important;
+  border-color: #555 !important;
+  color: #fff !important;
+}
+
+.dark-mode .search-row input:focus {
+  border-color: #5a9cff !important;
+  box-shadow: 0 0 0 3px rgba(90, 156, 255, 0.3) !important;
+  background: rgba(30, 30, 40, 0.9) !important;
+}
+
+.dark-mode .search-row input::placeholder {
+  color: #aaa !important;
+}
+
+/* Dropdowns (remarks & academic year) */
+.dark-mode .remarks-select,
+.dark-mode .acad-select,
+.dark-mode .semester-select {
+  background: rgba(20, 20, 30, 0.8) !important;
+  border-color: #555 !important;
+  color: #fff !important;
+}
+
+.dark-mode .remarks-select:focus,
+.dark-mode .acad-select:focus,
+.dark-mode .semester-select:focus {
+  border-color: #5a9cff !important;
+  box-shadow: 0 0 0 3px rgba(90, 156, 255, 0.3) !important;
+  background: rgba(30, 30, 40, 0.9) !important;
+}
+
+/* Dropdown options (when expanded) */
+.dark-mode .remarks-select option,
+.dark-mode .acad-select option,
+.dark-mode .semester-select option {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+/* Labels above dropdowns */
+.dark-mode .dropdown-item label {
+  color: #ddd !important;
+}
+
+/* Info grid background and text */
+.dark-mode .info-grid {
+  background: rgba(20, 20, 30, 0.6) !important;
+}
+
+.dark-mode .info-grid div {
+  color: #fff !important;
+}
+
+.dark-mode .info-grid strong {
+  color: #bbb !important;
+}
+
+/* Student result container (inner card) */
+.dark-mode #studentResult {
+  background: rgba(30, 30, 40, 0.9) !important;
+  border-color: #555 !important;
+}
+
+/* Student info table on status update page */
+.student-info-table {
+  width: 100%;
+  border-collapse: collapse;
   margin-bottom: 20px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.student-info-table th,
+.student-info-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid rgba(207, 232, 255, 0.4);
+}
+
+.student-info-table th {
+  background: rgba(47, 128, 237, 0.1);
+  font-weight: 600;
+  width: 40%;
+  color: #333;
+}
+
+.student-info-table td {
+  background: rgba(255, 255, 255, 0.7);
+  color: #555;
+}
+
+/* Dark mode overrides */
+.dark-mode .student-info-table {
+  background: rgba(20, 20, 30, 0.6);
+}
+
+.dark-mode .student-info-table th {
+  background: rgba(60, 100, 200, 0.2);
+  color: #ddd;
+  border-color: #444;
+}
+
+.dark-mode .student-info-table td {
+  background: rgba(30, 30, 40, 0.7);
+  color: #fff;
+  border-color: #444;
+}
+
+/* ==================== DARK MODE SCROLLBAR ==================== */
+.dark-mode .table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+
+.dark-mode .table-responsive::-webkit-scrollbar-track {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+.dark-mode .table-responsive::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+.dark-mode .table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+.dark-mode .table-responsive {
+  scrollbar-color: #555 #2a2a2a;
+  scrollbar-width: thin;
+}
+
+/* ==================== SHOW PASSWORD CHECKBOX (DARK MODE) ==================== */
+.dark-mode .show-password {
+  color: #eee;
+}
+
+.dark-mode .show-password input[type="checkbox"] {
+  accent-color: #5a9cff;
+  filter: brightness(1.2);
 }
 
 /* ==================== PRINT STYLES ==================== */
@@ -948,11 +1533,12 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   .content {
     display: flex !important;
     justify-content: center !important;
-    padding: 20px !important;
+    padding: 10px !important;
   }
   table {
     margin: 0 auto !important;
-    width: auto !important;  /* allows table to shrink to content */
+    width: auto !important;
+    max-width: 100% !important;
   }
 
   /* Ensure the responsive wrapper doesn't clip the table */
@@ -963,31 +1549,69 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     padding: 0 !important;
   }
 
-  /* Table styling for print */
+  /* Table styling for print – smaller font, squared edges, black text */
   table {
     width: 100% !important;
     border-collapse: collapse !important;
-    font-size: 10pt !important;
+    font-size: 9pt !important;
     background: white !important;
     box-shadow: none !important;
     page-break-inside: avoid;
+    border-radius: 0 !important;
   }
 
-  /* Hide checkbox column on registered page */
-  #registeredTable th:first-child,
-  #registeredTable td:first-child {
+  /* Hide checkbox and RFID columns on home page (columns 1 and 2) */
+  #homeTable th:nth-child(1),
+  #homeTable td:nth-child(1),
+  #homeTable th:nth-child(2),
+  #homeTable td:nth-child(2) {
     display: none !important;
   }
 
-  th, td {
-    border: 1px solid #000 !important;
-    padding: 4px 2px !important;
-    text-align: left !important;
-    white-space: normal !important;
+  /* Hide RFID column on clearance tracking page (column 1) */
+  #clearanceLogTable th:nth-child(1),
+  #clearanceLogTable td:nth-child(1) {
+    display: none !important;
   }
 
+  /* Base cell styling */
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 2px 1px !important;
+    white-space: normal !important;
+    color: #000 !important;
+  }
+
+  /* All headers centered */
   th {
+    text-align: center !important;
     background-color: #f0f0f0 !important;
     font-weight: bold !important;
+  }
+
+  /* ----- HOME PAGE ----- */
+  /* After hiding columns 1-2, visible columns: 3=NAME, 4=COURSE, 5=YEAR LEVEL, 6=STUDENT NO., 7=DATE & TIME, 8=GENDER (semester and A.Y removed) */
+  /* Left-align NAME (col 3) and STUDENT NO. (col 6) */
+  #homeTable td:nth-child(3),
+  #homeTable td:nth-child(6) {
+    text-align: left !important;
+  }
+
+  /* Center all other data cells */
+  #homeTable td:not(:nth-child(3)):not(:nth-child(6)) {
+    text-align: center !important;
+  }
+
+  /* ----- CLEARANCE TRACKING PAGE ----- */
+  /* After hiding column 1, visible columns: 2=ID NUMBER, 3=NAME, 4=RELEASE DATE, 5=RECEIVE DATE, 6=ACADEMIC YEAR, 7=SEMESTER, 8=REMARKS, 9=STATUS */
+  /* Left-align ID NUMBER (col 2) and NAME (col 3) */
+  #clearanceLogTable td:nth-child(2),
+  #clearanceLogTable td:nth-child(3) {
+    text-align: left !important;
+  }
+
+  /* Center all other data cells */
+  #clearanceLogTable td:not(:nth-child(2)):not(:nth-child(3)) {
+    text-align: center !important;
   }
 }

@@ -15,42 +15,47 @@
   <link rel="dns-prefetch" href="https://www.gstatic.com">
   <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
-    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit, writeBatch } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+    import { auth, db } from './firebase.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
+    import { getUserRole, updateSidebarForRole, logout, confirmLogout, handleHelpClick, updateTopBarForRole } from './auth.js';
+    import { initRegistrationPage, setupEditMode, resetRegistrationForm, clearRegistrationForm, refreshRegistrationForm, validateAndRegister, validateAndUpdate, formatStudentNumber, formatAllNameFields } from './registration.js';
+    import { checkRFID } from './students.js';
+    import { toggleDarkMode, loadDarkModePreference, toggleMobileMenu, closeMobileMenu, showHelpModal, closeHelpModal, showLogoutModal, closeLogoutModal, closeSuccessModal, closeUpdateConfirmModal, closeUpdateSuccessModal, redirectAfterUpdate, showMessageModal, closeMessageModal } from './ui.js';
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
-      authDomain: "cmf-mcs.firebaseapp.com",
-      projectId: "cmf-mcs",
-      storageBucket: "cmf-mcs.firebasestorage.app",
-      messagingSenderId: "156302336546",
-      appId: "1:156302336546:web:373c1b25d24c4a9131e07b",
-      measurementId: "G-PJY3RN9XLH"
-    };
+    // Attach to window
+    window.checkRFID = checkRFID;
+    window.clearRegistrationForm = clearRegistrationForm;
+    window.refreshRegistrationForm = refreshRegistrationForm;
+    window.validateAndRegister = validateAndRegister;
+    window.validateAndUpdate = validateAndUpdate;
+    window.formatStudentNumber = formatStudentNumber;
+    window.formatAllNameFields = formatAllNameFields;
+    window.toggleDarkMode = toggleDarkMode;
+    window.toggleMobileMenu = toggleMobileMenu;
+    window.closeMobileMenu = closeMobileMenu;
+    window.handleHelpClick = handleHelpClick;
+    window.showHelpModal = showHelpModal;
+    window.closeHelpModal = closeHelpModal;
+    window.logout = logout;
+    window.confirmLogout = confirmLogout;
+    window.closeSuccessModal = closeSuccessModal;
+    window.closeUpdateConfirmModal = closeUpdateConfirmModal;
+    window.closeUpdateSuccessModal = closeUpdateSuccessModal;
+    window.redirectAfterUpdate = redirectAfterUpdate;
+    window.closeMessageModal = closeMessageModal;
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+        return;
+      }
+      const role = await getUserRole(user);
+      updateSidebarForRole(role);
+      updateTopBarForRole(user);
+    });
 
-    window.auth = auth;
-    window.db = db;
-    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-    window.signOut = signOut;
-    window.onAuthStateChanged = onAuthStateChanged;   // <-- ADD THIS
-    window.collection = collection;
-    window.getDocs = getDocs;
-    window.getDoc = getDoc;
-    window.setDoc = setDoc;
-    window.updateDoc = updateDoc;
-    window.deleteDoc = deleteDoc;
-    window.doc = doc;
-    window.query = query;
-    window.orderBy = orderBy;
-    window.addDoc = addDoc;
-    window.where = where;
-    window.limit = limit; 
-    window.writeBatch = writeBatch;
+    loadDarkModePreference();
+    initRegistrationPage();
   </script>
 </head>
 <body>

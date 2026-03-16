@@ -16,41 +16,60 @@
   <link rel="dns-prefetch" href="https://www.gstatic.com">
   <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-    import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
-    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit, writeBatch } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+    import { auth, db } from './firebase.js';
+    import { checkPageAccess, logout, confirmLogout, handleHelpClick, updateTopBarForRole } from './auth.js';
+    import { loadStudents, handleHomeSort, editSelectedHome, deleteSelectedHome, confirmDelete } from './students.js';
+    import { showExportModal, closeExportModal, exportChosen } from './export.js';
+    import { toggleDarkMode, loadDarkModePreference, toggleMobileMenu, closeMobileMenu, showHelpModal, closeHelpModal, showLogoutModal, closeLogoutModal, showMessageModal, closeMessageModal, enablePullToRefresh, debounce } from './ui.js';
+    import { applyFilters, clearFilters, refreshTable } from './filters.js'; // we'll need a filters.js for shared filter logic
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
-      authDomain: "cmf-mcs.firebaseapp.com",
-      projectId: "cmf-mcs",
-      storageBucket: "cmf-mcs.firebasestorage.app",
-      messagingSenderId: "156302336546",
-      appId: "1:156302336546:web:373c1b25d24c4a9131e07b",
-      measurementId: "G-PJY3RN9XLH"
+    // Attach to window
+    window.logout = logout;
+    window.confirmLogout = confirmLogout;
+    window.handleHelpClick = handleHelpClick;
+    window.toggleDarkMode = toggleDarkMode;
+    window.toggleMobileMenu = toggleMobileMenu;
+    window.closeMobileMenu = closeMobileMenu;
+    window.showHelpModal = showHelpModal;
+    window.closeHelpModal = closeHelpModal;
+    window.showLogoutModal = showLogoutModal;
+    window.closeLogoutModal = closeLogoutModal;
+    window.showMessageModal = showMessageModal;
+    window.closeMessageModal = closeMessageModal;
+    window.editSelectedHome = editSelectedHome;
+    window.deleteSelectedHome = deleteSelectedHome;
+    window.confirmDelete = confirmDelete;
+    window.showExportModal = showExportModal;
+    window.closeExportModal = closeExportModal;
+    window.exportChosen = exportChosen;
+    window.applyFilters = applyFilters;
+    window.clearFilters = clearFilters;
+    window.refreshTable = refreshTable;
+    window.updateSelectAllHomeState = function() {
+      const selectAll = document.getElementById('selectAllHome');
+      if (!selectAll) return;
+      const checkboxes = document.querySelectorAll('#homeTable tbody .home-checkbox');
+      selectAll.checked = Array.from(checkboxes).every(cb => cb.checked);
+    };
+    window.toggleSelectAllHome = function(checkbox) {
+      const checkboxes = document.querySelectorAll('#homeTable tbody .home-checkbox');
+      checkboxes.forEach(cb => cb.checked = checkbox.checked);
+      window.updateSelectAllHomeState();
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    checkPageAccess(['admin', 'superadmin']).then(role => {
+      loadStudents();
+      updateTopBarForRole(auth.currentUser);
+      enablePullToRefresh(() => loadStudents());
+    });
 
-    window.auth = auth;
-    window.db = db;
-    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-    window.signOut = signOut;
-    window.collection = collection;
-    window.getDocs = getDocs;
-    window.getDoc = getDoc;
-    window.setDoc = setDoc;
-    window.updateDoc = updateDoc;
-    window.deleteDoc = deleteDoc;
-    window.doc = doc;
-    window.query = query;
-    window.orderBy = orderBy;
-    window.addDoc = addDoc;
-    window.where = where;
-    window.limit = limit; 
-    window.writeBatch = writeBatch;
+    // Attach sort listeners
+    document.querySelectorAll('#homeTable th').forEach((th, index) => {
+      if (index === 0) return;
+      th.addEventListener('click', () => handleHomeSort(index));
+    });
+
+    loadDarkModePreference();
   </script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>

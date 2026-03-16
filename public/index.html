@@ -12,45 +12,28 @@
   <link rel="dns-prefetch" href="https://www.gstatic.com">
   <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-    import { getAuth, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
-    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit, writeBatch } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+    import { auth, db } from './firebase.js';
+    import { login, register, sendPasswordReset } from './auth.js';
+    import { showRegisterModal, closeRegisterModal, showForgotPasswordModal, closeForgotPasswordModal } from './ui.js';
+    import { toggleDarkMode, loadDarkModePreference, toggleMobileMenu, closeMobileMenu, handleHelpClick } from './ui.js';
+    import { togglePassword, toggleRegPassword } from './utils.js'; // these are simple functions we can keep inline or in utils
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
-      authDomain: "cmf-mcs.firebaseapp.com",
-      projectId: "cmf-mcs",
-      storageBucket: "cmf-mcs.firebasestorage.app",
-      messagingSenderId: "156302336546",
-      appId: "1:156302336546:web:373c1b25d24c4a9131e07b",
-      measurementId: "G-PJY3RN9XLH"
-    };
+    // Attach to window for onclick
+    window.login = login;
+    window.showRegisterModal = showRegisterModal;
+    window.closeRegisterModal = closeRegisterModal;
+    window.register = register;
+    window.showForgotPasswordModal = showForgotPasswordModal;
+    window.closeForgotPasswordModal = closeForgotPasswordModal;
+    window.sendPasswordReset = sendPasswordReset;
+    window.togglePassword = togglePassword;
+    window.toggleRegPassword = toggleRegPassword;
+    window.toggleDarkMode = toggleDarkMode;
+    window.toggleMobileMenu = toggleMobileMenu;
+    window.closeMobileMenu = closeMobileMenu;
+    window.handleHelpClick = handleHelpClick;
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    window.auth = auth;
-    window.db = db;
-    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-    window.signOut = signOut;
-    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
-    window.sendPasswordResetEmail = sendPasswordResetEmail;
-    window.sendEmailVerification = sendEmailVerification;
-    window.onAuthStateChanged = onAuthStateChanged;
-    window.collection = collection;
-    window.getDocs = getDocs;
-    window.getDoc = getDoc;
-    window.setDoc = setDoc;
-    window.updateDoc = updateDoc;
-    window.deleteDoc = deleteDoc;
-    window.doc = doc;
-    window.query = query;
-    window.orderBy = orderBy;
-    window.addDoc = addDoc;
-    window.where = where;
-    window.limit = limit;
-    window.writeBatch = writeBatch;
+    loadDarkModePreference();
   </script>
 </head>
 <body>

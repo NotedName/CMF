@@ -15,42 +15,38 @@
   <link rel="dns-prefetch" href="https://www.gstatic.com">
   <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-    import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
-    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit, writeBatch } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+    import { auth, db } from './firebase.js';
+    import { checkPageAccess, logout, confirmLogout, handleHelpClick, updateTopBarForRole } from './auth.js';
+    import { loadUsers, filterUsersTable, clearUserFilters, handleUserSort, showApproveConfirm, showDeleteConfirm, showUpdateRoleConfirm, confirmUserAction } from './users.js';
+    import { toggleDarkMode, loadDarkModePreference, toggleMobileMenu, closeMobileMenu, showHelpModal, closeHelpModal, showLogoutModal, closeLogoutModal, showMessageModal, closeMessageModal } from './ui.js';
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
-      authDomain: "cmf-mcs.firebaseapp.com",
-      projectId: "cmf-mcs",
-      storageBucket: "cmf-mcs.firebasestorage.app",
-      messagingSenderId: "156302336546",
-      appId: "1:156302336546:web:373c1b25d24c4a9131e07b",
-      measurementId: "G-PJY3RN9XLH"
-    };
+    window.logout = logout;
+    window.confirmLogout = confirmLogout;
+    window.handleHelpClick = handleHelpClick;
+    window.toggleDarkMode = toggleDarkMode;
+    window.toggleMobileMenu = toggleMobileMenu;
+    window.closeMobileMenu = closeMobileMenu;
+    window.showHelpModal = showHelpModal;
+    window.closeHelpModal = closeHelpModal;
+    window.showLogoutModal = showLogoutModal;
+    window.closeLogoutModal = closeLogoutModal;
+    window.showMessageModal = showMessageModal;
+    window.closeMessageModal = closeMessageModal;
+    window.filterUsersTable = filterUsersTable;
+    window.clearUserFilters = clearUserFilters;
+    window.handleUserSort = handleUserSort;
+    window.showApproveConfirm = showApproveConfirm;
+    window.showDeleteConfirm = showDeleteConfirm;
+    window.showUpdateRoleConfirm = showUpdateRoleConfirm;
+    window.confirmUserAction = confirmUserAction;
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    checkPageAccess(['superadmin']).then(role => {
+        loadUsers();
+        updateTopBarForRole(auth.currentUser);
+    });
 
-    window.auth = auth;
-    window.db = db;
-    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-    window.signOut = signOut;
-    window.collection = collection;
-    window.getDocs = getDocs;
-    window.getDoc = getDoc;
-    window.setDoc = setDoc;
-    window.updateDoc = updateDoc;
-    window.deleteDoc = deleteDoc;
-    window.doc = doc;
-    window.query = query;
-    window.orderBy = orderBy;
-    window.addDoc = addDoc;
-    window.where = where;
-    window.limit = limit; 
-    window.writeBatch = writeBatch;
-  </script>
+    loadDarkModePreference();
+    </script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
     /* Additional styling for filter bar and title */

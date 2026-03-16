@@ -5,13 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Clearance - Login</title>
   <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
-  <link rel="icon" href="data:,"> <!-- empty favicon -->
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
-  <!-- Firebase SDK (modular) -->
+  <link rel="preconnect" href="https://www.gstatic.com">
+  <link rel="preconnect" href="https://cdn.sheetjs.com">
+  <link rel="dns-prefetch" href="https://www.gstatic.com">
+  <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-    import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
-    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+    import { getAuth, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
+    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit, writeBatch } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
@@ -31,6 +34,10 @@
     window.db = db;
     window.signInWithEmailAndPassword = signInWithEmailAndPassword;
     window.signOut = signOut;
+    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+    window.sendPasswordResetEmail = sendPasswordResetEmail;
+    window.sendEmailVerification = sendEmailVerification;
+    window.onAuthStateChanged = onAuthStateChanged;
     window.collection = collection;
     window.getDocs = getDocs;
     window.getDoc = getDoc;
@@ -42,27 +49,21 @@
     window.orderBy = orderBy;
     window.addDoc = addDoc;
     window.where = where;
-    
+    window.limit = limit;
+    window.writeBatch = writeBatch;
   </script>
 </head>
 <body>
 <script>
   (function() {
     const darkMode = localStorage.getItem('darkMode');
-    if (darkMode === 'enabled') document.body.classList.add('dark-mode');
+    if (darkMode === 'enabled') {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
   })();
 </script>
-<script>
-  (function() {
-    const unsubscribe = window.auth.onAuthStateChanged(function(user) {
-      if (user) {
-        window.location.href = 'home.html';
-      }
-      unsubscribe();
-    });
-  })();
-</script>
-  <!-- TOP BAR (same as other pages) -->
   <div class="topbar">
     <div class="topbar-left">
       <div class="hamburger" onclick="toggleMobileMenu()">
@@ -70,46 +71,44 @@
         <span></span>
         <span></span>
       </div>
-      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon">
-      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text">
+      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon" loading="lazy">
+      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text" loading="lazy"> 
     </div>
     <div class="topbar-right">
-      <!-- Help first -->
-      <div onclick="needHelp()" style="display: flex; align-items: center; cursor: pointer;">
-        <span class="need-help-text">NEED HELP</span>
+      <!-- In the topbar-right section, replace the existing NEED HELP div with: -->
+      <div id="helpButton" onclick="handleHelpClick()" style="display: flex; align-items: center; cursor: pointer;">
+        <span id="helpText" class="need-help-text"></span>
         <span class="help-icon">?</span>
       </div>
-      <!-- Dark mode toggle second -->
       <div onclick="toggleDarkMode()" style="display: flex; align-items: center; cursor: pointer; margin-right: 8px;">
         <span class="darkmode-icon" id="darkModeIcon">☾</span>
       </div>
     </div>
   </div>
-
   <div class="login-container">
     <div class="logo-container">
-      <img src="Resources/lightmodelogo.png" alt="Clearance Monitoring System" class="logo-light">
-      <img src="Resources/darkmodelogo.png" alt="Clearance Monitoring System" class="logo-dark">
+      <img src="Resources/lightmodelogo.png" alt="Clearance Monitoring System" class="logo-light" loading="lazy">
+      <img src="Resources/darkmodelogo.png" alt="Clearance Monitoring System" class="logo-dark" loading="lazy">
     </div>
-
     <div class="field">
       <label>USERNAME</label>
-      <input type="text" id="username">
+      <input type="text" id="username" autocomplete="off" onkeydown="return event.key !== ' '">
     </div>
-
     <div class="field">
       <label>PASSWORD</label>
-      <input type="password" id="password">
+      <input type="text" id="password" style="-webkit-text-security: disc;" autocomplete="off" onkeydown="return event.key !== ' '">
     </div>
-
     <div class="show-password">
       <span>SHOW PASSWORD</span>
       <input type="checkbox" onclick="togglePassword()">
     </div>
-
     <button onclick="login()">LOGIN</button>
+    <div class="links">
+      <a href="#" onclick="showRegisterModal()">Register</a>
+      <a href="#" onclick="showForgotPasswordModal()">Forgot Password?</a>
+    </div>
   </div>
-  
+
   <!-- Error Modal -->
   <div id="errorModal" class="modal" onclick="if(event.target === this) closeErrorModal()">
     <div class="modal-content">
@@ -118,25 +117,62 @@
     </div>
   </div>
 
-  <!-- Help Modal (now inside body) -->
+  <!-- Help Modal -->
   <div id="helpModal" class="modal">
     <div class="modal-content">
       <p>Please contact system developer for assistance.</p>
       <button onclick="closeHelpModal()">OK</button>
     </div>
   </div>
-<!-- SheetJS (XLSX) for proper Excel export -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <!-- Script at the end so DOM is ready -->
-  <script src="script.js"></script>
-  <!-- Message Modal (for empty fields, etc.) -->
+
+  <!-- Register Modal -->
+  <div id="registerModal" class="modal">
+    <div class="modal-content">
+      <h3>Register New Account</h3>
+      <input type="email" id="regEmail" placeholder="Email"
+            autocomplete="off" spellcheck="false" autocorrect="off"
+            readonly onfocus="this.removeAttribute('readonly')">
+      <input type="password" id="regPassword" placeholder="Password"
+            autocomplete="new-password" spellcheck="false"
+            readonly onfocus="this.removeAttribute('readonly')">
+      <input type="password" id="regConfirmPassword" placeholder="Confirm Password"
+            autocomplete="new-password" spellcheck="false"
+            readonly onfocus="this.removeAttribute('readonly')">
+      <div class="show-password-reg">
+        <span>SHOW PASSWORD</span>
+        <input type="checkbox" id="showRegPassword" onclick="toggleRegPassword()">
+      </div>
+      <div class="button-group">
+        <button onclick="register()" class="export-btn">Register</button>
+        <button onclick="closeRegisterModal()" class="clear-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div id="forgotPasswordModal" class="modal">
+    <div class="modal-content">
+      <h3>Reset Password</h3>
+      <input type="email" id="resetEmail" placeholder="Enter your email"
+            autocomplete="off" spellcheck="false" autocorrect="off"
+            readonly onfocus="this.removeAttribute('readonly')">
+      <div class="button-group">
+        <button onclick="sendPasswordReset()" class="export-btn">Send Reset Email</button>
+        <button onclick="closeForgotPasswordModal()" class="clear-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message Modal (placed last to appear on top) -->
   <div id="messageModal" class="modal">
     <div class="modal-content">
       <p id="messageModalText">Message</p>
       <button onclick="closeMessageModal()">OK</button>
     </div>
   </div>
-  <!-- Mobile menu overlay -->
-<div class="menu-overlay" onclick="closeMobileMenu()"></div>
+
+  <div class="menu-overlay" onclick="closeMobileMenu()"></div>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

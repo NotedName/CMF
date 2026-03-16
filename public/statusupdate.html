@@ -9,11 +9,15 @@
   <title>Release / Receive Clearance</title>
   <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
   <link rel="stylesheet" href="style.css">
-  <!-- Firebase SDK (modular) – addDoc added -->
+  <!-- Add these inside <head> after the existing links -->
+  <link rel="preconnect" href="https://www.gstatic.com">
+  <link rel="preconnect" href="https://cdn.sheetjs.com">
+  <link rel="dns-prefetch" href="https://www.gstatic.com">
+  <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
     import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
-    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit, writeBatch } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
@@ -45,6 +49,7 @@
     window.addDoc = addDoc;
     window.where = where;
     window.limit = limit; 
+    window.writeBatch = writeBatch;
   </script>
 </head>
 <body>
@@ -61,12 +66,12 @@
         <span></span>
         <span></span>
       </div>
-      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon">
-      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text">
+      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon" loading="lazy">
+      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text" loading="lazy"> 
     </div>
     <div class="topbar-right">
-      <div onclick="needHelp()" style="display: flex; align-items: center; cursor: pointer;">
-        <span class="need-help-text">NEED HELP</span>
+      <div id="helpButton" onclick="handleHelpClick()" style="display: flex; align-items: center; cursor: pointer;">
+        <span id="helpText" class="need-help-text"></span>
         <span class="help-icon">?</span>
       </div>
       <div onclick="toggleDarkMode()" style="display: flex; align-items: center; cursor: pointer; margin-right: 8px;">
@@ -74,51 +79,43 @@
       </div>
     </div>
   </div>
-
   <div class="main-wrapper">
     <div class="sidebar">
-      <div class="nav" onclick="goHome()">HOME</div>
+      <div class="nav" onclick="goHome()">STUDENT LIST</div>
       <div class="nav" onclick="goRegister()">REGISTRATION</div>
       <div class="nav" onclick="goStatusUpdate()">STATUS UPDATE</div>
-      <div class="nav" onclick="goRegistered()">CLEARANCE TRACKING</div>
+      <div class="nav" onclick="goRegistered()">CLEARANCE LOGS</div>
+      <div class="nav" onclick="goAdmin()">MANAGE PROGRAMS</div>
       <div class="sidebar-spacer"></div>
       <div class="logout" onclick="logout()">LOGOUT</div>
     </div>
-
     <div class="content">
       <div class="status-update-card">
         <h1 style="margin-bottom: 20px; font-size: 24px; text-align: center;">Release / Receive Clearance</h1>
-
-        <!-- RFID search -->
         <div style="display: flex; gap: 10px; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto; flex-wrap: wrap;">
           <input type="text" id="rfidSearch" placeholder="Scan RFID or Enter ID Number"
-                style="flex:1; height:38px; padding:8px; border:1.5px solid #ddd; border-radius:8px;">
+                style="flex:1; height:38px; padding:8px; border:1.5px solid #ddd; border-radius:8px;"
+                autocomplete="off" maxlength="32"
+                oninput="this.value = this.value.toUpperCase()">
           <button onclick="searchStudent()" class="export-btn" style="width:auto;">Search</button>
+          <button onclick="clearStatusUpdate()" class="clear-btn" style="width:auto;">Clear</button>
         </div>
-
-        <!-- Student details card (hidden until search) -->
         <div id="studentResult" style="display: none;"></div>
       </div>
     </div>
   </div>
-  <script>
-    (function() {
-      const unsubscribe = window.auth.onAuthStateChanged(function(user) {
-        if (!user) {
-          window.location.href = 'index.html';
-        }
-        unsubscribe();
-      });
-    })();
-  </script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
-
-  <!-- Modals -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      checkPageAccess(['admin', 'superadmin']);
+    });
+  </script>
   <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
   <div id="logoutModal" class="modal"><div class="modal-content"><p id="logoutMessage">Are you sure you want to logout?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmLogout()">Yes</button><button onclick="closeLogoutModal()">No</button></div></div></div>
   <div id="exportModal" class="modal"><div class="modal-content"><p>Choose export format:</p><div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;"><button onclick="exportChosen('pdf')">PDF</button><button onclick="exportChosen('excel')">Excel</button></div><div style="display: flex; justify-content: center;"><button onclick="closeExportModal()">Cancel</button></div></div></div>
   <div id="messageModal" class="modal"><div class="modal-content"><p id="messageModalText">Message</p><button onclick="closeMessageModal()">OK</button></div></div>
   <div class="menu-overlay" onclick="closeMobileMenu()"></div>
+  <button id="scrollToTopBtn" title="Go to top">↑</button>
 </body>
 </html>

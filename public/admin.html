@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Admin Panel - Program Management</title>
+  <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <!-- Add these inside <head> after the existing links -->
+  <link rel="preconnect" href="https://www.gstatic.com">
+  <link rel="preconnect" href="https://cdn.sheetjs.com">
+  <link rel="dns-prefetch" href="https://www.gstatic.com">
+  <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
+    import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
+    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit, writeBatch } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
+      authDomain: "cmf-mcs.firebaseapp.com",
+      projectId: "cmf-mcs",
+      storageBucket: "cmf-mcs.firebasestorage.app",
+      messagingSenderId: "156302336546",
+      appId: "1:156302336546:web:373c1b25d24c4a9131e07b",
+      measurementId: "G-PJY3RN9XLH"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.auth = auth;
+    window.db = db;
+    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+    window.signOut = signOut;
+    window.collection = collection;
+    window.getDocs = getDocs;
+    window.getDoc = getDoc;
+    window.setDoc = setDoc;
+    window.updateDoc = updateDoc;
+    window.deleteDoc = deleteDoc;
+    window.doc = doc;
+    window.query = query;
+    window.orderBy = orderBy;
+    window.addDoc = addDoc;
+    window.where = where;
+    window.limit = limit; 
+    window.writeBatch = writeBatch;
+  </script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <script>
+    (function() {
+      const darkMode = localStorage.getItem('darkMode');
+      if (darkMode === 'enabled') document.body.classList.add('dark-mode');
+    })();
+  </script>
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="hamburger" onclick="toggleMobileMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon" loading="lazy">
+      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text" loading="lazy"> 
+    </div>
+    <div class="topbar-right">
+      <div id="helpButton" onclick="handleHelpClick()" style="display: flex; align-items: center; cursor: pointer;">
+        <span id="helpText" class="need-help-text"></span>
+        <span class="help-icon">?</span>
+      </div>
+      <div onclick="toggleDarkMode()" style="display: flex; align-items: center; cursor: pointer; margin-right: 8px;">
+        <span class="darkmode-icon" id="darkModeIcon">☾</span>
+      </div>
+    </div>
+  </div>
+  <div class="main-wrapper">
+    <div class="sidebar">
+      <div class="nav" onclick="goHome()">STUDENT LIST</div>
+      <div class="nav" onclick="goRegister()">REGISTRATION</div>
+      <div class="nav" onclick="goStatusUpdate()">STATUS UPDATE</div>
+      <div class="nav" onclick="goRegistered()">CLEARANCE LOGS</div>
+      <div class="nav" onclick="goAdmin()">MANAGE PROGRAMS</div>
+      <div class="sidebar-spacer"></div>
+      <div class="logout" onclick="logout()">LOGOUT</div>
+    </div>
+    <div class="content">
+      <div>
+        <div class="filter-bar" style="justify-content: space-between; margin-bottom: 15px;">
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <div class="search-wrapper" style="min-width: 200px;">
+              <input type="text" id="programSearch" placeholder="Search programs..." onkeyup="filterProgramsTable()" autocomplete="off">
+              <span class="search-icon">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <line x1="16" y1="16" x2="22" y2="22"></line>
+                </svg>
+              </span>
+            </div>
+            <button onclick="refreshProgramsTable()" class="refresh-btn" style="height: 38px;">Refresh</button>
+            <button onclick="clearProgramFilters()" class="clear-btn" style="height: 38px;">Clear</button>
+          </div>
+          <button onclick="showAddProgramModal()" class="export-btn" style="height: 38px;">Add Program</button>
+        </div>
+        <div class="table-responsive">
+          <table id="programsTable">
+            <thead>
+              <tr>
+                <th>Program Code</th>
+                <th>Program Name</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Add Program Modal (improved spacing) -->
+  <div id="addProgramModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+      <h3 style="margin-bottom: 20px; text-align: center;">Add Program</h3>
+      <input type="text" id="newProgramCode" placeholder="Program Code (e.g., BSIT)"
+            oninput="this.value = this.value.replace(/[^A-Za-z]/g, '').toUpperCase()"
+            style="width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 6px; border: 1px solid #ddd;"
+            autocomplete="off">
+      <input type="text" id="newProgramName" placeholder="Program Name"
+              style="width: 100%; margin-bottom: 25px; padding: 10px; border-radius: 6px; border: 1px solid #ddd;"
+              autocomplete="off"
+              onblur="this.value = formatProgramName(this.value)">
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button onclick="addProgram()" class="export-btn" style="padding: 10px 25px;">Save</button>
+        <button onclick="closeAddProgramModal()" class="clear-btn" style="padding: 10px 25px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <!-- Edit Program Modal (improved spacing) -->
+  <div id="editProgramModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+      <h3 style="margin-bottom: 20px; text-align: center;">Edit Program</h3>
+      <input type="hidden" id="editProgramId">
+      <input type="text" id="editProgramCode" placeholder="Program Code"
+            oninput="this.value = this.value.replace(/[^A-Za-z]/g, '').toUpperCase()"
+            style="width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 6px; border: 1px solid #ddd;"
+            autocomplete="off">
+      <input type="text" id="editProgramName" placeholder="Program Name"
+              style="width: 100%; margin-bottom: 25px; padding: 10px; border-radius: 6px; border: 1px solid #ddd;"
+              autocomplete="off"
+              onblur="this.value = formatProgramName(this.value)">
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button onclick="updateProgram()" class="export-btn" style="padding: 10px 25px;">Update</button>
+        <button onclick="closeEditProgramModal()" class="clear-btn" style="padding: 10px 25px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <p id="confirmMessage">Are you sure?</p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button onclick="confirmModalAction()">Yes</button>
+        <button onclick="closeConfirmModal()">No</button>
+      </div>
+    </div>
+  </div>
+  <div id="helpModal" class="modal">
+    <div class="modal-content">
+      <p>Please contact system developer for assistance.</p>
+      <button onclick="closeHelpModal()">OK</button>
+    </div>
+  </div>
+  <div id="logoutModal" class="modal">
+    <div class="modal-content">
+      <p id="logoutMessage">Are you sure you want to logout?</p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button onclick="confirmLogout()">Yes</button>
+        <button onclick="closeLogoutModal()">No</button>
+      </div>
+    </div>
+  </div>
+  <div id="messageModal" class="modal">
+    <div class="modal-content">
+      <p id="messageModalText">Message</p>
+      <button onclick="closeMessageModal()">OK</button>
+    </div>
+  </div>
+  <div class="menu-overlay" onclick="closeMobileMenu()"></div>
+  <button id="scrollToTopBtn" title="Go to top">↑</button>
+  <script src="script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      checkPageAccess(['admin', 'superadmin']);
+      loadStudents();
+    });
+  </script>
+</body>
+</html>

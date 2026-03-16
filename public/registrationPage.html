@@ -9,11 +9,15 @@
   <title>Registration Page</title>
   <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
   <link rel="stylesheet" href="style.css">
-  <!-- Firebase SDK (modular) -->
+  <!-- Add these inside <head> after the existing links -->
+  <link rel="preconnect" href="https://www.gstatic.com">
+  <link rel="preconnect" href="https://cdn.sheetjs.com">
+  <link rel="dns-prefetch" href="https://www.gstatic.com">
+  <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-    import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
-    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
+    import { getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy, addDoc, where, limit, writeBatch } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyD_35ndCAFRu4tkyyK6jliIS8l3QqGVgK8",
@@ -33,6 +37,7 @@
     window.db = db;
     window.signInWithEmailAndPassword = signInWithEmailAndPassword;
     window.signOut = signOut;
+    window.onAuthStateChanged = onAuthStateChanged;   // <-- ADD THIS
     window.collection = collection;
     window.getDocs = getDocs;
     window.getDoc = getDoc;
@@ -45,6 +50,7 @@
     window.addDoc = addDoc;
     window.where = where;
     window.limit = limit; 
+    window.writeBatch = writeBatch;
   </script>
 </head>
 <body>
@@ -61,12 +67,12 @@
         <span></span>
         <span></span>
       </div>
-      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon">
-      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text">
+      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon" loading="lazy">
+      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text" loading="lazy"> 
     </div>
     <div class="topbar-right">
-      <div onclick="needHelp()" style="display: flex; align-items: center; cursor: pointer;">
-        <span class="need-help-text">NEED HELP</span>
+      <div id="helpButton" onclick="handleHelpClick()" style="display: flex; align-items: center; cursor: pointer;">
+        <span id="helpText" class="need-help-text"></span>
         <span class="help-icon">?</span>
       </div>
       <div onclick="toggleDarkMode()" style="display: flex; align-items: center; cursor: pointer; margin-right: 8px;">
@@ -74,21 +80,19 @@
       </div>
     </div>
   </div>
-
   <div class="main-wrapper">
     <div class="sidebar">
-      <div class="nav" onclick="goHome()">HOME</div>
+      <div class="nav" onclick="goHome()">STUDENT LIST</div>
       <div class="nav" onclick="goRegister()">REGISTRATION</div>
       <div class="nav" onclick="goStatusUpdate()">STATUS UPDATE</div>
-      <div class="nav" onclick="goRegistered()">CLEARANCE TRACKING</div>
+      <div class="nav" onclick="goRegistered()">CLEARANCE LOGS</div>
+      <div class="nav" onclick="goAdmin()">MANAGE PROGRAMS</div>
       <div class="sidebar-spacer"></div>
       <div class="logout" onclick="logout()">LOGOUT</div>
     </div>
-
     <div class="content registration-content-page">
       <div class="registration-content">
         <div class="registration-layout">
-          <!-- RFID field centered with inline clear button -->
           <div style="display: flex; justify-content: center; margin-bottom: 20px;">
             <div style="width: 100%; max-width: 400px;">
               <label style="font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; display: block; letter-spacing: 0.5px;">
@@ -97,36 +101,33 @@
               <div style="display: flex; gap: 10px;">
                 <input type="text" id="rfidNumber" placeholder="Enter RFID" tabindex="1"
                        onblur="checkRFID()" onkeypress="if(event.key==='Enter') checkRFID()" 
-                       onchange="clearFieldError('rfidNumber')" style="flex: 1;">
+                       onchange="clearFieldError('rfidNumber')" style="flex: 1;" 
+                       oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="32"
+                       autocomplete="off">
                 <button type="button" onclick="clearRegistrationForm()" class="clear-btn">Clear</button>
+                <button type="button" onclick="refreshRegistrationForm()" class="refresh-btn" style="height: 38px;">Refresh</button>
               </div>
             </div>
           </div>
-
           <div class="registration-form">
-            <!-- LEFT COLUMN: Surname, Middle Name, Program, Gender -->
             <div class="form-column">
               <label>SURNAME <span class="required">*</span></label>
               <input type="text" id="surname" data-field="surname" placeholder="Enter Surname" tabindex="2"
-                     onchange="clearFieldError('surname')">
-
+                     maxlength="64"
+                     oninput="this.value = this.value.replace(/[^\p{L}\s\'-]/gu, '')"
+                     onchange="clearFieldError('surname')"
+                     autocomplete="off">
               <label>MIDDLE NAME</label>
               <input type="text" id="middleName" data-field="middleName" placeholder="Enter Middle Name (optional)" tabindex="4"
-                     onchange="clearFieldError('middleName')">
-
+                     maxlength="30"
+                     oninput="this.value = this.value.replace(/[^\p{L}\s\'-]/gu, '')"
+                     onchange="clearFieldError('middleName')"
+                     autocomplete="off">
               <label>PROGRAM / COURSE<span class="required">*</span></label>
               <select id="program" data-field="program" tabindex="6" onchange="clearFieldError('program')">
                 <option value="" disabled selected>Select Program</option>
-                <option value="BEED">(BEED) Bachelor of Elementary Education</option>
-                <option value="BSA">(BSA) Bachelor of Science in Accountancy</option>
-                <option value="BSBA">(BSBA) Bachelor of Science in Business Administration</option>
-                <option value="BSED">(BSED) Bachelor of Science in Education</option>
-                <option value="BSHM">(BSHM) Bachelor of Science in Hospitality Management</option>
-                <option value="BSIT">(BSIT) Bachelor of Science in Information Technology</option>
-                <option value="BSTM">(BSTM) Bachelor of Science in Tourism Management</option>
-                <option value="Others">Others</option>
+                <option value="Others">OTHERS</option>
               </select>
-
               <label>GENDER <span class="required">*</span></label>
               <select id="gender" data-field="gender" tabindex="8" onchange="clearFieldError('gender')">
                 <option value="" disabled selected>Select Gender</option>
@@ -135,17 +136,16 @@
                 <option value="Other">Other</option>
               </select>
             </div>
-
-            <!-- RIGHT COLUMN: First Name, Student Number, Year Level, Date -->
             <div class="form-column">
               <label>FIRST NAME <span class="required">*</span></label>
               <input type="text" id="firstName" data-field="firstName" placeholder="Enter First Name" tabindex="3"
-                     onchange="clearFieldError('firstName')">
-
+                     maxlength="64"
+                     oninput="this.value = this.value.replace(/[^\p{L}\s\'-]/gu, '')"
+                     onchange="clearFieldError('firstName')"
+                     autocomplete="off">
               <label>STUDENT NUMBER <span class="required">*</span></label>
               <input type="text" id="studentNumber" placeholder="Enter Student Number" tabindex="5"
-                     onchange="clearFieldError('studentNumber')">
-
+                     maxlength="7" oninput="formatStudentNumber(this)" onchange="clearFieldError('studentNumber')" autocomplete="off">
               <label>YEAR LEVEL <span class="required">*</span></label>
               <select id="yearLevel" data-field="yearLevel" tabindex="7" onchange="clearFieldError('yearLevel')">
                 <option value="" disabled selected>Select Year Level</option>
@@ -155,27 +155,33 @@
                 <option value="4th">4th Year</option>
                 <option value="Irregular">Irregular</option>
               </select>
-
               <label>DATE <span class="required">*</span></label>
-              <input type="date" id="date" tabindex="9" readonly onchange="clearFieldError('date')">
+              <input type="date" id="date" tabindex="9" disabled onchange="clearFieldError('date')" autocomplete="off">
             </div>
           </div>
-
           <button class="register-btn" id="registerButton" onclick="validateAndRegister()">REGISTER</button>
         </div>
       </div>
     </div>
   </div>
-  <!-- The inline auth check script has been removed – authentication is handled in script.js -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
-
-  <!-- Modals -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          window.location.href = 'index.html';
+          return;
+        }
+        const role = await getUserRole(user);
+        currentUserRole = role;
+        updateSidebarForRole(role);
+      });
+    });
+  </script>
   <div id="successModal" class="modal"><div class="modal-content"><p>Registration successful!</p><button onclick="closeSuccessModal()">OK</button></div></div>
   <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
   <div id="logoutModal" class="modal"><div class="modal-content"><p id="logoutMessage">Are you sure you want to logout?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmLogout()">Yes</button><button onclick="closeLogoutModal()">No</button></div></div></div>
-  
-  <!-- Update Confirmation Modal (Yes/No) -->
   <div id="updateConfirmModal" class="modal">
     <div class="modal-content">
       <p id="updateConfirmMessage">Are you sure you want to update this student?</p>
@@ -185,23 +191,20 @@
       </div>
     </div>
   </div>
-
-  <!-- Update Success Modal (OK) -->
   <div id="updateSuccessModal" class="modal">
     <div class="modal-content">
       <p id="updateSuccessMessage">Update successful!</p>
       <button onclick="redirectAfterUpdate()">OK</button>
     </div>
   </div>
-
-  <!-- Message Modal (added) -->
   <div id="messageModal" class="modal">
     <div class="modal-content">
       <p id="messageModalText">Message</p>
       <button onclick="closeMessageModal()">OK</button>
     </div>
   </div>
-
   <div class="menu-overlay" onclick="closeMobileMenu()"></div>
+  <button id="scrollToTopBtn" title="Go to top">↑</button>
+  <div id="printContainer" style="display: none;"></div>
 </body>
 </html>

@@ -118,7 +118,7 @@ export function enableHoverScroll(selector) {
   });
 }
 
-// ---- Pull to Refresh (simple) ----
+// ---- Pull to Refresh ----
 export function enablePullToRefresh(callback) {
   let startY = 0;
   let pulling = false;
@@ -136,7 +136,7 @@ export function enablePullToRefresh(callback) {
     const currentY = e.touches[0].clientY;
     const diff = currentY - startY;
     if (diff > 50 && diff < threshold) {
-      // Optional: show visual indicator
+      // Optional visual indicator
     }
   }, { passive: true });
 
@@ -149,4 +149,56 @@ export function enablePullToRefresh(callback) {
     }
     pulling = false;
   });
+}
+
+// ---- Print Dialog ----
+export function showPrintDialog(headers, rows, title) {
+  const container = document.getElementById('printContainer');
+  if (!container) {
+    showMessageModal('Print container not found.');
+    return;
+  }
+  const thead = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+  const tbody = `<tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  const html = `
+    <h2 style="text-align: center; margin-bottom: 20px;">${title}</h2>
+    <table>
+      ${thead}
+      ${tbody}
+    </table>
+  `;
+  container.innerHTML = html;
+  container.style.display = 'block';
+  window.print();
+  const hideContainer = () => {
+    container.style.display = 'none';
+    container.innerHTML = '';
+  };
+  if (window.matchMedia) {
+    const mediaQueryList = window.matchMedia('print');
+    const handleChange = (mql) => {
+      if (!mql.matches) {
+        hideContainer();
+        mediaQueryList.removeListener(handleChange);
+      }
+    };
+    mediaQueryList.addListener(handleChange);
+  } else {
+    setTimeout(hideContainer, 1000);
+  }
+}
+
+// ---- Field Validation ----
+export function showFieldError(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (el) el.classList.add('error-field');
+}
+
+export function clearFieldError(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (el) el.classList.remove('error-field');
+}
+
+export function clearAllFieldErrors() {
+  document.querySelectorAll('.registration-layout input, .registration-layout select').forEach(f => f.classList.remove('error-field'));
 }

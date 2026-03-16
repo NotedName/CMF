@@ -1,7 +1,20 @@
-// export.js
-import { showMessageModal, showPrintDialog } from './ui.js'; // need to add showPrintDialog to ui.js or keep here
+// ==================== Export Functions ====================
+import { showModal, closeModal, showPrintDialog } from './ui.js';
 
-export function exportData(type) {
+export function showExportModal() {
+  showModal('exportModal');
+}
+
+export function closeExportModal() {
+  closeModal('exportModal');
+}
+
+export function exportChosen(type) {
+  closeExportModal();
+  exportData(type);
+}
+
+function exportData(type) {
   const isLogTable = window.location.pathname.includes('clearanceTracking.html');
   const isHome = window.location.pathname.includes('home.html');
   let table = null;
@@ -10,7 +23,6 @@ export function exportData(type) {
   else return;
   if (!table) return;
   const clone = table.cloneNode(true);
-  // Remove hidden rows
   const originalRows = table.tBodies[0].rows;
   const clonedTBody = clone.tBodies[0];
   for (let i = clonedTBody.rows.length - 1; i >= 0; i--) {
@@ -135,17 +147,4 @@ function exportToCSV(clone, isLogTable) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-}
-
-export function showExportModal() {
-  showModal('exportModal');
-}
-
-export function closeExportModal() {
-  closeModal('exportModal');
-}
-
-export function exportChosen(type) {
-  closeExportModal();
-  exportData(type);
 }

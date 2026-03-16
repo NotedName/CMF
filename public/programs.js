@@ -1,6 +1,6 @@
-// programs.js
+// ==================== Program Management ====================
 import { db } from './firebase.js';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 import { showMessageModal, showErrorModal, showModal, closeModal, showTableSpinner, hideTableSpinner } from './ui.js';
 import { COLLECTIONS, PROGRAM_CACHE_KEY, PROGRAM_CACHE_DURATION } from './constants.js';
 import { updateStudentsProgram } from './students.js';
@@ -8,12 +8,12 @@ import { sortArray } from './utils.js';
 
 let programs = [];
 let programSort = { column: 0, direction: 'asc' };
+export let pendingDeleteProgramId = null;
 
 export async function loadPrograms(useCache = true) {
   const isAdminPage = window.location.pathname.includes('admin.html');
   if (isAdminPage) showTableSpinner('#programsTable');
   try {
-    // Try cache first
     if (useCache) {
       const cached = localStorage.getItem(PROGRAM_CACHE_KEY);
       if (cached) {
@@ -28,11 +28,9 @@ export async function loadPrograms(useCache = true) {
         }
       }
     }
-    // Fetch from Firestore
     const q = query(collection(db, COLLECTIONS.PROGRAMS), orderBy('programCode'));
     const snapshot = await getDocs(q);
     programs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    // Update cache
     localStorage.setItem(PROGRAM_CACHE_KEY, JSON.stringify({
       data: programs,
       timestamp: Date.now()
@@ -75,8 +73,8 @@ function renderProgramsTable() {
       <td>${p.programCode}</td>
       <td>${p.programName}</td>
       <td class="action-cell">
-        <button onclick="editProgram('${p.id}')" class="btn-edit">Edit</button>
-        <button onclick="deleteProgram('${p.id}')" class="btn-delete">Delete</button>
+        <button onclick="editProgram('${p.id}')" class="export-btn">Edit</button>
+        <button onclick="deleteProgram('${p.id}')" class="delete-btn">Delete</button>
       </td>
     </tr>
   `).join('');
@@ -138,7 +136,7 @@ export async function addProgram() {
   try {
     await addDoc(collection(db, COLLECTIONS.PROGRAMS), { programCode: code, programName: name });
     closeAddProgramModal();
-    await loadPrograms(false); // bypass cache
+    await loadPrograms(false);
     showMessageModal('Program added successfully.');
   } catch (err) {
     showErrorModal(err.code, 'Error adding program.');
@@ -196,13 +194,11 @@ export async function updateProgram() {
   }
 }
 
-let pendingDeleteProgramId = null;
 export function deleteProgram(id) {
   const program = programs.find(p => p.id === id);
   if (!program) return;
   // Check if any student uses this program (allStudents is global from students.js, but we'll need to import it or pass as param)
-  // For simplicity, we'll import allStudents from students.js (will need to handle circular deps)
-  // We'll use a callback pattern – we'll define this after importing students.
+  // For simplicity, we'll use a global variable that students.js exports? We'll handle in confirmProgramDelete.
   pendingDeleteProgramId = id;
   document.getElementById('confirmMessage').textContent = `Are you sure you want to delete program ${program.programCode}?`;
   showModal('confirmModal');
@@ -235,6 +231,10 @@ export function filterProgramsTable() {
     const name = row.cells[1]?.textContent.toLowerCase() || '';
     row.style.display = (search === '' || code.includes(search) || name.includes(search)) ? '' : 'none';
   });
+}
+
+export function refreshProgramsTable() {
+  loadPrograms(false);
 }
 
 export function clearProgramFilters() {

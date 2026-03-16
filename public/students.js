@@ -1,25 +1,25 @@
 // ==================== Student Management ====================
 import { db } from './firebase.js';
-import { collection, getDocs, getDoc, setDoc, deleteDoc, doc, query, orderBy, where, limit, startAfter, writeBatch } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
-import { showTableSpinner, hideTableSpinner, showMessageModal, showErrorModal, showModal } from './ui.js';
+import { collection, getDocs, getDoc, setDoc, deleteDoc, doc, query, orderBy, where, writeBatch } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+import { showTableSpinner, hideTableSpinner, showMessageModal, showErrorModal, showModal, closeModal } from './ui.js';
 import { COLLECTIONS, DEFAULT_SORT, SORT_DIRECTIONS, PAGE_SIZE } from './constants.js';
+import { formatFullName, escapeHtml } from './utils.js';
 
-let allStudents = []; // for current page only if using pagination? We'll implement pagination
-let lastVisible = null;
+let allStudents = [];
 let currentPage = 1;
 let totalPages = 1;
 let currentFilters = { search: '', course: '', year: '' };
 let homeSort = { ...DEFAULT_SORT.HOME };
+
+export let pendingDeleteRfids = [];
+export let pendingAdminDelete = [];
 
 export async function loadStudents(page = 1, filters = currentFilters) {
   const table = document.getElementById('homeTable');
   if (!table) return;
   showTableSpinner('#homeTable');
   try {
-    let q = query(collection(db, COLLECTIONS.STUDENTS), orderBy('dateTime', 'desc'));
-    // Apply filters if any (we'll implement server-side filtering later)
-    // For now, we fetch all and filter client-side, but with pagination we need server-side.
-    // To keep it simple, we'll fetch all and paginate client-side for now, but ideally use Firestore pagination with filters.
+    const q = query(collection(db, COLLECTIONS.STUDENTS), orderBy('dateTime', 'desc'));
     const snapshot = await getDocs(q);
     allStudents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     totalPages = Math.ceil(allStudents.length / PAGE_SIZE);
@@ -27,7 +27,6 @@ export async function loadStudents(page = 1, filters = currentFilters) {
     const end = start + PAGE_SIZE;
     const pageData = allStudents.slice(start, end);
     renderHomeTable(pageData);
-    updatePaginationControls();
     populateCourseFilter();
     hideTableSpinner('#homeTable');
   } catch (err) {
@@ -45,7 +44,7 @@ function renderHomeTable(students) {
     const datePart = student.dateTime ? student.dateTime.split(' ')[0] : '';
     return `
       <tr>
-        <td class="checkbox-cell"><input type="checkbox" class="home-checkbox" data-rfid="${student.rfidNumber}" onchange="window.updateSelectAllHomeState?.()"></td>
+        <td class="checkbox-cell"><input type="checkbox" class="home-checkbox" data-rfid="${escapeHtml(student.rfidNumber)}" onchange="window.updateSelectAllHomeState?.()"></td>
         <td>${escapeHtml(student.rfidNumber || '')}</td>
         <td>${escapeHtml(student.studentNumber || '')}</td>
         <td>${escapeHtml(fullName)}</td>
@@ -90,31 +89,12 @@ function getStudentSortProperty(columnIndex) {
   return map[columnIndex];
 }
 
-function formatFullName(student) {
-  const surname = student.surname || '';
-  const firstName = student.firstName || '';
-  const middle = student.middleName ? ' ' + student.middleName : '';
-  return surname ? `${surname}, ${firstName}${middle}` : (firstName + middle).trim();
-}
-
-function escapeHtml(unsafe) {
-  if (!unsafe) return unsafe;
-  return unsafe.replace(/[&<>"']/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    if (m === '"') return '&quot;';
-    if (m === "'") return '&#039;';
-    return m;
-  });
-}
-
 function populateCourseFilter() {
   const select = document.getElementById('courseFilter');
   if (!select) return;
   const courses = [...new Set(allStudents.map(s => s.program).filter(Boolean))].sort();
   select.innerHTML = '<option value="">All</option>' + 
-    courses.map(c => `<option value="${c}">${escapeHtml(c)}</option>`).join('');
+    courses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 }
 
 function applyClientFilters() {
@@ -156,10 +136,6 @@ function updateSortIndicators(columnIndex, direction) {
   }
 }
 
-function updatePaginationControls() {
-  // You can add pagination buttons in HTML and update here
-}
-
 // ---- Edit/Delete ----
 export function editSelectedHome() {
   const selected = document.querySelectorAll('#homeTable tbody .home-checkbox:checked');
@@ -175,7 +151,6 @@ export function editSelectedHome() {
   window.location.href = `registrationPage.html?rfid=${encodeURIComponent(rfid)}`;
 }
 
-let pendingDeleteRfids = [];
 export function deleteSelectedHome() {
   const selected = document.querySelectorAll('#homeTable tbody .home-checkbox:checked');
   if (selected.length === 0) {
@@ -204,6 +179,7 @@ export async function confirmDelete() {
 
 // ---- Admin student management ----
 let adminStudentSort = { ...DEFAULT_SORT.ADMIN };
+
 export function renderAdminStudentsTable() {
   const tbody = document.querySelector('#adminStudentsTable tbody');
   if (!tbody) return;
@@ -220,8 +196,8 @@ export function renderAdminStudentsTable() {
         <td>${escapeHtml(student.dateTime || '')}</td>
         <td>${escapeHtml(student.gender || '')}</td>
         <td class="action-cell">
-          <button onclick="editStudent('${student.rfidNumber}')" class="btn-edit">Edit</button>
-          <button onclick="deleteSingleStudent('${student.rfidNumber}')" class="btn-delete">Delete</button>
+          <button onclick="editStudent('${student.rfidNumber}')" class="export-btn">Edit</button>
+          <button onclick="deleteSingleStudent('${student.rfidNumber}')" class="delete-btn">Delete</button>
         </td>
       </tr>
     `;
@@ -264,7 +240,6 @@ export function editStudent(rfid) {
   window.location.href = `registrationPage.html?rfid=${encodeURIComponent(rfid)}`;
 }
 
-let pendingAdminDelete = [];
 export function deleteSingleStudent(rfid) {
   pendingAdminDelete = [rfid];
   document.getElementById('confirmMessage').textContent = 'Are you sure you want to delete this student?';
@@ -298,7 +273,7 @@ export function filterAdminTable() {
 
 // ---- Registration page helpers ----
 export async function checkRFID(rfid) {
-  if (!rfid) return;
+  if (!rfid) return null;
   try {
     const docRef = doc(db, COLLECTIONS.STUDENTS, rfid);
     const docSnap = await getDoc(docRef);
@@ -368,7 +343,6 @@ export async function updateStudent(rfid, updatedData) {
   }
 }
 
-// ---- Student number duplicate check ----
 export async function isStudentNumberDuplicate(studentNumber, excludeRfid = null) {
   const q = query(collection(db, COLLECTIONS.STUDENTS), where('studentNumber', '==', studentNumber));
   const snapshot = await getDocs(q);
@@ -379,7 +353,6 @@ export async function isStudentNumberDuplicate(studentNumber, excludeRfid = null
   return true;
 }
 
-// ---- Program update helper ----
 export async function updateStudentsProgram(oldCode, newCode) {
   const q = query(collection(db, COLLECTIONS.STUDENTS), where('program', '==', oldCode));
   const snapshot = await getDocs(q);

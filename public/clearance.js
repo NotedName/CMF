@@ -1,24 +1,24 @@
-// clearance.js
+// ==================== Clearance Logs Management ====================
 import { db } from './firebase.js';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, limit, startAfter } from 'firebase/firestore';
-import { showMessageModal, showErrorModal, showTableSpinner, hideTableSpinner } from './ui.js';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, limit, getDoc } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+import { showMessageModal, showErrorModal, showTableSpinner, hideTableSpinner, showModal, closeModal } from './ui.js';
 import { COLLECTIONS, PAGE_SIZE } from './constants.js';
-import { formatFullName, sortArray } from './utils.js';
+import { formatFullName, escapeHtml, sortArray } from './utils.js';
 
 let clearanceLogs = [];
-let lastVisible = null;
 let currentPage = 1;
 let totalPages = 1;
 let currentFilters = { search: '', status: '', semester: '', remarks: '', course: '', year: '' };
 let logSort = { column: 2, direction: 'asc' }; // name column
+
+export let pendingDeleteLogIds = [];
 
 export async function loadClearanceLogs(page = 1, filters = currentFilters) {
   const table = document.getElementById('clearanceLogTable');
   if (!table) return;
   showTableSpinner('#clearanceLogTable');
   try {
-    let q = query(collection(db, COLLECTIONS.CLEARANCE_LOGS), orderBy('timestamp', 'desc'));
-    // For simplicity, we'll fetch all and paginate client-side, but for production use server-side pagination with filters.
+    const q = query(collection(db, COLLECTIONS.CLEARANCE_LOGS), orderBy('timestamp', 'desc'));
     const snapshot = await getDocs(q);
     clearanceLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     totalPages = Math.ceil(clearanceLogs.length / PAGE_SIZE);
@@ -43,7 +43,7 @@ function renderClearanceLogs(logs) {
     const receiveDate = log.returnedDate ? new Date(log.returnedDate.seconds * 1000).toLocaleString() : '';
     return `
       <tr>
-        <td class="checkbox-cell"><input type="checkbox" class="log-checkbox" data-log-id="${log.id}" onchange="window.updateSelectAllLogsState?.()"></td>
+        <td class="checkbox-cell"><input type="checkbox" class="log-checkbox" data-log-id="${escapeHtml(log.id)}" onchange="window.updateSelectAllLogsState?.()"></td>
         <td>${escapeHtml(log.rfid || '')}</td>
         <td>${escapeHtml(log.studentNumber || '')}</td>
         <td>${escapeHtml(log.name || '')}</td>
@@ -124,19 +124,19 @@ function populateLogFilters() {
   });
   const semesterFilter = document.getElementById('semesterFilter');
   if (semesterFilter) {
-    semesterFilter.innerHTML = '<option value="">All</option>' + [...semesterSet].sort().map(s => `<option value="${s}">${s}</option>`).join('');
+    semesterFilter.innerHTML = '<option value="">All</option>' + [...semesterSet].sort().map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   }
   const remarksFilter = document.getElementById('remarksFilter');
   if (remarksFilter) {
-    remarksFilter.innerHTML = '<option value="">All</option>' + [...remarksSet].sort().map(r => `<option value="${r}">${r}</option>`).join('');
+    remarksFilter.innerHTML = '<option value="">All</option>' + [...remarksSet].sort().map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
   }
   const courseFilter = document.getElementById('courseFilterLogs');
   if (courseFilter) {
-    courseFilter.innerHTML = '<option value="">All</option>' + [...courseSet].sort().map(c => `<option value="${c}">${c}</option>`).join('');
+    courseFilter.innerHTML = '<option value="">All</option>' + [...courseSet].sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
   }
   const yearFilter = document.getElementById('yearFilterLogs');
   if (yearFilter) {
-    yearFilter.innerHTML = '<option value="">All</option>' + [...yearSet].sort().map(y => `<option value="${y}">${y}</option>`).join('');
+    yearFilter.innerHTML = '<option value="">All</option>' + [...yearSet].sort().map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
   }
 }
 
@@ -168,13 +168,11 @@ export async function releaseStudent(rfid, remarks, acadYear, semester) {
   if (isProcessing) return;
   isProcessing = true;
   try {
-    // Check for open claim
     const openClaim = await findOpenClaim(rfid);
     if (openClaim) {
       showMessageModal('Student has already claimed. Please return first.');
       return;
     }
-    // Get student data
     const studentRef = doc(db, COLLECTIONS.STUDENTS, rfid);
     const studentSnap = await getDoc(studentRef);
     if (!studentSnap.exists()) {
@@ -256,7 +254,6 @@ export function clearStatusUpdate() {
 }
 
 // ---- Delete logs (superadmin only) ----
-let pendingDeleteLogIds = [];
 export function deleteSelectedLogs() {
   const selected = document.querySelectorAll('#clearanceLogTable tbody .log-checkbox:checked');
   if (selected.length === 0) {

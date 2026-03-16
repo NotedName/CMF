@@ -1,13 +1,14 @@
-// users.js
+// ==================== User Management (Superadmin) ====================
 import { db } from './firebase.js';
-import { collection, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 import { showMessageModal, showErrorModal, showTableSpinner, hideTableSpinner, showModal, closeModal } from './ui.js';
 import { COLLECTIONS, DEFAULT_SORT } from './constants.js';
-import { sortArray } from './utils.js';
+import { escapeHtml } from './utils.js';
 
 let users = [];
 let filteredUsers = [];
 let userSort = { ...DEFAULT_SORT.USER };
+export let pendingUserAction = null;
 
 export async function loadUsers() {
   const table = document.getElementById('usersTable');
@@ -39,30 +40,18 @@ function renderUsersTable() {
         <td>${approved}</td>
         <td>${escapeHtml(createdAt)}</td>
         <td class="action-cell">
-          ${!user.approved ? `<button onclick="showApproveConfirm('${user.uid}')" class="btn-approve">Approve</button>` : ''}
+          ${!user.approved ? `<button onclick="showApproveConfirm('${user.uid}')" class="export-btn">Approve</button>` : ''}
           <select id="role-${user.uid}" class="role-select">
             <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
             <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
             <option value="superadmin" ${user.role === 'superadmin' ? 'selected' : ''}>Superadmin</option>
           </select>
-          <button onclick="showUpdateRoleConfirm('${user.uid}')" class="btn-update">Update</button>
-          <button onclick="showDeleteConfirm('${user.uid}')" class="btn-delete">Delete</button>
+          <button onclick="showUpdateRoleConfirm('${user.uid}')" class="export-btn">Update</button>
+          <button onclick="showDeleteConfirm('${user.uid}')" class="delete-btn">Delete</button>
         </td>
       </tr>
     `;
   }).join('');
-}
-
-function escapeHtml(unsafe) {
-  if (!unsafe) return unsafe;
-  return unsafe.replace(/[&<>"']/g, m => {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    if (m === '"') return '&quot;';
-    if (m === "'") return '&#039;';
-    return m;
-  });
 }
 
 export function filterUsersTable() {
@@ -140,8 +129,6 @@ function updateUserSortIndicators() {
 }
 
 // ---- Confirmation actions ----
-let pendingUserAction = null;
-
 export function showApproveConfirm(uid) {
   pendingUserAction = { uid, action: 'approve' };
   document.getElementById('confirmMessage').innerText = 'Are you sure you want to approve this user?';

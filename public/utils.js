@@ -1,4 +1,4 @@
-// utils.js
+// ==================== Shared Utilities ====================
 export function formatFullName(student) {
   const surname = student.surname || '';
   const firstName = student.firstName || '';

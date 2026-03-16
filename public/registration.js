@@ -1,7 +1,7 @@
-// registration.js
+// ==================== Registration Page ====================
 import { checkRFID, registerStudent, updateStudent, isStudentNumberDuplicate } from './students.js';
-import { showMessageModal, showFieldError, clearAllFieldErrors, setDefaultDate } from './ui.js'; // we need to add these helpers
-import { formatFullName } from './utils.js';
+import { showMessageModal, showModal, showFieldError, clearAllFieldErrors, enableHoverScroll, setDefaultDate } from './ui.js'; // setDefaultDate is in utils, but we import from ui now? Actually setDefaultDate is in utils, so need to import from utils.
+import { setDefaultDate } from './utils.js'; // correct
 import { populateProgramDropdown } from './programs.js';
 
 export function initRegistrationPage() {
@@ -15,7 +15,6 @@ export function initRegistrationPage() {
   enableHoverScroll('.registration-layout select');
   populateProgramDropdown();
   setDefaultDate();
-  // Tampering detection (optional)
 }
 
 export async function setupEditMode(rfid) {
@@ -36,11 +35,9 @@ export async function setupEditMode(rfid) {
       document.getElementById('date').value = student.dateTime.split(' ')[0];
     }
     document.getElementById('gender').value = student.gender || '';
-    // Disable non-editable fields
     document.getElementById('rfidNumber').disabled = true;
     document.getElementById('studentNumber').disabled = true;
     document.getElementById('date').disabled = true;
-    // Enable editable
     document.getElementById('surname').disabled = false;
     document.getElementById('firstName').disabled = false;
     document.getElementById('middleName').disabled = false;
@@ -80,6 +77,10 @@ export function resetRegistrationForm() {
   setDefaultDate();
 }
 
+export function refreshRegistrationForm() {
+  resetRegistrationForm();
+}
+
 export function clearRegistrationForm() {
   if (window.isEditMode) {
     document.getElementById('surname').value = '';
@@ -91,44 +92,6 @@ export function clearRegistrationForm() {
   } else {
     resetRegistrationForm();
   }
-}
-
-// Validation functions
-export function validateAndRegister() {
-  const formData = getFormData();
-  if (!validateFormData(formData)) return;
-  isStudentNumberDuplicate(formData.studentNumber).then(isDuplicate => {
-    if (isDuplicate) {
-      showFieldError('studentNumber');
-      showMessageModal('Student number already exists.');
-      return;
-    }
-    if (!isValidStudentNumber(formData.studentNumber)) {
-      showFieldError('studentNumber');
-      showMessageModal('Student number must start with a letter followed by exactly 6 digits.');
-      return;
-    }
-    registerStudent(formData);
-  });
-}
-
-export function validateAndUpdate() {
-  const formData = getFormData();
-  if (!validateFormData(formData)) return;
-  isStudentNumberDuplicate(formData.studentNumber, formData.rfidNumber).then(isDuplicate => {
-    if (isDuplicate) {
-      showFieldError('studentNumber');
-      showMessageModal('Student number already exists.');
-      return;
-    }
-    if (!isValidStudentNumber(formData.studentNumber)) {
-      showFieldError('studentNumber');
-      showMessageModal('Student number must start with a letter followed by exactly 6 digits.');
-      return;
-    }
-    showModal('updateConfirmModal');
-    window.pendingUpdateData = formData;
-  });
 }
 
 function getFormData() {
@@ -164,6 +127,43 @@ function validateFormData(data) {
 
 function isValidStudentNumber(sn) {
   return /^[A-Z]\d{6}$/.test(sn);
+}
+
+export function validateAndRegister() {
+  const formData = getFormData();
+  if (!validateFormData(formData)) return;
+  isStudentNumberDuplicate(formData.studentNumber).then(isDuplicate => {
+    if (isDuplicate) {
+      showFieldError('studentNumber');
+      showMessageModal('Student number already exists.');
+      return;
+    }
+    if (!isValidStudentNumber(formData.studentNumber)) {
+      showFieldError('studentNumber');
+      showMessageModal('Student number must start with a letter followed by exactly 6 digits.');
+      return;
+    }
+    registerStudent(formData);
+  });
+}
+
+export function validateAndUpdate() {
+  const formData = getFormData();
+  if (!validateFormData(formData)) return;
+  isStudentNumberDuplicate(formData.studentNumber, formData.rfidNumber).then(isDuplicate => {
+    if (isDuplicate) {
+      showFieldError('studentNumber');
+      showMessageModal('Student number already exists.');
+      return;
+    }
+    if (!isValidStudentNumber(formData.studentNumber)) {
+      showFieldError('studentNumber');
+      showMessageModal('Student number must start with a letter followed by exactly 6 digits.');
+      return;
+    }
+    showModal('updateConfirmModal');
+    window.pendingUpdateData = formData;
+  });
 }
 
 export function formatStudentNumber(input) {

@@ -43,7 +43,6 @@ export async function checkPageAccess(allowedRoles) {
       }
       currentUserRole = role;
       document.body.classList.add(`role-${role}`);
-      // We'll call updateSidebarForRole from the page-specific script
       resolve(role);
     });
   });
@@ -98,7 +97,6 @@ export async function login(email, password) {
       await signOut(auth);
       return false;
     }
-    // Redirect based on role
     window.location.href = role === ROLES.USER ? 'registrationPage.html' : 'home.html';
     return true;
   } catch (err) {

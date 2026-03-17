@@ -497,6 +497,34 @@ html {
   display: none !important;
 }
 
+/* Keep logout visible */
+.sidebar .logout {
+  display: flex;
+}
+
+/* Add at the end of the sidebar section */
+.sidebar-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  width: 100%;
+}
+
+.sidebar-loading::after {
+  content: "";
+  width: 30px;
+  height: 30px;
+  border: 3px solid #ccc;
+  border-top-color: #2f80ed;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ==================== CONTENT AREA ==================== */
 .content {
   flex: 1;
@@ -679,12 +707,14 @@ html {
 }
 .search-wrapper {
   position: relative;
-  width: 120px; /* smaller to fit more filters */
+  min-width: 200px;        /* was 120px – now larger */
+  width: auto;              /* allow it to grow */
+  flex: 1 1 auto;           /* take available space if needed */
 }
 .search-wrapper input {
   width: 100%;
   height: 38px;
-  padding: 8px 12px 8px 40px;
+  padding: 8px 12px 8px 40px; /* left padding for icon */
   border: 1.5px solid #ddd;
   border-radius: 10px;
   font-size: 12px;
@@ -714,6 +744,8 @@ html {
   stroke-width: 2;
   fill: none;
 }
+
+/* Refresh button (styled like export/update buttons) */
 .refresh-btn {
   background: #2f80ed;
   color: white;
@@ -726,12 +758,9 @@ html {
 .refresh-btn:active {
   animation: pulse 0.3s ease;
 }
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+.dark-mode .refresh-btn {
+  background: #4d8cff; /* lighter blue for dark mode */
 }
-.dark-mode .refresh-btn { background: #4d8cff; }
 
 /* ----- Buttons ----- */
 button, .register-btn, .delete-btn, .export-btn, .clear-btn, #deleteSelectedBtn, .update-btn {
@@ -1616,35 +1645,85 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   accent-color: #5a9cff;
   filter: brightness(1.2);
 }
+.dark-mode #displayDate {
+  background: #333 !important;        /* dark background */
+  color: #eee !important;              /* light text */
+  border-color: #555 !important;
+}
+
+/* ==================== Display Date Styles ==================== */
+.display-date-field {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 8px 12px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #555;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 13px;
+}
+.dark-mode .display-date-field {
+  background: rgba(20, 20, 30, 0.8);
+  border-color: #555;
+  color: #fff;
+}
+#displayDate {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.9)!important;
+  border-radius: 8px;
+  border: 1.5px solid #ddd;
+  width: 100%;
+  display: inline-block;
+  transition: all 0.3s ease;
+  font-size: 13px;
+}
+.dark-mode #displayDate {
+  background: rgba(20, 20, 30, 0.8) !important;
+  color: #fff !important;
+  border-color: #555 !important;
+}
 
 /* ==================== PRINT STYLES ==================== */
 #printContainer { display: none; }
 @media print {
   @page {
+    margin-top: 0.15in;
     margin-left: 0.2in;
     margin-right: 0.2in;
   }
+
   html, body {
     overflow: visible !important;
     height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
   }
+
   body > *:not(#printContainer) { display: none !important; }
+
   #printContainer {
     display: block !important;
     background: white;
-    padding: 0; /* Remove padding inside the container */
+    padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     max-width: 100%;
+    page-break-after: avoid;
+    page-break-before: avoid;
   }
-  #printContainer h2 {
-    text-align: center;
-    margin-bottom: 15px;
-    font-size: 14pt;
-    color: #000;
+
+  /* Prevent page breaks inside header elements */
+  #printContainer h1,
+  #printContainer h2,
+  #printContainer div {
+    page-break-after: avoid;
+    page-break-inside: avoid;
   }
+
+  /* Table styling – no forced breaks inside rows */
   #printContainer table {
     width: 100%;
     border-collapse: collapse;
@@ -1652,8 +1731,11 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     background: white;
     box-shadow: none;
     border-radius: 0;
+    page-break-inside: auto;
   }
-  #printContainer th, #printContainer td {
+
+  #printContainer th,
+  #printContainer td {
     border: 1px solid #000;
     padding: 2px 1px;
     text-align: center;
@@ -1662,29 +1744,70 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
+
   #printContainer th {
     background-color: #f0f0f0;
     font-weight: bold;
   }
-  #printContainer tr { page-break-inside: auto; }
-  #printContainer thead { display: table-header-group; }
+
+  #printContainer tr {
+    page-break-inside: auto;
+  }
+
+  #printContainer thead {
+    display: table-header-group;
+  }
+
+  /* Specific column alignments for home and logs tables */
   #printContainer #homeTable td:nth-child(1),
   #printContainer #homeTable td:nth-child(4) {
     text-align: left !important;
   }
+
   #printContainer #homeTable td:nth-child(2),
   #printContainer #homeTable td:nth-child(3) {
     text-align: center !important;
   }
+
   #printContainer #clearanceLogTable td:nth-child(1),
   #printContainer #clearanceLogTable td:nth-child(2) {
     text-align: left !important;
   }
+
   #printContainer #clearanceLogTable td:nth-child(3) {
     text-align: center !important;
   }
+
+  /* Remove row animations */
   #printContainer table tbody tr {
     animation: none !important;
     opacity: 1 !important;
+  }
+
+    /* Ensure no page break before the first element */
+  #printContainer > :first-child {
+    page-break-before: avoid;
+  }
+
+  /* Force the entire print container to stay on one page if possible */
+  #printContainer {
+    page-break-inside: avoid;
+    page-break-after: avoid;
+    page-break-before: avoid;
+  }
+
+  /* Allow the table to break naturally if it must span multiple pages */
+  #printContainer table {
+    page-break-inside: auto;
+  }
+
+  /* Prevent thead from being separated from tbody */
+  #printContainer thead {
+    display: table-header-group;
+  }
+
+  /* Avoid breaks inside rows */
+  #printContainer tr {
+    page-break-inside: avoid;
   }
 }

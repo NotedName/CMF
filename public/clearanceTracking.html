@@ -105,11 +105,9 @@
             </span>
           </div>
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <label for="statusFilter">Status:</label>
-            <select id="statusFilter" onchange="applyFilters()">
+            <label for="acadYearFilter">A.Y.:</label>
+            <select id="acadYearFilter" onchange="applyFilters()">
               <option value="">All</option>
-              <option value="Claimed">Claimed</option>
-              <option value="Returned">Returned</option>
             </select>
 
             <label for="semesterFilter">Semester:</label>
@@ -117,8 +115,8 @@
               <option value="">All</option>
             </select>
 
-            <label for="remarksFilter">Remarks:</label>
-            <select id="remarksFilter" onchange="applyFilters()">
+            <label for="yearFilterLogs">Year Level:</label>
+            <select id="yearFilterLogs" onchange="applyFilters()">
               <option value="">All</option>
             </select>
 
@@ -127,9 +125,17 @@
               <option value="">All</option>
             </select>
 
-            <label for="yearFilterLogs">Year Level:</label>
-            <select id="yearFilterLogs" onchange="applyFilters()">
+            <label for="remarksFilter">Remarks:</label>
+            <select id="remarksFilter" onchange="applyFilters()">
               <option value="">All</option>
+            </select>
+
+            <!-- Inside the filter bar, after the semester filter -->
+            <label for="statusFilter">Status:</label>
+            <select id="statusFilter" onchange="applyFilters()">
+              <option value="">All</option>
+              <option value="Claimed">Claimed</option>
+              <option value="Returned">Returned</option>
             </select>
 
             <button onclick="clearFilters()" class="clear-btn">Clear</button>
@@ -179,6 +185,7 @@
           document.getElementById('superadminLogControls').style.display = 'inline-flex';
         }
         loadClearanceLogs();
+        loadPrograms();
       });
     });
   </script>

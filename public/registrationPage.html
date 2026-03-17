@@ -9,7 +9,7 @@
   <title>Registration Page</title>
   <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
   <link rel="stylesheet" href="style.css">
-  <!-- Add these inside <head> after the existing links -->
+  <!-- Preconnect and dns-prefetch -->
   <link rel="preconnect" href="https://www.gstatic.com">
   <link rel="preconnect" href="https://cdn.sheetjs.com">
   <link rel="dns-prefetch" href="https://www.gstatic.com">
@@ -37,7 +37,7 @@
     window.db = db;
     window.signInWithEmailAndPassword = signInWithEmailAndPassword;
     window.signOut = signOut;
-    window.onAuthStateChanged = onAuthStateChanged;   // <-- ADD THIS
+    window.onAuthStateChanged = onAuthStateChanged;
     window.collection = collection;
     window.getDocs = getDocs;
     window.getDoc = getDoc;
@@ -52,6 +52,154 @@
     window.limit = limit; 
     window.writeBatch = writeBatch;
   </script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    /* Tab styling */
+    .registration-tabs {
+      display: flex;
+      gap: 10px;
+    }
+    .tab-button {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 2px solid #2f80ed;
+      background: transparent;
+      color: #2f80ed;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .tab-button.active {
+      background: #2f80ed;
+      color: white;
+    }
+    .tab-button:hover {
+      background: rgba(47, 128, 237, 0.1);
+    }
+    .dark-mode .tab-button {
+      border-color: #5a9cff;
+      color: #5a9cff;
+    }
+    .dark-mode .tab-button.active {
+      background: #5a9cff;
+      color: #fff;
+    }
+    /* Ensure columns align properly */
+    .registration-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+    .form-column {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .form-column label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 2px;
+      letter-spacing: 0.5px;
+    }
+    .form-column input,
+    .form-column select {
+      width: 100%;
+      height: 38px;
+      padding: 8px 12px;
+      font-size: 13px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      transition: all 0.3s ease;
+    }
+    .dark-mode .form-column label {
+      color: #ddd;
+    }
+    /* Top bar with tabs and action buttons */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .top-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .top-actions button {
+      height: 38px;
+      padding: 0 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .top-actions .clear-btn {
+      background: #6c757d;
+      color: white;
+    }
+    .top-actions .clear-btn:hover {
+      background: #5a6268;
+    }
+    .top-actions .refresh-btn {
+      background: #2f80ed;
+      color: white;
+      box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+    }
+    .top-actions .refresh-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+    }
+    /* Register button at bottom */
+    .register-btn {
+      width: 100%;
+      height: 38px;
+      background: linear-gradient(135deg, #2f80ed 0%, #1e5bb8 100%);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+      margin-top: 20px;
+    }
+    .register-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+    }
+    /* Style for the display date field (make it look like an input) */
+    .display-date-field {
+      display: flex;
+      align-items: center;
+      height: 38px;
+      padding: 8px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #555;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 13px;
+    }
+    .dark-mode .display-date-field {
+      background: rgba(20, 20, 30, 0.8);
+      border-color: #555;
+      color: #fff;
+    }
+  </style>
 </head>
 <body>
   <script>
@@ -93,73 +241,118 @@
     <div class="content registration-content-page">
       <div class="registration-content">
         <div class="registration-layout">
-          <div style="display: flex; justify-content: center; margin-bottom: 20px;">
-            <div style="width: 100%; max-width: 400px;">
-              <label style="font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; display: block; letter-spacing: 0.5px;">
-                RFID NUMBER <span class="required">*</span>
-              </label>
-              <div style="display: flex; gap: 10px;">
+          <!-- Hidden field to store student type -->
+          <input type="hidden" id="studentType" value="new">
+
+          <!-- Top bar: tabs on left, action buttons on right -->
+          <div class="top-bar">
+            <div class="registration-tabs">
+              <button class="tab-button active" id="tabNew" onclick="switchRegistrationTab('new')">New Student</button>
+              <button class="tab-button" id="tabOld" onclick="switchRegistrationTab('old')">Old Student</button>
+            </div>
+            <div class="top-actions">
+              <button type="button" onclick="clearRegistrationForm()" class="clear-btn">Clear</button>
+              <button type="button" onclick="refreshRegistrationForm()" class="refresh-btn">Refresh</button>
+            </div>
+          </div>
+
+          <!-- Two‑column form with improved spacing and correct tabindex order -->
+          <div class="registration-form">
+            <!-- Left Column -->
+            <div class="form-column">
+              <!-- RFID Number – visible only for new students -->
+              <div id="rfidFieldGroup" class="field-group">
+                <label>RFID NUMBER <span class="required">*</span></label>
                 <input type="text" id="rfidNumber" placeholder="Enter RFID" tabindex="1"
-                       onblur="checkRFID()" onkeypress="if(event.key==='Enter') checkRFID()" 
-                       onchange="clearFieldError('rfidNumber')" style="flex: 1;" 
-                       oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="32"
-                       autocomplete="off">
-                <button type="button" onclick="clearRegistrationForm()" class="clear-btn">Clear</button>
-                <button type="button" onclick="refreshRegistrationForm()" class="refresh-btn" style="height: 38px;">Refresh</button>
+                      onblur="checkRFID()" onkeypress="if(event.key==='Enter') checkRFID()"
+                      onchange="clearFieldError('rfidNumber')"
+                      oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="32"
+                      autocomplete="off">
+              </div>
+
+              <div class="field-group">
+                <label>SURNAME <span class="required">*</span></label>
+                <input type="text" id="surname" data-field="surname" placeholder="Enter Surname" tabindex="3"
+                      maxlength="64" oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
+                      onchange="clearFieldError('surname')" autocomplete="off">
+              </div>
+
+              <div class="field-group">
+                <label>MIDDLE NAME</label>
+                <input type="text" id="middleName" data-field="middleName" placeholder="Enter Middle Name (optional)" tabindex="5"
+                      maxlength="30" oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
+                      onchange="clearFieldError('middleName')" autocomplete="off">
+              </div>
+
+              <div class="field-group">
+                <label>PROGRAM / COURSE <span class="required">*</span></label>
+                <select id="program" data-field="program" tabindex="7" onchange="clearFieldError('program')">
+                  <option value="" disabled selected>Select Program</option>
+                  <option value="Others">OTHERS</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label>GENDER <span class="required">*</span></label>
+                <select id="gender" data-field="gender" tabindex="9" onchange="clearFieldError('gender')">
+                  <option value="" disabled selected>Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="form-column">
+              <!-- Student Number – visible only for new students -->
+              <div id="studentNumberFieldGroup" class="field-group">
+                <label>STUDENT NUMBER <span class="required">*</span></label>
+                <input type="text" id="studentNumber" placeholder="Enter Student Number" tabindex="2"
+                      maxlength="7" oninput="formatStudentNumber(this)" onchange="clearFieldError('studentNumber')"
+                      autocomplete="off">
+              </div>
+
+              <div class="field-group">
+                <label>FIRST NAME <span class="required">*</span></label>
+                <input type="text" id="firstName" data-field="firstName" placeholder="Enter First Name" tabindex="4"
+                      maxlength="64" oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
+                      onchange="clearFieldError('firstName')" autocomplete="off">
+              </div>
+
+              <div class="field-group">
+                <label>YEAR LEVEL <span class="required">*</span></label>
+                <select id="yearLevel" data-field="yearLevel" tabindex="6" onchange="clearFieldError('yearLevel')">
+                  <option value="" disabled selected>Select Year Level</option>
+                  <option value="1st">1st Year</option>
+                  <option value="2nd">2nd Year</option>
+                  <option value="3rd">3rd Year</option>
+                  <option value="4th">4th Year</option>
+                  <option value="Irregular">Irregular</option>
+                </select>
+              </div>
+
+              <!-- Academic Year field -->
+              <div class="field-group">
+                <label>ACADEMIC YEAR <span class="required">*</span></label>
+                <select id="academicYear" data-field="academicYear" tabindex="8" onchange="clearFieldError('academicYear')">
+                  <option value="" disabled selected>Select A.Y.</option>
+                  <!-- options populated by JavaScript -->
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label>DATE <span class="required">*</span></label>
+                <div style="display: flex; align-items: center;">
+                  <span id="displayDate" class="display-date-field"></span>
+                  <input type="hidden" id="date" value="">
+                </div>
               </div>
             </div>
           </div>
-          <div class="registration-form">
-            <div class="form-column">
-              <label>SURNAME <span class="required">*</span></label>
-              <input type="text" id="surname" data-field="surname" placeholder="Enter Surname" tabindex="2"
-                     maxlength="64"
-                     oninput="this.value = this.value.replace(/[^\p{L}\s\'-]/gu, '')"
-                     onchange="clearFieldError('surname')"
-                     autocomplete="off">
-              <label>MIDDLE NAME</label>
-              <input type="text" id="middleName" data-field="middleName" placeholder="Enter Middle Name (optional)" tabindex="4"
-                     maxlength="30"
-                     oninput="this.value = this.value.replace(/[^\p{L}\s\'-]/gu, '')"
-                     onchange="clearFieldError('middleName')"
-                     autocomplete="off">
-              <label>PROGRAM / COURSE<span class="required">*</span></label>
-              <select id="program" data-field="program" tabindex="6" onchange="clearFieldError('program')">
-                <option value="" disabled selected>Select Program</option>
-                <option value="Others">OTHERS</option>
-              </select>
-              <label>GENDER <span class="required">*</span></label>
-              <select id="gender" data-field="gender" tabindex="8" onchange="clearFieldError('gender')">
-                <option value="" disabled selected>Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div class="form-column">
-              <label>FIRST NAME <span class="required">*</span></label>
-              <input type="text" id="firstName" data-field="firstName" placeholder="Enter First Name" tabindex="3"
-                     maxlength="64"
-                     oninput="this.value = this.value.replace(/[^\p{L}\s\'-]/gu, '')"
-                     onchange="clearFieldError('firstName')"
-                     autocomplete="off">
-              <label>STUDENT NUMBER <span class="required">*</span></label>
-              <input type="text" id="studentNumber" placeholder="Enter Student Number" tabindex="5"
-                     maxlength="7" oninput="formatStudentNumber(this)" onchange="clearFieldError('studentNumber')" autocomplete="off">
-              <label>YEAR LEVEL <span class="required">*</span></label>
-              <select id="yearLevel" data-field="yearLevel" tabindex="7" onchange="clearFieldError('yearLevel')">
-                <option value="" disabled selected>Select Year Level</option>
-                <option value="1st">1st Year</option>
-                <option value="2nd">2nd Year</option>
-                <option value="3rd">3rd Year</option>
-                <option value="4th">4th Year</option>
-                <option value="Irregular">Irregular</option>
-              </select>
-              <label>DATE <span class="required">*</span></label>
-              <input type="date" id="date" tabindex="9" disabled onchange="clearFieldError('date')" autocomplete="off">
-            </div>
-          </div>
-          <button class="register-btn" id="registerButton" onclick="validateAndRegister()">REGISTER</button>
+
+          <!-- Register button at bottom -->
+          <button class="register-btn" id="registerButton" tabindex="10" onclick="validateAndRegister()">REGISTER</button>
         </div>
       </div>
     </div>
@@ -177,8 +370,101 @@
         currentUserRole = role;
         updateSidebarForRole(role);
       });
+
+      // Check if we are in edit mode (docId parameter present)
+      const urlParams = new URLSearchParams(window.location.search);
+      const docId = urlParams.get('docId');
+      if (docId) {
+        // Disable tabs and call setupEditMode with the document ID
+        document.getElementById('tabNew').disabled = true;
+        document.getElementById('tabOld').disabled = true;
+        setupEditMode(docId);
+      } else {
+        // Default to new student mode
+        switchRegistrationTab('new');
+      }
     });
+
+    // Tab switching function with row-first tab order
+    function switchRegistrationTab(tab) {
+      document.getElementById('studentType').value = tab;
+      const tabNew = document.getElementById('tabNew');
+      const tabOld = document.getElementById('tabOld');
+      const rfidFieldGroup = document.getElementById('rfidFieldGroup');
+      const studentNumberFieldGroup = document.getElementById('studentNumberFieldGroup');
+      const rfidInput = document.getElementById('rfidNumber');
+      const studentNumberInput = document.getElementById('studentNumber');
+      const surnameInput = document.getElementById('surname');
+      const firstNameInput = document.getElementById('firstName');
+      const middleNameInput = document.getElementById('middleName');
+      const programSelect = document.getElementById('program');
+      const yearLevelSelect = document.getElementById('yearLevel');
+      const academicYearSelect = document.getElementById('academicYear');
+      const genderSelect = document.getElementById('gender');
+      const registerBtn = document.getElementById('registerButton');
+
+      if (tab === 'new') {
+        tabNew.classList.add('active');
+        tabOld.classList.remove('active');
+        rfidFieldGroup.style.display = 'block';
+        studentNumberFieldGroup.style.display = 'block';
+        
+        // Enable fields
+        rfidInput.disabled = false;
+        studentNumberInput.disabled = false;
+        
+        // Row-first tab order (left → right, top → bottom)
+        rfidInput.tabIndex = 1;                // row1 left
+        studentNumberInput.tabIndex = 2;        // row1 right
+        surnameInput.tabIndex = 3;               // row2 left
+        firstNameInput.tabIndex = 4;             // row2 right
+        middleNameInput.tabIndex = 5;            // row3 left
+        yearLevelSelect.tabIndex = 6;            // row3 right
+        programSelect.tabIndex = 7;               // row4 left
+        academicYearSelect.tabIndex = 8;          // row4 right
+        genderSelect.tabIndex = 9;                 // row5 left
+        registerBtn.tabIndex = 10;                 // register button
+        
+        registerBtn.onclick = validateAndRegister;
+        registerBtn.textContent = 'REGISTER';
+        resetRegistrationForm();
+      } else {
+        tabNew.classList.remove('active');
+        tabOld.classList.add('active');
+        rfidFieldGroup.style.display = 'none';
+        studentNumberFieldGroup.style.display = 'none';
+        
+        // Disable and remove from tab order
+        rfidInput.disabled = true;
+        studentNumberInput.disabled = true;
+        rfidInput.tabIndex = -1;
+        studentNumberInput.tabIndex = -1;
+        
+        // Row-first tab order for old student
+        surnameInput.tabIndex = 1;                // row1 left
+        firstNameInput.tabIndex = 2;               // row1 right
+        middleNameInput.tabIndex = 3;              // row2 left
+        yearLevelSelect.tabIndex = 4;               // row2 right
+        programSelect.tabIndex = 5;                  // row3 left
+        academicYearSelect.tabIndex = 6;             // row3 right
+        genderSelect.tabIndex = 7;                    // row4 left
+        registerBtn.tabIndex = 8;                      // register button
+        
+        registerBtn.onclick = registerOldStudent;
+        registerBtn.textContent = 'REGISTER';
+        
+        // Clear old student fields (keep date, academic year)
+        surnameInput.value = '';
+        firstNameInput.value = '';
+        middleNameInput.value = '';
+        programSelect.selectedIndex = 0;
+        yearLevelSelect.selectedIndex = 0;
+        genderSelect.selectedIndex = 0;
+        // Do NOT clear academicYear or date
+      }
+    }
   </script>
+  <!-- Modals (unchanged) -->
   <div id="successModal" class="modal"><div class="modal-content"><p>Registration successful!</p><button onclick="closeSuccessModal()">OK</button></div></div>
   <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
   <div id="logoutModal" class="modal"><div class="modal-content"><p id="logoutMessage">Are you sure you want to logout?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmLogout()">Yes</button><button onclick="closeLogoutModal()">No</button></div></div></div>

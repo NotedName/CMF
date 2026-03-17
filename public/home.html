@@ -120,6 +120,18 @@
               <option value="4th">4th Year</option>
               <option value="Irregular">Irregular</option>
             </select>
+            <label for="acadYearFilterHome">A.Y.:</label>
+            <select id="acadYearFilterHome" onchange="applyFilters()">
+              <option value="">All</option>
+            </select>
+
+            <label for="genderFilterHome">Gender:</label>
+            <select id="genderFilterHome" onchange="applyFilters()">
+              <option value="">All</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
             <button onclick="clearFilters()" class="clear-btn">Clear</button>
             <button onclick="refreshTable()" class="refresh-btn">Refresh</button>
           </div>
@@ -140,6 +152,7 @@
               <th>NAME</th>
               <th>COURSE</th>
               <th>YEAR LEVEL</th>
+              <th>A.Y.</th>          <!-- new column -->
               <th>GENDER</th>
               <th>DATE</th>
             </tr>
@@ -156,6 +169,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       checkPageAccess(['admin', 'superadmin']);
       loadStudents();
+      loadPrograms();
     });
   </script>
   <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>

@@ -1,0 +1,16 @@
+Credits
+-------
+System Wireframe : Xian Dela Vega
+---------------------------------
+System Flowchart : Brenan Dela Cruz
+-----------------------------------
+System Data Flow Diagram : Wayne Villaruel
+------------------------------------------
+UI Web Design : Chris Jahzeel Dena Peña
+---------------------------------------
+System and Web Developer : Mar-Eric Angelo A. Ancheta
+-----------------------------------------------------
+
+
+
+Copyright © 2026 Mar-Eric Angelo A. Ancheta

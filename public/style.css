@@ -525,6 +525,38 @@ html {
   to { transform: rotate(360deg); }
 }
 
+/* ==================== FOOTER ==================== */
+.footer {
+  text-align: center;
+  padding: 10px;
+  font-size: 11px;
+  color: #777;
+  background: rgba(255, 255, 255, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 20px;
+  border-radius: 8px;
+  backdrop-filter: blur(5px);
+}
+.dark-mode .footer {
+  background: rgba(30, 30, 40, 0.3);
+  color: #aaa;
+  border-top-color: rgba(255,255,255,0.1);
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+  text-align: center;
+  padding: 10px 5px;
+  font-size: 10px;
+  color: #777;
+  border-top: 1px solid rgba(0,0,0,0.1);
+  margin-top: 5px;
+}
+.dark-mode .sidebar-footer {
+  color: #aaa;
+  border-top-color: rgba(255,255,255,0.1);
+}
+
 /* ==================== CONTENT AREA ==================== */
 .content {
   flex: 1;

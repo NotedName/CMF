@@ -1,3 +1,4 @@
+// script.js
 // ==================== GLOBAL VARIABLES ====================
 let allStudents = [];                                     // main student data array
 let clearanceLogs = [];                                   // main clearance logs array
@@ -2517,8 +2518,8 @@ async function updateTopBarForRole(user) {
       const helpText = document.getElementById('helpText');
       const helpIcon = document.querySelector('.help-icon');
       if (role === 'superadmin') {
-        helpText.innerText = 'SUPER ADMIN';
-        helpIcon.innerHTML = 'A'; // capital 'A' for superadmin
+        helpText.innerText = 'ITC';          // Changed from 'SUPER ADMIN'
+        helpIcon.innerHTML = 'I';            // Changed from 'A' to 'I' for ITC
       } else if (role === 'admin') {
         helpText.innerText = 'ADMIN';
         helpIcon.innerHTML = '?';
@@ -2540,7 +2541,7 @@ async function updateTopBarForRole(user) {
 }
 function handleHelpClick() {
   const text = document.getElementById('helpText').innerText;
-  if (text === 'SUPER ADMIN') {
+  if (text === 'ITC') {              // Changed from 'SUPER ADMIN'
     window.location.href = 'superadmin.html';
   } else {
     showHelpModal();

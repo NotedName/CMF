@@ -94,7 +94,7 @@
       </div>
     </div>
     <div class="content">
-      <!-- Filter Bar (matching home.html style) -->
+      <!-- Filter Bar -->
       <div class="filter-bar" style="justify-content: space-between;">
         <!-- Left section: search and filter dropdowns -->
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -133,13 +133,18 @@
               <option value="">All</option>
             </select>
 
-            <!-- Inside the filter bar, after the semester filter -->
             <label for="statusFilter">Status:</label>
             <select id="statusFilter" onchange="applyFilters()">
               <option value="">All</option>
               <option value="Claimed">Claimed</option>
               <option value="Returned">Returned</option>
             </select>
+
+            <!-- Date range filters (covers both release and receive dates) -->
+            <label for="dateFrom">Date From:</label>
+            <input type="date" id="dateFrom" onchange="applyFilters()">
+            <label for="dateTo">Date To:</label>
+            <input type="date" id="dateTo" onchange="applyFilters()">
 
             <button onclick="clearFilters()" class="clear-btn">Clear</button>
             <button onclick="refreshTable()" class="refresh-btn">Refresh</button>
@@ -202,7 +207,7 @@
       <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
         <button onclick="exportChosen('pdf')">PDF</button>
         <button onclick="exportChosen('excel')">Excel</button>
-        <button onclick="exportChosen('csv')">CSV</button>   <!-- new -->
+        <button onclick="exportChosen('csv')">CSV</button>
       </div>
       <div style="display: flex; justify-content: center;">
         <button onclick="closeExportModal()">Cancel</button>

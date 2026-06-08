@@ -75,7 +75,6 @@
       <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text" loading="lazy"> 
     </div>
     <div class="topbar-right">
-      <!-- In the topbar-right section, replace the existing NEED HELP div with: -->
       <div id="helpButton" onclick="handleHelpClick()" style="display: flex; align-items: center; cursor: pointer;">
         <span id="helpText" class="need-help-text"></span>
         <span class="help-icon">?</span>
@@ -127,24 +126,67 @@
 
   <!-- Register Modal -->
   <div id="registerModal" class="modal">
-    <div class="modal-content">
-      <h3>Register New Account</h3>
-      <input type="email" id="regEmail" placeholder="Email"
+    <div class="modal-content" style="max-width: 450px;">
+      <h3 style="margin-bottom: 20px; text-align: center;">Register New Account</h3>
+      
+      <label style="display: block; text-align: left; font-weight: 600; margin-bottom: 5px;">School ID <span style="color:red;">*</span></label>
+      <input type="text" id="regSchoolId" placeholder="Enter School ID" 
+            autocomplete="off" spellcheck="false"
+            style="margin-bottom: 15px; width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;"
+            tabindex="1"
+            oninput="this.value = this.value.toUpperCase()">
+      
+      <label style="display: block; text-align: left; font-weight: 600; margin-bottom: 5px;">First Name <span style="color:red;">*</span></label>
+      <input type="text" id="regFirstName" placeholder="Enter First Name" 
+            autocomplete="off" spellcheck="false"
+            style="margin-bottom: 15px; width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;"
+            tabindex="2"
+            onblur="this.value = capitalizeWords(this.value)">
+      
+      <label style="display: block; text-align: left; font-weight: 600; margin-bottom: 5px;">Last Name <span style="color:red;">*</span></label>
+      <input type="text" id="regLastName" placeholder="Enter Last Name" 
+            autocomplete="off" spellcheck="false"
+            style="margin-bottom: 15px; width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;"
+            tabindex="3"
+            onblur="this.value = capitalizeWords(this.value)">
+      
+      <label style="display: block; text-align: left; font-weight: 600; margin-bottom: 5px;">Email <span style="color:red;">*</span></label>
+      <input type="email" id="regEmail" placeholder="Enter Email"
             autocomplete="off" spellcheck="false" autocorrect="off"
-            readonly onfocus="this.removeAttribute('readonly')">
-      <input type="password" id="regPassword" placeholder="Password"
+            style="margin-bottom: 15px; width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;"
+            tabindex="4">
+      
+      <label style="display: block; text-align: left; font-weight: 600; margin-bottom: 5px;">Password <span style="color:red;">*</span></label>
+      <input type="password" id="regPassword" placeholder="Enter Password"
             autocomplete="new-password" spellcheck="false"
-            readonly onfocus="this.removeAttribute('readonly')">
-      <input type="password" id="regConfirmPassword" placeholder="Confirm Password"
+            style="margin-bottom: 10px; width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;"
+            tabindex="5"
+            oninput="checkPasswordStrength(); checkPasswordMatch()">
+      
+      <label style="display: block; text-align: left; font-weight: 600; margin-bottom: 5px;">Confirm Password <span style="color:red;">*</span></label>
+      <input type="password" id="regConfirmPassword" placeholder="Re-enter Password"
             autocomplete="new-password" spellcheck="false"
-            readonly onfocus="this.removeAttribute('readonly')">
+            style="margin-bottom: 5px; width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;"
+            tabindex="6"
+            oninput="checkPasswordMatch()">
+      
+      <div id="passwordMatchIndicator" style="font-size: 12px; margin-bottom: 10px; text-align: left;"></div>
+      
+      <div style="font-size: 11px; text-align: left; margin-bottom: 15px; color: #666;">
+        <div id="reqLength" style="margin: 2px 0;">✓ At least 8 characters</div>
+        <div id="reqUpper" style="margin: 2px 0;">✓ At least one uppercase letter</div>
+        <div id="reqLower" style="margin: 2px 0;">✓ At least one lowercase letter</div>
+        <div id="reqNumber" style="margin: 2px 0;">✓ At least one number</div>
+        <div id="reqSpecial" style="margin: 2px 0;">✓ At least one special character (!@#$%^&*)</div>
+      </div>
+
       <div class="show-password-reg">
         <span>SHOW PASSWORD</span>
         <input type="checkbox" id="showRegPassword" onclick="toggleRegPassword()">
       </div>
       <div class="button-group">
-        <button onclick="register()" class="export-btn">Register</button>
-        <button onclick="closeRegisterModal()" class="clear-btn">Cancel</button>
+        <button onclick="register()" class="export-btn" tabindex="7">Register</button>
+        <button onclick="closeRegisterModal()" class="clear-btn" tabindex="8">Cancel</button>
       </div>
     </div>
   </div>
@@ -163,10 +205,10 @@
     </div>
   </div>
 
-  <!-- Message Modal (placed last to appear on top) -->
+  <!-- Message Modal (supports HTML) -->
   <div id="messageModal" class="modal">
     <div class="modal-content">
-      <p id="messageModalText">Message</p>
+      <p id="messageModalText"></p>
       <button onclick="closeMessageModal()">OK</button>
     </div>
   </div>

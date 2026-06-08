@@ -49,7 +49,7 @@ html {
   scroll-behavior: smooth;
 }
 .logo-icon, .logo-text, .logo-light, .logo-dark {
-  aspect-ratio: attr(width) / attr(height); /* optional, but better to set explicit dimensions */
+  aspect-ratio: attr(width) / attr(height);
 }
 .filter-bar, .nav, .logout, button {
   will-change: transform, box-shadow;
@@ -235,7 +235,7 @@ html {
 }
 
 #registerModal .show-password-reg span {
-  line-height: 16px;        /* match checkbox height */
+  line-height: 16px;
   color: #555;
 }
 
@@ -243,7 +243,7 @@ html {
   cursor: pointer;
   width: 16px;
   height: 16px;
-  margin: 0;                /* remove default margins */
+  margin: 0;
   accent-color: #2f80ed;
   transition: transform 0.2s ease;
 }
@@ -277,8 +277,8 @@ html {
 
 #registerModal button,
 #forgotPasswordModal button {
-  min-width: 120px;         /* wider buttons */
-  height: 38px;             /* match login button height */
+  min-width: 120px;
+  height: 38px;
   padding: 0 20px;
   font-size: 13px;
   font-weight: 600;
@@ -739,14 +739,14 @@ html {
 }
 .search-wrapper {
   position: relative;
-  min-width: 200px;        /* was 120px – now larger */
-  width: auto;              /* allow it to grow */
-  flex: 1 1 auto;           /* take available space if needed */
+  min-width: 200px;
+  width: auto;
+  flex: 1 1 auto;
 }
 .search-wrapper input {
   width: 100%;
   height: 38px;
-  padding: 8px 12px 8px 40px; /* left padding for icon */
+  padding: 8px 12px 8px 40px;
   border: 1.5px solid #ddd;
   border-radius: 10px;
   font-size: 12px;
@@ -791,7 +791,7 @@ html {
   animation: pulse 0.3s ease;
 }
 .dark-mode .refresh-btn {
-  background: #4d8cff; /* lighter blue for dark mode */
+  background: #4d8cff;
 }
 
 /* ----- Buttons ----- */
@@ -872,19 +872,18 @@ button:active, .register-btn:active, .delete-btn:active, .export-btn:active, .up
   font-weight: 600;
   color: #555;
   margin-right: 4px;
-  width: 60px;            /* fixed width for all labels */
-  text-align: right;      /* optional: right-align text */
+  width: auto;
+  text-align: left;
 }
-.filter-bar select {
+.filter-bar select, .filter-bar input[type="date"] {
   height: 38px;
   padding: 0 8px;
   border-radius: 8px;
   border: 1.5px solid #ddd;
   background: white;
   font-size: 12px;
-  width: 80px;
-  min-width: 80px;
-  max-width: 120px;
+  width: auto;
+  min-width: 100px;
   box-sizing: border-box;
 }
 .filter-bar .clear-btn {
@@ -895,17 +894,18 @@ button:active, .register-btn:active, .delete-btn:active, .export-btn:active, .up
   background: rgba(30, 30, 40, 0.5);
 }
 .dark-mode .filter-bar label { color: #ddd; }
-.dark-mode .filter-bar select {
+.dark-mode .filter-bar select,
+.dark-mode .filter-bar input[type="date"] {
   background: rgba(20, 20, 30, 0.8);
   border-color: #555;
   color: #fff;
 }
 
 .filter-bar select {
-  background: rgba(255, 255, 255, 0.9) !important; /* match search input */
+  background: rgba(255, 255, 255, 0.9) !important;
 }
 .dark-mode .filter-bar select {
-  background: rgba(20, 20, 30, 0.8) !important; /* match dark mode search input */
+  background: rgba(20, 20, 30, 0.8) !important;
 }
 
 .filter-bar .filter-group {
@@ -919,7 +919,7 @@ button:active, .register-btn:active, .delete-btn:active, .export-btn:active, .up
 /* ==================== TABLES ==================== */
 .table-responsive {
   overflow-x: auto;
-  overflow-y: hidden;   /* Prevents the wrapper from becoming a vertical scroll container */
+  overflow-y: hidden;
   margin: 10px 0 20px;
   border-radius: 8px;
 }
@@ -952,6 +952,12 @@ table td {
   white-space: nowrap;
 }
 
+/* Make all sortable table headers non-selectable */
+th {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* Clearance Logs table column widths – with checkbox as first column */
 #clearanceLogTable {
   table-layout: fixed;
@@ -967,29 +973,29 @@ table td {
 
 /* Column order: checkbox, RFID, ID, Name, Release, Receive, A.Y., Semester, Year Level, Course, Remarks, Status */
 #clearanceLogTable th:nth-child(1),
-#clearanceLogTable td:nth-child(1) { width: 30px; }   /* checkbox */
+#clearanceLogTable td:nth-child(1) { width: 30px; }
 #clearanceLogTable th:nth-child(2),
-#clearanceLogTable td:nth-child(2) { width: 100px; }  /* RFID */
+#clearanceLogTable td:nth-child(2) { width: 100px; }
 #clearanceLogTable th:nth-child(3),
-#clearanceLogTable td:nth-child(3) { width: 90px; }   /* ID NUMBER */
+#clearanceLogTable td:nth-child(3) { width: 90px; }
 #clearanceLogTable th:nth-child(4),
-#clearanceLogTable td:nth-child(4) { width: 180px; }  /* NAME */
+#clearanceLogTable td:nth-child(4) { width: 180px; }
 #clearanceLogTable th:nth-child(5),
-#clearanceLogTable td:nth-child(5) { width: 140px; }  /* RELEASE DATE */
+#clearanceLogTable td:nth-child(5) { width: 140px; }
 #clearanceLogTable th:nth-child(6),
-#clearanceLogTable td:nth-child(6) { width: 140px; }  /* RECEIVE DATE */
+#clearanceLogTable td:nth-child(6) { width: 140px; }
 #clearanceLogTable th:nth-child(7),
-#clearanceLogTable td:nth-child(7) { width: 100px; }  /* A.Y. */
+#clearanceLogTable td:nth-child(7) { width: 100px; }
 #clearanceLogTable th:nth-child(8),
-#clearanceLogTable td:nth-child(8) { width: 80px; }   /* SEMESTER */
+#clearanceLogTable td:nth-child(8) { width: 80px; }
 #clearanceLogTable th:nth-child(9),
-#clearanceLogTable td:nth-child(9) { width: 90px; }   /* YEAR LEVEL */
+#clearanceLogTable td:nth-child(9) { width: 90px; }
 #clearanceLogTable th:nth-child(10),
-#clearanceLogTable td:nth-child(10) { width: 90px; }  /* COURSE */
+#clearanceLogTable td:nth-child(10) { width: 90px; }
 #clearanceLogTable th:nth-child(11),
-#clearanceLogTable td:nth-child(11) { width: 100px; } /* REMARKS */
+#clearanceLogTable td:nth-child(11) { width: 100px; }
 #clearanceLogTable th:nth-child(12),
-#clearanceLogTable td:nth-child(12) { width: 80px; }  /* STATUS */
+#clearanceLogTable td:nth-child(12) { width: 80px; }
 
 /* On smaller screens, let the table scroll horizontally */
 @media (max-width: 1200px) {
@@ -1083,6 +1089,11 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 #programsTable th, #adminStudentsTable th, #clearanceLogTable th, #homeTable th {
   cursor: pointer;
   user-select: none;
+}
+/* Make table headers non-selectable but keep sortability (superadmin) */
+#usersTable th {
+  user-select: none;
+  -webkit-user-select: none;
 }
 #programsTable th:hover, #adminStudentsTable th:hover, #clearanceLogTable th:hover, #homeTable th:hover {
   background-color: rgba(0, 0, 0, 0.05);
@@ -1372,7 +1383,6 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 
 /* ==================== MOBILE STYLES ==================== */
 @media (max-width: 768px) {
-  /* Keep all existing mobile styles (sidebar, font sizes, etc.) */
   .need-help-text { display: none; }
   .help-icon { width: 24px; height: 24px; font-size: 16px; }
   .topbar { position: fixed; top: 0; left: 0; width: 100%; z-index: 1001; }
@@ -1434,7 +1444,6 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   .dropdown-group { flex-direction: column; }
 
   /* ===== ROLE-BASED COLUMN HIDING ===== */
-  /* Hide checkbox and RFID columns ONLY for user role */
   body.role-user #homeTable th:nth-child(1),
   body.role-user #homeTable td:nth-child(1),
   body.role-user #homeTable th:nth-child(2),
@@ -1448,9 +1457,6 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     display: none;
   }
 
-  /* Keep columns visible for admin and superadmin (no extra rule needed) */
-
-  /* The rest of the mobile styles remain unchanged */
   .content > div:first-child { flex-direction: column; }
 }
 
@@ -1678,8 +1684,8 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   filter: brightness(1.2);
 }
 .dark-mode #displayDate {
-  background: #333 !important;        /* dark background */
-  color: #eee !important;              /* light text */
+  background: #333 !important;
+  color: #eee !important;
   border-color: #555 !important;
 }
 
@@ -1718,13 +1724,12 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   border-color: #555 !important;
 }
 
-/* ==================== PRINT STYLES ==================== */
+/* ==================== PRINT STYLES (Mac fix) ==================== */
 #printContainer { display: none; }
 @media print {
   @page {
-    margin-top: 0.15in;
-    margin-left: 0.2in;
-    margin-right: 0.2in;
+    margin: 0.2in;
+    size: auto;
   }
 
   html, body {
@@ -1747,7 +1752,6 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     page-break-before: avoid;
   }
 
-  /* Prevent page breaks inside header elements */
   #printContainer h1,
   #printContainer h2,
   #printContainer div {
@@ -1755,7 +1759,6 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     page-break-inside: avoid;
   }
 
-  /* Table styling – no forced breaks inside rows */
   #printContainer table {
     width: 100%;
     border-collapse: collapse;
@@ -1783,14 +1786,13 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   }
 
   #printContainer tr {
-    page-break-inside: auto;
+    page-break-inside: avoid;
   }
 
   #printContainer thead {
     display: table-header-group;
   }
 
-  /* Specific column alignments for home and logs tables */
   #printContainer #homeTable td:nth-child(1),
   #printContainer #homeTable td:nth-child(4) {
     text-align: left !important;
@@ -1810,36 +1812,68 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     text-align: center !important;
   }
 
-  /* Remove row animations */
   #printContainer table tbody tr {
     animation: none !important;
     opacity: 1 !important;
   }
 
-    /* Ensure no page break before the first element */
   #printContainer > :first-child {
     page-break-before: avoid;
   }
 
-  /* Force the entire print container to stay on one page if possible */
   #printContainer {
     page-break-inside: avoid;
     page-break-after: avoid;
     page-break-before: avoid;
   }
 
-  /* Allow the table to break naturally if it must span multiple pages */
   #printContainer table {
     page-break-inside: auto;
   }
 
-  /* Prevent thead from being separated from tbody */
   #printContainer thead {
     display: table-header-group;
   }
 
-  /* Avoid breaks inside rows */
   #printContainer tr {
     page-break-inside: avoid;
   }
+}
+
+/* Password strength and match indicator */
+#passwordMatchIndicator {
+  font-size: 12px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+#registerModal .modal-content div[id^="req"] {
+  transition: color 0.2s;
+}
+
+/* Footer positioning - stick to bottom */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.main-wrapper {
+  flex: 1;
+}
+.footer {
+  text-align: center;
+  padding: 10px;
+  font-size: 11px;
+  color: #777;
+  background: rgba(255, 255, 255, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: auto;
+  border-radius: 8px;
+  backdrop-filter: blur(5px);
+  width: 100%;
+}
+/* Ensure role select has same height as other inputs */
+#editRole {
+  height: 38px;
+  padding: 8px;
+  box-sizing: border-box;
 }

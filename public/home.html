@@ -10,7 +10,6 @@
   <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
-  <!-- Add these inside <head> after the existing links -->
   <link rel="preconnect" href="https://www.gstatic.com">
   <link rel="preconnect" href="https://cdn.sheetjs.com">
   <link rel="dns-prefetch" href="https://www.gstatic.com">
@@ -112,7 +111,6 @@
             <label for="courseFilter">Course:</label>
             <select id="courseFilter" onchange="applyFilters()">
               <option value="">All</option>
-              <!-- options will be added by JavaScript -->
             </select>
             <label for="yearFilter">Year Level:</label>
             <select id="yearFilter" onchange="applyFilters()">
@@ -127,7 +125,6 @@
             <select id="acadYearFilterHome" onchange="applyFilters()">
               <option value="">All</option>
             </select>
-
             <label for="genderFilterHome">Gender:</label>
             <select id="genderFilterHome" onchange="applyFilters()">
               <option value="">All</option>
@@ -135,6 +132,10 @@
               <option value="Female">Female</option>
               <option value="Other">Other</option>
             </select>
+            <label for="dateFromHome">Date From:</label>
+            <input type="date" id="dateFromHome" onchange="applyFilters()">
+            <label for="dateToHome">Date To:</label>
+            <input type="date" id="dateToHome" onchange="applyFilters()">
             <button onclick="clearFilters()" class="clear-btn">Clear</button>
             <button onclick="refreshTable()" class="refresh-btn">Refresh</button>
           </div>
@@ -143,6 +144,9 @@
           <button onclick="editSelectedHome()" class="export-btn">Edit Selected</button>
           <button onclick="deleteSelectedHome()" class="delete-btn">Delete Selected</button>
           <button onclick="showExportModal()" class="export-btn">Export</button>
+          <!-- Import Students button -->
+          <input type="file" id="importStudentInput" accept=".csv, .xlsx, .xls" style="display: none;">
+          <button onclick="document.getElementById('importStudentInput').click()" class="export-btn">Import Students</button>
         </div>
       </div>
       <div class="table-responsive">
@@ -155,7 +159,7 @@
               <th>NAME</th>
               <th>COURSE</th>
               <th>YEAR LEVEL</th>
-              <th>A.Y.</th>          <!-- new column -->
+              <th>A.Y.</th>
               <th>GENDER</th>
               <th>DATE</th>
             </tr>
@@ -173,6 +177,8 @@
       checkPageAccess(['admin', 'superadmin']);
       loadStudents();
       loadPrograms();
+      // Attach import event listener
+      document.getElementById('importStudentInput').addEventListener('change', importStudents);
     });
   </script>
   <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
@@ -183,7 +189,7 @@
       <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
         <button onclick="exportChosen('pdf')">PDF</button>
         <button onclick="exportChosen('excel')">Excel</button>
-        <button onclick="exportChosen('csv')">CSV</button>   <!-- new -->
+        <button onclick="exportChosen('csv')">CSV</button>
       </div>
       <div style="display: flex; justify-content: center;">
         <button onclick="closeExportModal()">Cancel</button>

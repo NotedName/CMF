@@ -91,10 +91,11 @@
       <div class="sidebar-spacer"></div>
       <div class="logout" onclick="logout()">LOGOUT</div>
       <div class="sidebar-footer">
-        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
+        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.<br><a href="#" class="credits-link" onclick="showCreditsModal(); return false;">Credits</a>
       </div>
     </div>
     <div class="content">
+      <h2 class="page-title">Manage Programs</h2>
       <div>
         <div class="filter-bar" style="justify-content: space-between; margin-bottom: 15px;">
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -201,8 +202,10 @@
   <script src="script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      checkPageAccess(['admin', 'superadmin']);
-      loadStudents();
+      checkPageAccess(['admin', 'superadmin']).then(() => {
+        loadPrograms();
+        loadStudents();   // used to block deleting a program that students still use
+      });
     });
   </script>
 </body>

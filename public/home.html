@@ -10,6 +10,7 @@
   <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
+  <!-- Add these inside <head> after the existing links -->
   <link rel="preconnect" href="https://www.gstatic.com">
   <link rel="preconnect" href="https://cdn.sheetjs.com">
   <link rel="dns-prefetch" href="https://www.gstatic.com">
@@ -90,10 +91,11 @@
       <div class="sidebar-spacer"></div>
       <div class="logout" onclick="logout()">LOGOUT</div>
       <div class="sidebar-footer">
-        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
+        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.<br><a href="#" class="credits-link" onclick="showCreditsModal(); return false;">Credits</a>
       </div>
     </div>
     <div class="content">
+      <h2 class="page-title">Student List</h2>
       <!-- FILTER BAR matching clearance tracking page design -->
       <div class="filter-bar" style="justify-content: space-between;">
         <!-- Left section: search and filter dropdowns -->
@@ -111,6 +113,7 @@
             <label for="courseFilter">Course:</label>
             <select id="courseFilter" onchange="applyFilters()">
               <option value="">All</option>
+              <!-- options will be added by JavaScript -->
             </select>
             <label for="yearFilter">Year Level:</label>
             <select id="yearFilter" onchange="applyFilters()">
@@ -125,6 +128,7 @@
             <select id="acadYearFilterHome" onchange="applyFilters()">
               <option value="">All</option>
             </select>
+
             <label for="genderFilterHome">Gender:</label>
             <select id="genderFilterHome" onchange="applyFilters()">
               <option value="">All</option>
@@ -132,10 +136,12 @@
               <option value="Female">Female</option>
               <option value="Other">Other</option>
             </select>
-            <label for="dateFromHome">Date From:</label>
-            <input type="date" id="dateFromHome" onchange="applyFilters()">
-            <label for="dateToHome">Date To:</label>
-            <input type="date" id="dateToHome" onchange="applyFilters()">
+            <label for="dateFrom">From:</label>
+            <input type="date" id="dateFrom" onchange="syncDateRange(); applyFilters()">
+
+            <label for="dateTo">To:</label>
+            <input type="date" id="dateTo" onchange="syncDateRange(); applyFilters()">
+
             <button onclick="clearFilters()" class="clear-btn">Clear</button>
             <button onclick="refreshTable()" class="refresh-btn">Refresh</button>
           </div>
@@ -143,10 +149,8 @@
         <div style="display: flex; gap: 10px;">
           <button onclick="editSelectedHome()" class="export-btn">Edit Selected</button>
           <button onclick="deleteSelectedHome()" class="delete-btn">Delete Selected</button>
+          <button id="importBtn" onclick="showImportModal()" class="export-btn" style="display:none;">Import</button>
           <button onclick="showExportModal()" class="export-btn">Export</button>
-          <!-- Import Students button -->
-          <input type="file" id="importStudentInput" accept=".csv, .xlsx, .xls" style="display: none;">
-          <button onclick="document.getElementById('importStudentInput').click()" class="export-btn">Import Students</button>
         </div>
       </div>
       <div class="table-responsive">
@@ -159,7 +163,7 @@
               <th>NAME</th>
               <th>COURSE</th>
               <th>YEAR LEVEL</th>
-              <th>A.Y.</th>
+              <th>A.Y.</th>          <!-- new column -->
               <th>GENDER</th>
               <th>DATE</th>
             </tr>
@@ -174,11 +178,11 @@
   <script src="script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      checkPageAccess(['admin', 'superadmin']);
-      loadStudents();
-      loadPrograms();
-      // Attach import event listener
-      document.getElementById('importStudentInput').addEventListener('change', importStudents);
+      checkPageAccess(['admin', 'superadmin']).then(() => {
+        document.getElementById('importBtn').style.display = '';   // import is admin/superadmin only
+        loadStudents();
+        loadPrograms();
+      });
     });
   </script>
   <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
@@ -189,7 +193,7 @@
       <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
         <button onclick="exportChosen('pdf')">PDF</button>
         <button onclick="exportChosen('excel')">Excel</button>
-        <button onclick="exportChosen('csv')">CSV</button>
+        <button onclick="exportChosen('csv')">CSV</button>   <!-- new -->
       </div>
       <div style="display: flex; justify-content: center;">
         <button onclick="closeExportModal()">Cancel</button>
@@ -197,6 +201,18 @@
     </div>
   </div>  
   <div id="confirmModal" class="modal"><div class="modal-content"><p id="confirmMessage">Are you sure?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmDelete()">Yes</button><button onclick="closeConfirmModal()">No</button></div></div></div>
+  <div id="importModal" class="modal">
+    <div class="modal-content import-modal">
+      <h3>Import Students</h3>
+      <p class="import-help">Upload an Excel (.xlsx, .xls) or CSV file. <a href="#" onclick="downloadImportTemplate(); return false;">Download the template</a></p>
+      <input type="file" id="importFile" accept=".xlsx,.xls,.csv" onchange="handleImportFile(this)">
+      <div id="importSummary" class="import-summary" style="display: none;"></div>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="importConfirmBtn" onclick="confirmImport()" disabled>Import</button>
+        <button onclick="closeImportModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
   <div id="messageModal" class="modal"><div class="modal-content"><p id="messageModalText">Message</p><button onclick="closeMessageModal()">OK</button></div></div>
   <div class="menu-overlay" onclick="closeMobileMenu()"></div>
   <button id="scrollToTopBtn" title="Go to top">↑</button>

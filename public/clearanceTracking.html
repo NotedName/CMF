@@ -90,11 +90,12 @@
       <div class="sidebar-spacer"></div>
       <div class="logout" onclick="logout()">LOGOUT</div>
       <div class="sidebar-footer">
-        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
+        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.<br><a href="#" class="credits-link" onclick="showCreditsModal(); return false;">Credits</a>
       </div>
     </div>
     <div class="content">
-      <!-- Filter Bar -->
+      <h2 class="page-title">Clearance Logs</h2>
+      <!-- Filter Bar (matching home.html style) -->
       <div class="filter-bar" style="justify-content: space-between;">
         <!-- Left section: search and filter dropdowns -->
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -133,6 +134,7 @@
               <option value="">All</option>
             </select>
 
+            <!-- Inside the filter bar, after the semester filter -->
             <label for="statusFilter">Status:</label>
             <select id="statusFilter" onchange="applyFilters()">
               <option value="">All</option>
@@ -140,11 +142,11 @@
               <option value="Returned">Returned</option>
             </select>
 
-            <!-- Date range filters (covers both release and receive dates) -->
-            <label for="dateFrom">Date From:</label>
-            <input type="date" id="dateFrom" onchange="applyFilters()">
-            <label for="dateTo">Date To:</label>
-            <input type="date" id="dateTo" onchange="applyFilters()">
+            <label for="dateFrom">Released From:</label>
+            <input type="date" id="dateFrom" onchange="syncDateRange(); applyFilters()">
+
+            <label for="dateTo">To:</label>
+            <input type="date" id="dateTo" onchange="syncDateRange(); applyFilters()">
 
             <button onclick="clearFilters()" class="clear-btn">Clear</button>
             <button onclick="refreshTable()" class="refresh-btn">Refresh</button>
@@ -207,7 +209,7 @@
       <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
         <button onclick="exportChosen('pdf')">PDF</button>
         <button onclick="exportChosen('excel')">Excel</button>
-        <button onclick="exportChosen('csv')">CSV</button>
+        <button onclick="exportChosen('csv')">CSV</button>   <!-- new -->
       </div>
       <div style="display: flex; justify-content: center;">
         <button onclick="closeExportModal()">Cancel</button>

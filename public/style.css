@@ -1928,3 +1928,70 @@ h2.page-title {
   color: #d32f2f;
 }
 .dark-mode .import-issues { color: #ef9a9a; }
+
+/* ==================== LOGIN PAGE LAYOUT (footer sticks to the bottom, adapts to any window size) ==================== */
+body.login-page {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;                 /* minimum breathing room between card and footer */
+  min-height: 100vh;
+  min-height: 100dvh;        /* mobile browsers: ignore the collapsing address bar */
+  padding-top: 50px;         /* the fixed top bar is 50px tall */
+}
+body.login-page .login-container {
+  margin: auto;              /* centred in the space above the footer */
+  flex-shrink: 0;
+}
+body.login-page .footer {
+  margin: 0;                 /* pinned to the bottom edge */
+  border-radius: 0;
+  flex-shrink: 0;
+}
+body.login-page .menu-overlay { display: none !important; }
+
+/* ==================== CREDITS ==================== */
+.footer a.credits-link,
+.sidebar-footer a.credits-link {
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.footer a.credits-link:hover,
+.sidebar-footer a.credits-link:hover { opacity: 0.7; }
+
+.credits-modal {
+  width: 440px;
+  max-width: 92%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.credits-body { margin-bottom: 18px; }
+.credits-role {
+  margin-top: 16px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.credits-name { margin-top: 3px; font-size: 15px; font-weight: 600; }
+.credits-copy { margin-top: 20px; font-size: 11px; opacity: 0.7; }
+
+/* ==================== SIDEBAR NAV: badge + no flash before the role is known ==================== */
+body:not([class*="role-"]) .sidebar .nav { visibility: hidden; }
+.nav:focus-visible { outline: 2px solid #5a9cff; outline-offset: -2px; }
+.nav-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #d32f2f;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.nav-badge[hidden] { display: none; }

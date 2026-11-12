@@ -18,6 +18,103 @@ let pendingUserAction = null;                             // { uid, action, newR
 let userSort = { column: 0, direction: 'asc' };           // default sort by Email
 let pendingDeleteLogIds = [];                             // for clearance logs delete confirmation
 
+// ==================== CREDITS (reads credits.txt) ====================
+// credits.txt format, one person per line:   Role : Name
+// A role listed on several lines is grouped together. A line starting with "Copyright" is shown last.
+function renderCredits(container, text) {
+  const groups = new Map();
+  let copyright = '';
+
+  text.split(/\r?\n/).map(line => line.trim()).forEach(line => {
+    if (!line || /^[-=\s]+$/.test(line) || /^credits$/i.test(line)) return;
+    if (/^copyright/i.test(line)) { copyright = line; return; }
+    const colon = line.indexOf(':');
+    if (colon === -1) return;
+    const role = line.slice(0, colon).trim();
+    const name = line.slice(colon + 1).trim();
+    if (!role || !name) return;
+    if (!groups.has(role)) groups.set(role, []);
+    groups.get(role).push(name);
+  });
+
+  container.textContent = '';
+  groups.forEach((names, role) => {
+    const roleEl = document.createElement('div');
+    roleEl.className = 'credits-role';
+    roleEl.textContent = role;
+    container.appendChild(roleEl);
+    names.forEach(name => {
+      const nameEl = document.createElement('div');
+      nameEl.className = 'credits-name';
+      nameEl.textContent = name;
+      container.appendChild(nameEl);
+    });
+  });
+  if (copyright) {
+    const copyEl = document.createElement('div');
+    copyEl.className = 'credits-copy';
+    copyEl.textContent = copyright;
+    container.appendChild(copyEl);
+  }
+}
+
+async function showCreditsModal() {
+  let modal = document.getElementById('creditsModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'creditsModal';
+    modal.className = 'modal';
+    modal.onclick = e => { if (e.target === modal) closeCreditsModal(); };
+    modal.innerHTML = '<div class="modal-content credits-modal"><h3>Credits</h3>' +
+      '<div id="creditsBody" class="credits-body">Loading...</div>' +
+      '<button onclick="closeCreditsModal()">Close</button></div>';
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+
+  const body = document.getElementById('creditsBody');
+  try {
+    const response = await fetch('credits.txt', { cache: 'no-cache' });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    renderCredits(body, await response.text());
+  } catch (err) {
+    console.error('Credits load error:', err);
+    body.textContent = 'Credits could not be loaded.';
+  }
+}
+
+function closeCreditsModal() {
+  const modal = document.getElementById('creditsModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// ==================== NAVIGATION (one list drives every page's sidebar) ====================
+// Items a role is not allowed to see are never put on the page at all.
+const NAV_ITEMS = [
+  { label: 'STUDENT LIST',    href: 'home.html',              roles: ['admin', 'superadmin'] },
+  { label: 'REGISTRATION',    href: 'registrationPage.html',  roles: ['user', 'admin', 'superadmin'] },
+  { label: 'STATUS UPDATE',   href: 'statusupdate.html',      roles: ['admin', 'superadmin'] },
+  { label: 'CLEARANCE LOGS',  href: 'clearanceTracking.html', roles: ['admin', 'superadmin'] },
+  { label: 'MANAGE PROGRAMS', href: 'admin.html',             roles: ['admin', 'superadmin'] },
+  { label: 'MANAGE ACCOUNTS', href: 'superadmin.html',        roles: ['superadmin'], pendingBadge: true }
+];
+const ROLE_HOME = { user: 'registrationPage.html', admin: 'home.html', superadmin: 'home.html' };
+const ROLE_LABELS = { superadmin: 'ITC', admin: 'ADMIN', user: 'USER' };
+
+// Adds the "Credits" link under the copyright text of every page footer / sidebar footer
+function addCreditsLinks() {
+  document.querySelectorAll('.footer, .sidebar-footer').forEach(el => {
+    if (el.querySelector('.credits-link')) return;
+    const link = document.createElement('a');
+    link.href = '#';
+    link.className = 'credits-link';
+    link.textContent = 'Credits';
+    link.addEventListener('click', e => { e.preventDefault(); showCreditsModal(); });
+    el.appendChild(document.createElement('br'));
+    el.appendChild(link);
+  });
+}
+
 // ==================== SMALL HELPERS ====================
 // Escape any value before putting it inside an innerHTML template.
 function escapeHtml(value) {
@@ -110,21 +207,14 @@ async function checkPageAccess(allowedRoles) {
 
       if (!role || !allowedRoles.includes(role)) {
         // Redirect to the default page for the actual role
-        if (role === 'user') {
-          window.location.href = 'registrationPage.html';
-        } else if (role === 'admin') {
-          window.location.href = 'home.html';
-        } else if (role === 'superadmin') {
-          window.location.href = 'superadmin.html';
-        } else {
-          window.location.href = 'index.html';
-        }
+        window.location.href = ROLE_HOME[role] || 'index.html';
         return;
       }
       currentUserRole = role;
       document.body.classList.add(`role-${role}`);
       updateSidebarForRole(role);
-      updateTopBarForRole(user);
+      updateTopBarForRole(role);
+      if (role === 'superadmin') loadPendingAccountsBadge();
       resolve(role);
     });
   });
@@ -151,19 +241,66 @@ function getPhilippinesDateTimeString() {
 
 // ==================== SIDEBAR VISIBILITY / DISABLED STATE ====================
 function updateSidebarForRole(role) {
-  const navItems = document.querySelectorAll('.sidebar .nav');
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
 
-  if (role === 'user') {
-    // Users see only REGISTRATION – hide all other tabs
-    navItems.forEach(item => {
-      const onclick = item.getAttribute('onclick') || '';
-      if (!onclick.includes('goRegister()')) {
-        item.style.display = 'none';
-      }
+  sidebar.querySelectorAll('.nav').forEach(el => el.remove());
+  const spacer = sidebar.querySelector('.sidebar-spacer');
+  const currentPage = window.location.pathname.split('/').pop() || 'home.html';
+
+  NAV_ITEMS.filter(item => item.roles.includes(role)).forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'nav' + (item.href === currentPage ? ' active' : '');
+    el.setAttribute('role', 'link');
+    el.tabIndex = 0;
+    el.textContent = item.label;
+
+    const go = () => { window.location.href = item.href; };
+    el.addEventListener('click', go);
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
     });
-  } else {
-    // Admin and superadmin see all tabs – ensure all are visible
-    navItems.forEach(item => item.style.display = 'flex');
+
+    if (item.pendingBadge) {
+      const badge = document.createElement('span');
+      badge.className = 'nav-badge';
+      badge.hidden = true;
+      badge.title = 'Accounts waiting for approval';
+      el.appendChild(badge);
+    }
+    sidebar.insertBefore(el, spacer);
+  });
+}
+
+// ---- "accounts waiting for approval" counter on MANAGE ACCOUNTS (superadmin only)
+const PENDING_CACHE_KEY = 'pendingAccountsCache';
+const PENDING_CACHE_MS = 2 * 60 * 1000;   // reuse the count for 2 minutes instead of re-reading on every page
+
+function applyPendingBadge(count) {
+  document.querySelectorAll('.nav-badge').forEach(badge => {
+    badge.textContent = count > 99 ? '99+' : String(count);
+    badge.hidden = count === 0;
+  });
+}
+
+function setPendingBadge(count) {
+  try { sessionStorage.setItem(PENDING_CACHE_KEY, JSON.stringify({ count, at: Date.now() })); } catch (e) { /* storage unavailable */ }
+  applyPendingBadge(count);
+}
+
+async function loadPendingAccountsBadge() {
+  // The Account Management page already loads every user and sets the badge itself
+  if (window.location.pathname.includes('superadmin.html')) return;
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(PENDING_CACHE_KEY) || 'null');
+    if (cached && Date.now() - cached.at < PENDING_CACHE_MS) {
+      applyPendingBadge(cached.count);
+      return;
+    }
+    const snapshot = await getDocs(query(collection(db, 'users'), where('approved', '==', false), limit(100)));
+    setPendingBadge(snapshot.size);
+  } catch (err) {
+    console.warn('Could not load pending account count:', err);
   }
 }
 
@@ -203,11 +340,10 @@ async function updateStudentsProgram(oldCode, newCode) {
 // ==================== PAGE INIT ====================
 // Data loading happens in each page's own script, after checkPageAccess() resolves.
 document.addEventListener('DOMContentLoaded', function() {
-  auth.onAuthStateChanged((user) => {
-    updateTopBarForRole(user);
-  });
+  updateTopBarForRole(null);   // "NEED HELP" until checkPageAccess() learns the role
 
   attachSortListeners();
+  addCreditsLinks();
 
   if (document.getElementById('date')) setDefaultDate();
 
@@ -233,17 +369,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   loadDarkModePreference();
-
-  const path = window.location.pathname.split('/').pop() || 'home.html';
-  document.querySelectorAll('.sidebar .nav').forEach(link => {
-    link.classList.remove('active');
-    const onclick = link.getAttribute('onclick') || '';
-    if (onclick.includes('goHome()') && path === 'home.html') link.classList.add('active');
-    if (onclick.includes('goRegister()') && path === 'registrationPage.html') link.classList.add('active');
-    if (onclick.includes('goStatusUpdate()') && path === 'statusupdate.html') link.classList.add('active');
-    if (onclick.includes('goAdmin()') && path === 'admin.html') link.classList.add('active');
-    if (onclick.includes('goRegistered()') && path === 'clearanceTracking.html') link.classList.add('active');
-  });
 
   document.addEventListener('click', function(e) {
     const th = e.target.closest('th');
@@ -585,6 +710,7 @@ async function loadUsers() {
     const snapshot = await getDocs(collection(db, 'users'));
     users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
     filteredUsers = [...users];
+    setPendingBadge(users.filter(u => !u.approved).length);
     sortUsers(); 
     renderUsersTable();
   } catch (err) {
@@ -2466,12 +2592,7 @@ async function login() {
     }
 
     // Redirect based on role
-    if (role === 'user') {
-      window.location.href = 'registrationPage.html';
-    } else {
-      // admin and superadmin both go to home.html
-      window.location.href = 'home.html';
-    }
+    window.location.href = ROLE_HOME[role] || 'home.html';
   } catch (err) {
     if (err.code === 'auth/invalid-credential') {
       document.getElementById('errorModal').style.display = 'flex';
@@ -2741,47 +2862,12 @@ function checkAdmin() {
 }
 
 // ==================== DYNAMIC TOP BAR ====================
-async function updateTopBarForRole(user) {
-  if (!user) {
-    document.getElementById('helpText').innerText = 'NEED HELP';
-    const helpIcon = document.querySelector('.help-icon');
-    if (helpIcon) helpIcon.innerHTML = '?';
-    return;
-  }
-  try {
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    if (userDoc.exists()) {
-      const role = userDoc.data().role;
-      const helpText = document.getElementById('helpText');
-      const helpIcon = document.querySelector('.help-icon');
-      if (role === 'superadmin') {
-        helpText.innerText = 'ITC';
-        helpIcon.innerHTML = 'I';
-      } else if (role === 'admin') {
-        helpText.innerText = 'ADMIN';
-        helpIcon.innerHTML = '?';
-      } else {
-        helpText.innerText = 'USER';
-        helpIcon.innerHTML = '?';
-      }
-    } else {
-      document.getElementById('helpText').innerText = 'NEED HELP';
-      const helpIcon = document.querySelector('.help-icon');
-      if (helpIcon) helpIcon.innerHTML = '?';
-    }
-  } catch (err) {
-    console.error('Error fetching role for top bar:', err);
-    document.getElementById('helpText').innerText = 'NEED HELP';
-    const helpIcon = document.querySelector('.help-icon');
-    if (helpIcon) helpIcon.innerHTML = '?';
-  }
+function updateTopBarForRole(role) {
+  const helpText = document.getElementById('helpText');
+  if (helpText) helpText.textContent = ROLE_LABELS[role] || 'NEED HELP';
 }
 function handleHelpClick() {
-  if (currentUserRole === 'superadmin') {
-    window.location.href = 'superadmin.html';
-  } else {
-    showHelpModal();
-  }
+  showHelpModal();
 }
 
 // ==================== IMPORT STUDENTS (admin / superadmin only) ====================

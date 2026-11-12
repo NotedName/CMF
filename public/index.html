@@ -129,22 +129,37 @@
   <div id="registerModal" class="modal">
     <div class="modal-content">
       <h3>Register New Account</h3>
-      <input type="email" id="regEmail" placeholder="Email"
-            autocomplete="off" spellcheck="false" autocorrect="off"
-            readonly onfocus="this.removeAttribute('readonly')">
-      <input type="password" id="regPassword" placeholder="Password"
-            autocomplete="new-password" spellcheck="false"
-            readonly onfocus="this.removeAttribute('readonly')">
-      <input type="password" id="regConfirmPassword" placeholder="Confirm Password"
-            autocomplete="new-password" spellcheck="false"
-            readonly onfocus="this.removeAttribute('readonly')">
+      <input type="text" id="regSchoolId" placeholder="School ID *" tabindex="1" maxlength="20"
+            oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')"
+            onkeydown="registerKeyNav(event)"
+            autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+      <input type="text" id="regFirstName" placeholder="First Name *" tabindex="2" maxlength="64"
+            oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
+            onkeydown="registerKeyNav(event)"
+            autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+      <input type="text" id="regLastName" placeholder="Last Name *" tabindex="3" maxlength="64"
+            oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
+            onkeydown="registerKeyNav(event)"
+            autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+      <input type="email" id="regEmail" placeholder="Email *" tabindex="4"
+            onkeydown="registerKeyNav(event)"
+            autocomplete="off" spellcheck="false" autocorrect="off" readonly onfocus="this.removeAttribute('readonly')">
+      <input type="password" id="regPassword" placeholder="Password (min. 8 characters) *" tabindex="5"
+            oninput="this.value = this.value.replace(/\s/g, ''); updatePasswordMatch()"
+            onkeydown="registerKeyNav(event)"
+            autocomplete="new-password" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+      <input type="password" id="regConfirmPassword" placeholder="Confirm Password *" tabindex="6"
+            oninput="this.value = this.value.replace(/\s/g, ''); updatePasswordMatch()"
+            onkeydown="registerKeyNav(event)"
+            autocomplete="new-password" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+      <div id="passwordMatchIndicator" class="pw-match" aria-live="polite"></div>
       <div class="show-password-reg">
         <span>SHOW PASSWORD</span>
-        <input type="checkbox" id="showRegPassword" onclick="toggleRegPassword()">
+        <input type="checkbox" id="showRegPassword" tabindex="7" onclick="toggleRegPassword()">
       </div>
       <div class="button-group">
-        <button onclick="register()" class="export-btn">Register</button>
-        <button onclick="closeRegisterModal()" class="clear-btn">Cancel</button>
+        <button onclick="register()" class="export-btn" tabindex="8">Register</button>
+        <button onclick="closeRegisterModal()" class="clear-btn" tabindex="9">Cancel</button>
       </div>
     </div>
   </div>
@@ -178,4 +193,4 @@
     © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
   </div>
 </body>
-</html>
+</html>

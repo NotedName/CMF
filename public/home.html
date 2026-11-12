@@ -95,6 +95,7 @@
       </div>
     </div>
     <div class="content">
+      <h2 class="page-title">Student List</h2>
       <!-- FILTER BAR matching clearance tracking page design -->
       <div class="filter-bar" style="justify-content: space-between;">
         <!-- Left section: search and filter dropdowns -->
@@ -135,6 +136,12 @@
               <option value="Female">Female</option>
               <option value="Other">Other</option>
             </select>
+            <label for="dateFrom">From:</label>
+            <input type="date" id="dateFrom" onchange="syncDateRange(); applyFilters()">
+
+            <label for="dateTo">To:</label>
+            <input type="date" id="dateTo" onchange="syncDateRange(); applyFilters()">
+
             <button onclick="clearFilters()" class="clear-btn">Clear</button>
             <button onclick="refreshTable()" class="refresh-btn">Refresh</button>
           </div>
@@ -142,6 +149,7 @@
         <div style="display: flex; gap: 10px;">
           <button onclick="editSelectedHome()" class="export-btn">Edit Selected</button>
           <button onclick="deleteSelectedHome()" class="delete-btn">Delete Selected</button>
+          <button id="importBtn" onclick="showImportModal()" class="export-btn" style="display:none;">Import</button>
           <button onclick="showExportModal()" class="export-btn">Export</button>
         </div>
       </div>
@@ -170,9 +178,11 @@
   <script src="script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      checkPageAccess(['admin', 'superadmin']);
-      loadStudents();
-      loadPrograms();
+      checkPageAccess(['admin', 'superadmin']).then(() => {
+        document.getElementById('importBtn').style.display = '';   // import is admin/superadmin only
+        loadStudents();
+        loadPrograms();
+      });
     });
   </script>
   <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
@@ -191,9 +201,21 @@
     </div>
   </div>  
   <div id="confirmModal" class="modal"><div class="modal-content"><p id="confirmMessage">Are you sure?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmDelete()">Yes</button><button onclick="closeConfirmModal()">No</button></div></div></div>
+  <div id="importModal" class="modal">
+    <div class="modal-content import-modal">
+      <h3>Import Students</h3>
+      <p class="import-help">Upload an Excel (.xlsx, .xls) or CSV file. <a href="#" onclick="downloadImportTemplate(); return false;">Download the template</a></p>
+      <input type="file" id="importFile" accept=".xlsx,.xls,.csv" onchange="handleImportFile(this)">
+      <div id="importSummary" class="import-summary" style="display: none;"></div>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="importConfirmBtn" onclick="confirmImport()" disabled>Import</button>
+        <button onclick="closeImportModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
   <div id="messageModal" class="modal"><div class="modal-content"><p id="messageModalText">Message</p><button onclick="closeMessageModal()">OK</button></div></div>
   <div class="menu-overlay" onclick="closeMobileMenu()"></div>
   <button id="scrollToTopBtn" title="Go to top">↑</button>
   <div id="printContainer" style="display: none;"></div>
 </body>
-</html>
+</html>

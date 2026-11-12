@@ -242,6 +242,7 @@
       </div>
     </div>
     <div class="content registration-content-page">
+      <h2 class="page-title">Registration</h2>
       <div class="registration-content">
         <div class="registration-layout">
           <!-- Hidden field to store student type -->
@@ -363,27 +364,22 @@
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          window.location.href = 'index.html';
+    document.addEventListener('DOMContentLoaded', async function() {
+      await checkPageAccess(['user', 'admin', 'superadmin']);
+      populateAcademicYearDropdown();
+      await loadPrograms();   // programs must exist before an edit can select one
+
+      const docId = new URLSearchParams(window.location.search).get('docId');
+      if (docId) {
+        // Editing an existing student is for admins only
+        if (currentUserRole === 'user') {
+          window.location.href = 'registrationPage.html';
           return;
         }
-        const role = await getUserRole(user);
-        currentUserRole = role;
-        updateSidebarForRole(role);
-      });
-
-      // Check if we are in edit mode (docId parameter present)
-      const urlParams = new URLSearchParams(window.location.search);
-      const docId = urlParams.get('docId');
-      if (docId) {
-        // Disable tabs and call setupEditMode with the document ID
         document.getElementById('tabNew').disabled = true;
         document.getElementById('tabOld').disabled = true;
-        setupEditMode(docId);
+        await setupEditMode(docId);
       } else {
-        // Default to new student mode
         switchRegistrationTab('new');
       }
     });
@@ -496,4 +492,4 @@
   <button id="scrollToTopBtn" title="Go to top">↑</button>
   <div id="printContainer" style="display: none;"></div>
 </body>
-</html>
+</html>

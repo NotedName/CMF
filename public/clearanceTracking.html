@@ -94,6 +94,7 @@
       </div>
     </div>
     <div class="content">
+      <h2 class="page-title">Clearance Logs</h2>
       <!-- Filter Bar (matching home.html style) -->
       <div class="filter-bar" style="justify-content: space-between;">
         <!-- Left section: search and filter dropdowns -->
@@ -140,6 +141,12 @@
               <option value="Claimed">Claimed</option>
               <option value="Returned">Returned</option>
             </select>
+
+            <label for="dateFrom">Released From:</label>
+            <input type="date" id="dateFrom" onchange="syncDateRange(); applyFilters()">
+
+            <label for="dateTo">To:</label>
+            <input type="date" id="dateTo" onchange="syncDateRange(); applyFilters()">
 
             <button onclick="clearFilters()" class="clear-btn">Clear</button>
             <button onclick="refreshTable()" class="refresh-btn">Refresh</button>
@@ -224,4 +231,4 @@
   <button id="scrollToTopBtn" title="Go to top">↑</button>  
   <div id="printContainer" style="display: none;"></div>
 </body>
-</html>
+</html>

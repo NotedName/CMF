@@ -53,22 +53,6 @@
   </script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
-    h2 {
-      font-size: 24px;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 20px;
-      background: rgba(255, 255, 255, 0.5);
-      padding: 12px 20px;
-      border-radius: 8px;
-      backdrop-filter: blur(5px);
-      display: inline-block;
-      width: auto;
-    }
-    .dark-mode h2 {
-      background: rgba(30, 30, 40, 0.5);
-      color: #fff;
-    }
     /* Sort indicators on table headers */
     th.sort-asc::after { content: " ▲"; font-size: 10px; }
     th.sort-desc::after { content: " ▼"; font-size: 10px; }
@@ -129,15 +113,14 @@
       </div>
     </div>
     <div class="content">
-      <!-- User Management Header (no emoji) -->
-      <h2>Account Management</h2>
+      <h2 class="page-title">Account Management</h2>
 
       <!-- Filter Bar -->
       <div class="filter-bar" style="justify-content: space-between; margin-bottom: 15px; flex-wrap: wrap;">
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           <!-- Search input -->
           <div class="search-wrapper" style="margin:0; min-width: 200px;">
-            <input type="text" id="userSearch" placeholder="Search by email..." onkeyup="filterUsersTable()" autocomplete="off">
+            <input type="text" id="userSearch" placeholder="Search by email, name or school ID..." onkeyup="filterUsersTable()" autocomplete="off">
             <span class="search-icon">
               <svg viewBox="0 0 24 24">
                 <circle cx="11" cy="11" r="7"></circle>
@@ -173,9 +156,11 @@
           <thead>
             <tr>
               <th onclick="handleUserSort(0)">Email</th>
-              <th onclick="handleUserSort(1)">Role</th>
-              <th onclick="handleUserSort(2)">Approved</th>
-              <th onclick="handleUserSort(3)">Created At</th>
+              <th onclick="handleUserSort(1)">Name</th>
+              <th onclick="handleUserSort(2)">School ID</th>
+              <th onclick="handleUserSort(3)">Role</th>
+              <th onclick="handleUserSort(4)">Approved</th>
+              <th onclick="handleUserSort(5)">Created At</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -265,4 +250,4 @@
     });
   </script>
 </body>
-</html>
+</html>

@@ -18,6 +18,19 @@ let pendingUserAction = null;                             // { uid, action, newR
 let userSort = { column: 0, direction: 'asc' };           // default sort by Email
 let pendingDeleteLogIds = [];                             // for clearance logs delete confirmation
 
+// ==================== SMALL HELPERS ====================
+// Escape any value before putting it inside an innerHTML template.
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+// Date -> "YYYY-MM-DD" in Philippines time (UTC+8)
+function toPhDateString(date) {
+  return new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().split('T')[0];
+}
+
 // ==================== GLOBAL ENTER KEY HANDLER FOR MODALS ====================
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
@@ -49,17 +62,20 @@ let currentUserRole = null;
  * @param {Object} user - Firebase user object
  * @returns {Promise<string|null>} role ('user', 'admin', 'superadmin') or null
  */
-async function getUserRole(user) {
+async function getUserProfile(user) {
   if (!user) return null;
+  const userDoc = await getDoc(doc(db, 'users', user.uid));
+  return userDoc.exists() ? userDoc.data() : null;
+}
+
+async function getUserRole(user) {
   try {
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    if (userDoc.exists()) {
-      return userDoc.data().role;
-    }
+    const profile = await getUserProfile(user);
+    return profile ? profile.role : null;
   } catch (err) {
     console.error('Error fetching user role:', err);
+    return null;
   }
-  return null;
 }
 
 /**
@@ -76,7 +92,22 @@ async function checkPageAccess(allowedRoles) {
         window.location.href = 'index.html';
         return;
       }
-      const role = await getUserRole(user);
+      let profile = null;
+      try {
+        profile = await getUserProfile(user);
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+      }
+      const role = profile ? profile.role : null;
+
+      // Unverified emails and unapproved regular users never get into the app,
+      // even if they still hold a signed-in session.
+      if (!user.emailVerified || (role === 'user' && profile.approved !== true)) {
+        await signOut(auth);
+        window.location.href = 'index.html';
+        return;
+      }
+
       if (!role || !allowedRoles.includes(role)) {
         // Redirect to the default page for the actual role
         if (role === 'user') {
@@ -93,7 +124,7 @@ async function checkPageAccess(allowedRoles) {
       currentUserRole = role;
       document.body.classList.add(`role-${role}`);
       updateSidebarForRole(role);
-      updateTopBarForRole(user);   // <-- ensure top‑bar shows correct role
+      updateTopBarForRole(user);
       resolve(role);
     });
   });
@@ -170,25 +201,11 @@ async function updateStudentsProgram(oldCode, newCode) {
 }
 
 // ==================== PAGE INIT ====================
+// Data loading happens in each page's own script, after checkPageAccess() resolves.
 document.addEventListener('DOMContentLoaded', function() {
-  if (window.location.pathname.includes('home.html') || 
-      window.location.pathname.includes('admin.html')) {
-    loadStudents();
-  }
-
-  // After Firebase is initialized, listen for auth state changes
   auth.onAuthStateChanged((user) => {
     updateTopBarForRole(user);
   });
-
-  if (window.location.pathname.includes('clearanceTracking.html')) {
-    loadClearanceLogs();
-  }
-
-  if (window.location.pathname.includes('registrationPage.html') || 
-      window.location.pathname.includes('admin.html')) {
-    loadPrograms();
-  }
 
   attachSortListeners();
 
@@ -196,11 +213,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if (window.location.pathname.includes('registrationPage.html')) {
     enableHoverScroll();
-    populateProgramDropdown(); 
   }
 
   if (window.location.pathname.includes('statusupdate.html')) {
     enableStatusUpdateHoverScroll();
+    const rfidInput = document.getElementById('rfidSearch');
+    if (rfidInput) {
+      rfidInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); searchStudent(); }
+      });
+    }
   }
 
   const passwordInput = document.getElementById('password');
@@ -210,107 +232,29 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  if (window.location.pathname.includes('statusupdate.html')) {
-    const rfidInput = document.getElementById('rfidSearch');
-    if (rfidInput) {
-      rfidInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); searchStudent(); }
-      });
-    }
-  }
-
-  if (window.location.pathname.includes('registrationPage.html')) {
-    enableHoverScroll();
-    populateProgramDropdown();
-    populateAcademicYearDropdown();   // <-- add this
-  }
-
   loadDarkModePreference();
 
-  function setActiveNav() {
-    const path = window.location.pathname.split('/').pop() || 'home.html';
-    const navLinks = document.querySelectorAll('.sidebar .nav');
-    navLinks.forEach(link => {
-      link.classList.remove('active');
-      const onclick = link.getAttribute('onclick') || '';
-      if (onclick.includes('goHome()') && path === 'home.html') link.classList.add('active');
-      if (onclick.includes('goRegister()') && path === 'registrationPage.html') link.classList.add('active');
-      if (onclick.includes('goStatusUpdate()') && path === 'statusupdate.html') link.classList.add('active');
-      if (onclick.includes('goAdmin()') && path === 'admin.html') link.classList.add('active');
-      if (onclick.includes('goRegistered()') && path === 'clearanceTracking.html') link.classList.add('active');
-    });
-  }
-  setActiveNav();
-
-  if (window.location.pathname.includes('registrationPage.html')) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const rfid = urlParams.get('rfid');
-    if (rfid) {
-      setupEditMode(rfid);
-    } else {
-      resetRegistrationForm();
-    }
-
-    // ---------- Tampering detection ----------
-    let tamperInterval = setInterval(checkFieldIntegrity, 2000);
-
-    function checkFieldIntegrity() {
-      const fieldsToCheck = [
-        'surname', 'firstName', 'middleName',
-        'program', 'yearLevel', 'gender'
-      ];
-
-      for (let id of fieldsToCheck) {
-        const el = document.getElementById(id);
-        if (!el) continue;
-        const dataField = el.getAttribute('data-field');
-        if (!dataField || dataField !== id) {
-          triggerTamperAlert();
-          return;
-        }
-      }
-
-      const regBtn = document.getElementById('registerButton');
-      if (regBtn && regBtn.getAttribute('onclick') !== 'validateAndRegister()' &&
-                     regBtn.getAttribute('onclick') !== 'validateAndUpdate()') {
-        triggerTamperAlert();
-      }
-    }
-
-    if (rfid) {
-      // edit mode – hide toggle and show new student fields
-      document.querySelectorAll('input[name="regType"]').forEach(radio => radio.disabled = true);
-      document.getElementById('newStudentFields').style.display = 'block';
-    }
-
-    function triggerTamperAlert() {
-      clearInterval(tamperInterval);
-      showMessageModal('I know what you did there blud...');
-      document.querySelectorAll('input, select, button').forEach(el => el.disabled = true);
-    }
-
-    window.addEventListener('beforeunload', function() {
-      clearInterval(tamperInterval);
-    });
-    // ---------- END tampering detection ----------
-  }
+  const path = window.location.pathname.split('/').pop() || 'home.html';
+  document.querySelectorAll('.sidebar .nav').forEach(link => {
+    link.classList.remove('active');
+    const onclick = link.getAttribute('onclick') || '';
+    if (onclick.includes('goHome()') && path === 'home.html') link.classList.add('active');
+    if (onclick.includes('goRegister()') && path === 'registrationPage.html') link.classList.add('active');
+    if (onclick.includes('goStatusUpdate()') && path === 'statusupdate.html') link.classList.add('active');
+    if (onclick.includes('goAdmin()') && path === 'admin.html') link.classList.add('active');
+    if (onclick.includes('goRegistered()') && path === 'clearanceTracking.html') link.classList.add('active');
+  });
 
   document.addEventListener('click', function(e) {
     const th = e.target.closest('th');
     if (!th) return;
     const table = th.closest('table');
     if (!table) return;
-
-    if (table.id === 'adminStudentsTable') {
-      const index = Array.from(th.parentNode.children).indexOf(th);
-      if (index >= 0 && index <= 6) {
-        handleAdminSort(index);
-      }
-    } else if (table.id === 'programsTable') {
-      const index = Array.from(th.parentNode.children).indexOf(th);
-      if (index === 0 || index === 1) {
-        handleProgramSort(index);
-      }
+    const index = Array.from(th.parentNode.children).indexOf(th);
+    if (table.id === 'adminStudentsTable' && index >= 0 && index <= 6) {
+      handleAdminSort(index);
+    } else if (table.id === 'programsTable' && (index === 0 || index === 1)) {
+      handleProgramSort(index);
     }
   });
 });
@@ -468,11 +412,11 @@ function renderProgramsTable() {
   const sorted = sortPrograms(programs, programSort.column, programSort.direction);
   tbody.innerHTML = sorted.map(p => `
     <tr>
-      <td>${p.programCode}</td>
-      <td>${p.programName}</td>
+      <td>${escapeHtml(p.programCode)}</td>
+      <td>${escapeHtml(p.programName)}</td>
       <td>
-        <button onclick="editProgram('${p.id}')" class="export-btn" style="padding:2px 8px; margin-right:5px;">Edit</button>
-        <button onclick="deleteProgram('${p.id}')" class="delete-btn" style="padding:2px 8px;">Delete</button>
+        <button onclick="editProgram('${escapeHtml(p.id)}')" class="export-btn" style="padding:2px 8px; margin-right:5px;">Edit</button>
+        <button onclick="deleteProgram('${escapeHtml(p.id)}')" class="delete-btn" style="padding:2px 8px;">Delete</button>
       </td>
     </tr>
   `).join('');
@@ -650,27 +594,34 @@ async function loadUsers() {
   }
 }
 
+function userFullName(user) {
+  return [user.lastName, user.firstName].filter(Boolean).join(', ');
+}
+
 function renderUsersTable() {
   const tbody = document.querySelector('#usersTable tbody');
   if (!tbody) return;
   tbody.innerHTML = filteredUsers.map(user => {
     const approved = user.approved ? 'Yes' : 'No';
     const createdAt = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleString() : '';
+    const uid = escapeHtml(user.uid);
     return `
       <tr>
-        <td>${user.email || ''}</td>
-        <td>${user.role || 'user'}</td>
+        <td>${escapeHtml(user.email)}</td>
+        <td>${escapeHtml(userFullName(user))}</td>
+        <td>${escapeHtml(user.schoolId)}</td>
+        <td>${escapeHtml(user.role || 'user')}</td>
         <td>${approved}</td>
-        <td>${createdAt}</td>
+        <td>${escapeHtml(createdAt)}</td>
         <td>
-          ${!user.approved ? `<button onclick="showApproveConfirm('${user.uid}')" class="export-btn" style="margin-right:5px;">Approve</button>` : ''}
-          <select id="role-${user.uid}" style="margin-right:5px; height:30px;">
+          ${!user.approved ? `<button onclick="showApproveConfirm('${uid}')" class="export-btn" style="margin-right:5px;">Approve</button>` : ''}
+          <select id="role-${uid}" style="margin-right:5px; height:30px;">
             <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
             <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
             <option value="superadmin" ${user.role === 'superadmin' ? 'selected' : ''}>Superadmin</option>
           </select>
-          <button onclick="showUpdateRoleConfirm('${user.uid}')" class="export-btn" style="margin-right:5px;">Update</button>
-          <button onclick="showDeleteConfirm('${user.uid}')" class="delete-btn">Delete</button>
+          <button onclick="showUpdateRoleConfirm('${uid}')" class="export-btn" style="margin-right:5px;">Update</button>
+          <button onclick="showDeleteConfirm('${uid}')" class="delete-btn">Delete</button>
         </td>
       </tr>
     `;
@@ -684,7 +635,10 @@ function filterUsersTable() {
   const approvedFilter = document.getElementById('approvedFilter')?.value || '';
 
   filteredUsers = users.filter(user => {
-    if (search && !user.email.toLowerCase().includes(search)) return false;
+    if (search) {
+      const haystack = `${user.email || ''} ${userFullName(user)} ${user.schoolId || ''}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
     if (roleFilter && user.role !== roleFilter) return false;
     if (approvedFilter === 'yes' && !user.approved) return false;
     if (approvedFilter === 'no' && user.approved) return false;
@@ -747,6 +701,9 @@ function sortUsers() {
     } else if (prop === 'approved') {
       valA = a.approved ? 1 : 0;
       valB = b.approved ? 1 : 0;
+    } else if (prop === 'name') {
+      valA = userFullName(a).toLowerCase();
+      valB = userFullName(b).toLowerCase();
     } else {
       valA = (a[prop] || '').toLowerCase();
       valB = (b[prop] || '').toLowerCase();
@@ -760,9 +717,11 @@ function sortUsers() {
 function getUserSortProperty(columnIndex) {
   const map = {
     0: 'email',
-    1: 'role',
-    2: 'approved',
-    3: 'createdAt'
+    1: 'name',
+    2: 'schoolId',
+    3: 'role',
+    4: 'approved',
+    5: 'createdAt'
   };
   return map[columnIndex];
 }
@@ -854,6 +813,7 @@ function closeConfirmModal() {
   pendingDeleteRfids = [];
   pendingAdminDelete = [];
   pendingDeleteProgramId = null;
+  pendingDeleteLogIds = [];
   pendingUserAction = null;
 }
 
@@ -1000,30 +960,35 @@ function renderHomeTable(students, keepSort = false) {
     const fullName = formatFullName(student);
     const datePart = student.dateTime ? student.dateTime.split(' ')[0] : '';
     return `
-      <tr>
+      <tr data-date="${escapeHtml(datePart)}">
         <td style="width: 30px; text-align: center;">
-          <input type="checkbox" class="home-checkbox" data-doc-id="${student.id}" onchange="updateSelectAllHomeState()">
+          <input type="checkbox" class="home-checkbox" data-doc-id="${escapeHtml(student.id)}" onchange="updateSelectAllHomeState()">
         </td>
-        <td>${student.rfidNumber || ''}</td>
-        <td>${student.studentNumber || ''}</td>
-        <td>${fullName}</td>
-        <td>${student.program || ''}</td>
-        <td>${student.yearLevel || ''}</td>
-        <td>${student.academicYear || ''}</td>   <!-- new -->
-        <td>${student.gender || ''}</td>
-        <td>${datePart}</td>
+        <td>${escapeHtml(student.rfidNumber)}</td>
+        <td>${escapeHtml(student.studentNumber)}</td>
+        <td>${escapeHtml(fullName)}</td>
+        <td>${escapeHtml(student.program)}</td>
+        <td>${escapeHtml(student.yearLevel)}</td>
+        <td>${escapeHtml(student.academicYear)}</td>
+        <td>${escapeHtml(student.gender)}</td>
+        <td>${escapeHtml(datePart)}</td>
       </tr>
     `;
   }).join('');
   applyFilters();
 }
 
-function populateCourseFilter() {
-  const select = document.getElementById('courseFilter');
+function fillFilterSelect(id, values) {
+  const select = document.getElementById(id);
   if (!select) return;
-  const courses = [...new Set(allStudents.map(s => s.program).filter(Boolean))].sort();
-  select.innerHTML = '<option value="">All</option>' + 
-    courses.map(c => `<option value="${c}">${c}</option>`).join('');
+  const current = select.value;
+  select.innerHTML = '<option value="">All</option>' +
+    [...values].sort().map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  select.value = current;
+}
+
+function populateCourseFilter() {
+  fillFilterSelect('courseFilter', new Set(allStudents.map(s => s.program).filter(Boolean)));
 }
 
 function updateSelectAllHomeState() {
@@ -1037,31 +1002,6 @@ function toggleSelectAllHome(selectAllCheckbox) {
   const checkboxes = document.querySelectorAll('#homeTable tbody .home-checkbox');
   checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
   updateSelectAllHomeState();
-}
-
-function editSelectedHome() {
-  const selected = document.querySelectorAll('#homeTable tbody .home-checkbox:checked');
-  if (selected.length === 0) {
-    showMessageModal('Please select a student to edit.');
-    return;
-  }
-  if (selected.length > 1) {
-    showMessageModal('Please select only one student to edit.');
-    return;
-  }
-  const rfid = selected[0].getAttribute('data-rfid');
-  window.location.href = `registrationPage.html?rfid=${encodeURIComponent(rfid)}`;
-}
-
-function deleteSelectedHome() {
-  const selected = document.querySelectorAll('#homeTable tbody .home-checkbox:checked');
-  if (selected.length === 0) {
-    showMessageModal('Please select at least one student to delete.');
-    return;
-  }
-  pendingDeleteRfids = Array.from(selected).map(cb => cb.getAttribute('data-rfid'));
-  document.getElementById('confirmMessage').textContent = `Are you sure you want to delete ${selected.length} selected student(s)?`;
-  document.getElementById('confirmModal').style.display = 'flex';
 }
 
 async function confirmDelete() {
@@ -1078,11 +1018,7 @@ async function confirmDelete() {
 }
 
 function populateStudentFilters() {
-  const acadSelect = document.getElementById('acadYearFilterHome');
-  if (!acadSelect) return;
-  const acadYears = [...new Set(allStudents.map(s => s.academicYear).filter(Boolean))].sort();
-  acadSelect.innerHTML = '<option value="">All</option>' + 
-    acadYears.map(ay => `<option value="${ay}">${ay}</option>`).join('');
+  fillFilterSelect('acadYearFilterHome', new Set(allStudents.map(s => s.academicYear).filter(Boolean)));
 }
 
 // ==================== RENDERING CLEARANCE LOGS TABLE ====================
@@ -1091,32 +1027,26 @@ function renderClearanceLogs(logs, keepSort = false) {
   if (!tbody) return;
   let data = keepSort ? sortLogs(logs, logSort.column, logSort.direction) : logs;
   tbody.innerHTML = data.map(log => {
-    const status = log.status || '';
     const releaseDate = log.claimedDate ? new Date(log.claimedDate.seconds * 1000).toLocaleString() : '';
     const receiveDate = log.returnedDate ? new Date(log.returnedDate.seconds * 1000).toLocaleString() : '';
-    const remarks = log.remarks || '';
-    const academicYear = log.academicYear || '';
-    const semester = log.semester || '';
-    const idNumber = log.studentNumber || '';
-    const name = log.name || '';
-    const program = log.program || '';          // <-- new
-    const yearLevel = log.yearLevel || '';      // <-- new
+    // Date range filter works on the release date, in Philippines time
+    const filterDate = log.claimedDate ? toPhDateString(new Date(log.claimedDate.seconds * 1000)) : '';
     return `
-      <tr>
+      <tr data-date="${escapeHtml(filterDate)}">
         <td style="text-align: center;">
-          <input type="checkbox" class="log-checkbox" data-log-id="${log.id}" onchange="updateSelectAllLogsState()">
+          <input type="checkbox" class="log-checkbox" data-log-id="${escapeHtml(log.id)}" onchange="updateSelectAllLogsState()">
         </td>
-        <td>${log.rfid || ''}</td>
-        <td>${idNumber}</td>
-        <td>${name}</td>
-        <td>${releaseDate}</td>
-        <td>${receiveDate}</td>
-        <td>${academicYear}</td>
-        <td>${semester}</td>
-        <td>${yearLevel}</td>
-        <td>${program}</td>
-        <td>${remarks}</td>
-        <td>${status}</td>
+        <td>${escapeHtml(log.rfid)}</td>
+        <td>${escapeHtml(log.studentNumber)}</td>
+        <td>${escapeHtml(log.name)}</td>
+        <td>${escapeHtml(releaseDate)}</td>
+        <td>${escapeHtml(receiveDate)}</td>
+        <td>${escapeHtml(log.academicYear)}</td>
+        <td>${escapeHtml(log.semester)}</td>
+        <td>${escapeHtml(log.yearLevel)}</td>
+        <td>${escapeHtml(log.program)}</td>
+        <td>${escapeHtml(log.remarks)}</td>
+        <td>${escapeHtml(log.status)}</td>
       </tr>
     `;
   }).join('');
@@ -1244,12 +1174,6 @@ function attachSortListeners() {
       th.addEventListener('click', () => handleSort(index));
     });
   }
-}
-
-// ==================== HARD DELETE SELECTED (HOME) ====================
-function closeConfirmModal() {
-  document.getElementById('confirmModal').style.display = 'none';
-  pendingDeleteRfids = [];
 }
 
 // ==================== EDIT SELECTED (HOME) ====================
@@ -1905,17 +1829,17 @@ function displayStudentForUpdate(student) {
   container.innerHTML = `
     <div class="student-details">
       <table class="student-info-table">
-        <tr><th>Name</th><td>${fullName}</td></tr>
-        <tr><th>Program</th><td>${student.program || ''}</td></tr>
-        <tr><th>Year Level</th><td>${student.yearLevel || ''}</td></tr>
-        <tr><th>Student Number</th><td>${student.studentNumber || ''}</td></tr>
-        <tr><th>Academic Year</th><td>${student.academicYear || ''}</td></tr>
-        <tr><th>Gender</th><td>${student.gender || ''}</td></tr>
+        <tr><th>Name</th><td>${escapeHtml(fullName)}</td></tr>
+        <tr><th>Program</th><td>${escapeHtml(student.program)}</td></tr>
+        <tr><th>Year Level</th><td>${escapeHtml(student.yearLevel)}</td></tr>
+        <tr><th>Student Number</th><td>${escapeHtml(student.studentNumber)}</td></tr>
+        <tr><th>Academic Year</th><td>${escapeHtml(student.academicYear)}</td></tr>
+        <tr><th>Gender</th><td>${escapeHtml(student.gender)}</td></tr>
       </table>
 
       <div class="button-group">
-        <button class="btn-release" onclick="releaseStudent('${student.rfidNumber}')">RELEASE</button>
-        <button class="btn-receive" onclick="receiveStudent('${student.rfidNumber}')">RECEIVE</button>
+        <button class="btn-release" onclick="releaseStudent('${escapeHtml(student.rfidNumber)}')">RELEASE</button>
+        <button class="btn-receive" onclick="receiveStudent('${escapeHtml(student.rfidNumber)}')">RECEIVE</button>
       </div>
 
       <div class="dropdown-group">
@@ -2205,55 +2129,20 @@ function loadDarkModePreference() {
 function setDefaultDate() {
   const dateInput = document.getElementById('date');
   if (!dateInput) return;
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  dateInput.value = `${yyyy}-${mm}-${dd}`;
+  const today = toPhDateString(new Date());
+  dateInput.value = today;
+  const display = document.getElementById('displayDate');
+  if (display) display.textContent = today;
 }
 
 // ==================== POPULATE FILTERS ====================
 function populateLogFilters() {
-  const semesterSet = new Set();
-  const remarksSet = new Set();
-  const courseSet = new Set();
-  const yearSet = new Set();
-  const acadYearSet = new Set();
-
-  clearanceLogs.forEach(log => {
-    if (log.semester) semesterSet.add(log.semester);
-    if (log.remarks) remarksSet.add(log.remarks);
-    if (log.program) courseSet.add(log.program);
-    if (log.yearLevel) yearSet.add(log.yearLevel);
-    if (log.academicYear) acadYearSet.add(log.academicYear);
-  });
-
-  const semesterFilter = document.getElementById('semesterFilter');
-  const remarksFilter = document.getElementById('remarksFilter');
-  const courseFilter = document.getElementById('courseFilterLogs');
-  const yearFilter = document.getElementById('yearFilterLogs');
-  const acadYearFilter = document.getElementById('acadYearFilter');
-
-  if (semesterFilter) {
-    semesterFilter.innerHTML = '<option value="">All</option>' +
-      [...semesterSet].sort().map(s => `<option value="${s}">${s}</option>`).join('');
-  }
-  if (remarksFilter) {
-    remarksFilter.innerHTML = '<option value="">All</option>' +
-      [...remarksSet].sort().map(r => `<option value="${r}">${r}</option>`).join('');
-  }
-  if (courseFilter) {
-    courseFilter.innerHTML = '<option value="">All</option>' +
-      [...courseSet].sort().map(c => `<option value="${c}">${c}</option>`).join('');
-  }
-  if (yearFilter) {
-    yearFilter.innerHTML = '<option value="">All</option>' +
-      [...yearSet].sort().map(y => `<option value="${y}">${y}</option>`).join('');
-  }
-  if (acadYearFilter) {
-    acadYearFilter.innerHTML = '<option value="">All</option>' +
-      [...acadYearSet].sort().map(ay => `<option value="${ay}">${ay}</option>`).join('');
-  }
+  const values = key => new Set(clearanceLogs.map(log => log[key]).filter(Boolean));
+  fillFilterSelect('semesterFilter', values('semester'));
+  fillFilterSelect('remarksFilter', values('remarks'));
+  fillFilterSelect('courseFilterLogs', values('program'));
+  fillFilterSelect('yearFilterLogs', values('yearLevel'));
+  fillFilterSelect('acadYearFilter', values('academicYear'));
 }
 
 // ==================== FILTERING ====================
@@ -2278,6 +2167,10 @@ function applyFilters() {
   const yearFilterHome = document.getElementById('yearFilter')?.value || '';
   const acadYearFilterHome = document.getElementById('acadYearFilterHome')?.value || '';
   const genderFilterHome = document.getElementById('genderFilterHome')?.value || '';
+
+  // Date range (YYYY-MM-DD strings compare correctly as text)
+  const dateFrom = document.getElementById('dateFrom')?.value || '';
+  const dateTo = document.getElementById('dateTo')?.value || '';
 
   const rows = document.querySelectorAll(`${tableId} tbody tr`);
 
@@ -2320,173 +2213,23 @@ function applyFilters() {
       }
     }
 
+    if (show && (dateFrom || dateTo)) {
+      const rowDate = row.dataset.date || '';
+      if (!rowDate || (dateFrom && rowDate < dateFrom) || (dateTo && rowDate > dateTo)) show = false;
+    }
+
     row.style.display = show ? '' : 'none';
   });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  // Set up the global auth state observer
-  // Set up the global auth state observer
-onAuthStateChanged(auth, async (user) => {
-  const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-
-  if (!user) {
-    // Not logged in – only redirect if we are not already on the login page
-    if (currentPath !== 'index.html') {
-      window.location.href = 'index.html';
-    }
-    return;
-  }
-
-  // User is logged in – fetch role (for non‑login pages only)
-  if (currentPath !== 'index.html') {
-    const role = await getUserRole(user);
-    currentUserRole = role;
-    updateSidebarForRole(role);
-    updateTopBarForRole(user);
-  }
-  // If we are on the login page, do nothing – let login() handle redirect
-});
-
-  // ---------- REMAINING INITIALIZATION CODE (unchanged) ----------
-  if (window.location.pathname.includes('home.html') || 
-      window.location.pathname.includes('admin.html')) {
-    loadStudents();
-  }
-
-  if (window.location.pathname.includes('clearanceTracking.html')) {
-    loadClearanceLogs();
-  }
-
-  if (window.location.pathname.includes('registrationPage.html') || 
-      window.location.pathname.includes('admin.html')) {
-    loadPrograms();
-  }
-
-  attachSortListeners();
-
-  if (document.getElementById('date')) setDefaultDate();
-
-  if (window.location.pathname.includes('registrationPage.html')) {
-    enableHoverScroll();
-    populateProgramDropdown(); 
-  }
-
-  if (window.location.pathname.includes('statusupdate.html')) {
-    enableStatusUpdateHoverScroll();
-  }
-
-  const passwordInput = document.getElementById('password');
-  if (passwordInput) {
-    passwordInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') { e.preventDefault(); login(); }
-    });
-  }
-
-  if (window.location.pathname.includes('statusupdate.html')) {
-    const rfidInput = document.getElementById('rfidSearch');
-    if (rfidInput) {
-      rfidInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); searchStudent(); }
-      });
-    }
-  }
-
-  if (window.location.pathname.includes('registrationPage.html')) {
-    enableHoverScroll();
-    populateProgramDropdown();
-    populateAcademicYearDropdown();
-  }
-
-  loadDarkModePreference();
-
-  function setActiveNav() {
-    const path = window.location.pathname.split('/').pop() || 'home.html';
-    const navLinks = document.querySelectorAll('.sidebar .nav');
-    navLinks.forEach(link => {
-      link.classList.remove('active');
-      const onclick = link.getAttribute('onclick') || '';
-      if (onclick.includes('goHome()') && path === 'home.html') link.classList.add('active');
-      if (onclick.includes('goRegister()') && path === 'registrationPage.html') link.classList.add('active');
-      if (onclick.includes('goStatusUpdate()') && path === 'statusupdate.html') link.classList.add('active');
-      if (onclick.includes('goAdmin()') && path === 'admin.html') link.classList.add('active');
-      if (onclick.includes('goRegistered()') && path === 'clearanceTracking.html') link.classList.add('active');
-    });
-  }
-  setActiveNav();
-
-  if (window.location.pathname.includes('registrationPage.html')) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const rfid = urlParams.get('rfid');
-    if (rfid) {
-      setupEditMode(rfid);
-    } else {
-      resetRegistrationForm();
-    }
-
-    // ---------- Tampering detection ----------
-    let tamperInterval = setInterval(checkFieldIntegrity, 2000);
-
-    function checkFieldIntegrity() {
-      const fieldsToCheck = [
-        'surname', 'firstName', 'middleName',
-        'program', 'yearLevel', 'gender'
-      ];
-
-      for (let id of fieldsToCheck) {
-        const el = document.getElementById(id);
-        if (!el) continue;
-        const dataField = el.getAttribute('data-field');
-        if (!dataField || dataField !== id) {
-          triggerTamperAlert();
-          return;
-        }
-      }
-
-      const regBtn = document.getElementById('registerButton');
-      if (regBtn && regBtn.getAttribute('onclick') !== 'validateAndRegister()' &&
-                     regBtn.getAttribute('onclick') !== 'validateAndUpdate()') {
-        triggerTamperAlert();
-      }
-    }
-
-    if (rfid) {
-      // edit mode – hide toggle and show new student fields
-      document.querySelectorAll('input[name="regType"]').forEach(radio => radio.disabled = true);
-      document.getElementById('newStudentFields').style.display = 'block';
-    }
-
-    function triggerTamperAlert() {
-      clearInterval(tamperInterval);
-      showMessageModal('I know what you did there blud...');
-      document.querySelectorAll('input, select, button').forEach(el => el.disabled = true);
-    }
-
-    window.addEventListener('beforeunload', function() {
-      clearInterval(tamperInterval);
-    });
-    // ---------- END tampering detection ----------
-  }
-
-  document.addEventListener('click', function(e) {
-    const th = e.target.closest('th');
-    if (!th) return;
-    const table = th.closest('table');
-    if (!table) return;
-
-    if (table.id === 'adminStudentsTable') {
-      const index = Array.from(th.parentNode.children).indexOf(th);
-      if (index >= 0 && index <= 6) {
-        handleAdminSort(index);
-      }
-    } else if (table.id === 'programsTable') {
-      const index = Array.from(th.parentNode.children).indexOf(th);
-      if (index === 0 || index === 1) {
-        handleProgramSort(index);
-      }
-    }
-  });
-});
+// Keep the From/To pickers from allowing an impossible range
+function syncDateRange() {
+  const from = document.getElementById('dateFrom');
+  const to = document.getElementById('dateTo');
+  if (!from || !to) return;
+  to.min = from.value || '';
+  from.max = to.value || '';
+}
 
 function clearFilters() {
   // Clear global search
@@ -2516,6 +2259,12 @@ function clearFilters() {
   const genderFilterHome = document.getElementById('genderFilterHome');
   if (genderFilterHome) genderFilterHome.value = '';
 
+  const dateFrom = document.getElementById('dateFrom');
+  if (dateFrom) dateFrom.value = '';
+  const dateTo = document.getElementById('dateTo');
+  if (dateTo) dateTo.value = '';
+  syncDateRange();
+
   applyFilters();
 }
 
@@ -2542,19 +2291,6 @@ function clearStatusUpdate() {
   document.getElementById('rfidSearch').value = '';
   document.getElementById('studentResult').style.display = 'none';
   currentStudentForUpdate = null;
-}
-
-// ==================== SELECT ALL (HOME) ====================
-function updateSelectAllHomeState() {
-  const selectAll = document.getElementById('selectAllHome');
-  if (!selectAll) return;
-  const checkboxes = document.querySelectorAll('#homeTable tbody .home-checkbox');
-  selectAll.checked = Array.from(checkboxes).every(cb => cb.checked);
-}
-function toggleSelectAllHome(selectAllCheckbox) {
-  const checkboxes = document.querySelectorAll('#homeTable tbody .home-checkbox');
-  checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
-  updateSelectAllHomeState();
 }
 
 // ==================== CLEARANCE LOGS CHECKBOX HELPERS ====================
@@ -2619,132 +2355,74 @@ function exportChosen(type) { closeExportModal(); exportData(type); }
 
 // ==================== PRINT DIALOG ====================
 function showPrintDialog(headers, rows, title, filterInfo = {}) {
-  // Create a hidden iframe
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'absolute';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = 'none';
-  document.body.appendChild(iframe);
+  // Remove a frame left over from a previous export
+  const old = document.getElementById('printFrame');
+  if (old) old.remove();
 
-  // Build the print content
-  const doc = iframe.contentWindow.document;
-
-  // Write the HTML with print-specific styles
-  doc.open();
-  doc.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        @page {
-          margin: 0.2in;
-          size: auto;
-        }
-        body {
-          margin: 0;
-          padding: 0;
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 20px;
-        }
-        h1 {
-          font-size: 16pt;
-          margin: 0.15in 0 0 0;
-          font-weight: bold;
-          text-transform: none;
-        }
-        h2 {
-          font-family: 'Times New Roman', Times, serif;
-          font-size: 12pt;
-          margin: 5px 0;
-          font-weight: bold;
-          text-transform: uppercase;
-        }
-        .filter-info {
-          font-family: 'Times New Roman', Times, serif;
-          margin: 5px 0;
-          font-size: 11pt;
-        }
-        .course-info {
-          font-family: 'Times New Roman', Times, serif;
-          margin: 5px 0;
-          font-size: 12pt;
-          text-transform: uppercase;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 8pt;
-          page-break-inside: auto;
-        }
-        th, td {
-          border: 1px solid #000;
-          padding: 2px 1px;
-          text-align: center;
-          word-wrap: break-word;
-        }
-        th {
-          background-color: #f0f0f0;
-          font-weight: bold;
-        }
-        thead {
-          display: table-header-group;
-        }
-        tr {
-          page-break-inside: avoid;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>St. Mary's College of Meycauayan, Inc.<br>Meycauayan, Bulacan</h1>
-        <h2>${title}</h2>
-  `);
-
-  // Add filter info if present
   const filterParts = [];
   if (filterInfo.acadYear) filterParts.push('S.Y. ' + filterInfo.acadYear);
   if (filterInfo.semester) filterParts.push(filterInfo.semester + ' Sem');
-  
   if (filterInfo.year) filterParts.push(filterInfo.year + ' Year');
-  if (filterInfo.gender) filterParts.push(filterInfo.gender);   // <-- new
-  
+  if (filterInfo.gender) filterParts.push(filterInfo.gender);
   if (filterInfo.remarks) filterParts.push(filterInfo.remarks);
   if (filterInfo.status) filterParts.push(filterInfo.status);
+  if (filterInfo.dateFrom && filterInfo.dateTo) filterParts.push(`${filterInfo.dateFrom} to ${filterInfo.dateTo}`);
+  else if (filterInfo.dateFrom) filterParts.push(`From ${filterInfo.dateFrom}`);
+  else if (filterInfo.dateTo) filterParts.push(`Until ${filterInfo.dateTo}`);
 
-  if (filterParts.length > 0) {
-    doc.write(`<div class="filter-info">${filterParts.join(' | ')}</div>`);
-  }
+  const courseText = filterInfo.courseFull || filterInfo.course || '';
 
-  if (filterInfo.courseFull) {
-    doc.write(`<div class="course-info">${filterInfo.courseFull}</div>`);
-  } else if (filterInfo.course) {
-    doc.write(`<div class="course-info">${filterInfo.course}</div>`);
-  }
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    @page { margin: 0.2in; size: auto; }
+    body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .header { text-align: center; margin-bottom: 20px; }
+    h1 { font-size: 16pt; margin: 0.15in 0 0 0; font-weight: bold; }
+    h2 { font-family: 'Times New Roman', Times, serif; font-size: 12pt; margin: 5px 0; font-weight: bold; text-transform: uppercase; }
+    .filter-info { font-family: 'Times New Roman', Times, serif; margin: 5px 0; font-size: 11pt; }
+    .course-info { font-family: 'Times New Roman', Times, serif; margin: 5px 0; font-size: 12pt; text-transform: uppercase; }
+    table { width: 100%; border-collapse: collapse; font-size: 8pt; page-break-inside: auto; }
+    th, td { border: 1px solid #000; padding: 2px 1px; text-align: center; word-wrap: break-word; }
+    th { background-color: #f0f0f0; font-weight: bold; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>St. Mary's College of Meycauayan, Inc.<br>Meycauayan, Bulacan</h1>
+    <h2>${escapeHtml(title)}</h2>
+    ${filterParts.length ? `<div class="filter-info">${escapeHtml(filterParts.join(' | '))}</div>` : ''}
+    ${courseText ? `<div class="course-info">${escapeHtml(courseText)}</div>` : ''}
+  </div>
+  <table>
+    <thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table>
+</body>
+</html>`;
 
-  doc.write('</div>'); // close header
+  const iframe = document.createElement('iframe');
+  iframe.id = 'printFrame';
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden;';
 
-  // Build table
-  const thead = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
-  const tbody = `<tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>`;
-  doc.write(`<table>${thead}${tbody}</table>`);
-
-  doc.write('</body></html>');
-  doc.close();
-
-  // Wait for content to load then print
+  // The load handler must be attached BEFORE the content is set. The old code attached it
+  // after document.write()/close(), so on Safari (Mac) the load event had already fired and
+  // print() was never called. The frame is also no longer removed on a timer: Safari's print
+  // preview stays open after print() returns, so the frame is removed after printing instead.
   iframe.onload = function() {
-    iframe.contentWindow.focus();
-    iframe.contentWindow.print();
-
-    // Remove iframe after printing (or after a short delay)
-    setTimeout(() => {
-      document.body.removeChild(iframe);
-    }, 1000);
+    const win = iframe.contentWindow;
+    win.onafterprint = () => iframe.remove();
+    win.focus();
+    win.print();
   };
+  iframe.srcdoc = html;
+  document.body.appendChild(iframe);
 }
 
 // ==================== LOGIN ====================
@@ -2763,7 +2441,7 @@ async function login() {
 
     // 2FA: email must be verified
     if (!user.emailVerified) {
-      showMessageModal('Please verify your email before logging in. Check your inbox.<br>If you did not receive the email, please check your spam folder.');
+      showMessageModal('Please verify your email before logging in.\nCheck your inbox, and if you cannot find the email, check your spam or junk folder.');
       await signOut(auth);
       return;
     }
@@ -2848,60 +2526,143 @@ function goRegistered() { window.location.href = 'clearanceTracking.html'; }
 function goAdmin() { window.location.href = 'admin.html'; }
 
 // ==================== USER REGISTRATION ====================
+const REGISTER_FIELD_ORDER = ['regSchoolId', 'regFirstName', 'regLastName', 'regEmail', 'regPassword', 'regConfirmPassword'];
+let isRegistering = false;
+
 function showRegisterModal() {
-  document.getElementById('regEmail').value = '';
-  document.getElementById('regPassword').value = '';
+  REGISTER_FIELD_ORDER.forEach(id => {
+    const el = document.getElementById(id);
+    el.value = '';
+    el.classList.remove('error-field', 'match-ok', 'match-bad');
+  });
+  const showPw = document.getElementById('showRegPassword');
+  showPw.checked = false;
+  toggleRegPassword();
+  updatePasswordMatch();
   document.getElementById('registerModal').style.display = 'flex';
+  const first = document.getElementById(REGISTER_FIELD_ORDER[0]);
+  first.removeAttribute('readonly');
+  first.focus();
 }
 function closeRegisterModal() {
   document.getElementById('registerModal').style.display = 'none';
 }
-async function register() {
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value.trim();
-  const confirm = document.getElementById('regConfirmPassword').value.trim();
+// Enter moves to the next field; Enter on the last field submits.
+function registerKeyNav(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const i = REGISTER_FIELD_ORDER.indexOf(e.target.id);
+  if (i < REGISTER_FIELD_ORDER.length - 1) {
+    const next = document.getElementById(REGISTER_FIELD_ORDER[i + 1]);
+    next.removeAttribute('readonly');
+    next.focus();
+  } else {
+    register();
+  }
+}
 
-  if (!email || !password || !confirm) {
-    showMessageModal('Please enter email, password, and confirm password.');
+// Live "passwords match" indicator under the confirm field
+function updatePasswordMatch() {
+  const password = document.getElementById('regPassword').value;
+  const confirmEl = document.getElementById('regConfirmPassword');
+  const indicator = document.getElementById('passwordMatchIndicator');
+  confirmEl.classList.remove('match-ok', 'match-bad');
+  if (!confirmEl.value) {
+    indicator.textContent = '';
+    indicator.className = 'pw-match';
+    return;
+  }
+  const matches = password === confirmEl.value;
+  indicator.textContent = matches ? '\u2713 Passwords match' : '\u2717 Passwords do not match';
+  indicator.className = 'pw-match ' + (matches ? 'ok' : 'bad');
+  confirmEl.classList.add(matches ? 'match-ok' : 'match-bad');
+}
+
+async function register() {
+  if (isRegistering) return;
+
+  REGISTER_FIELD_ORDER.forEach(id => document.getElementById(id).classList.remove('error-field'));
+
+  const value = id => document.getElementById(id).value;
+  const schoolId = value('regSchoolId').trim().toUpperCase();
+  const firstName = capitalizeNameWords(value('regFirstName'));
+  const lastName = capitalizeNameWords(value('regLastName'));
+  const email = value('regEmail').trim().toLowerCase();
+  const password = value('regPassword');
+  const confirm = value('regConfirmPassword');
+
+  // Every field is required
+  const required = {
+    regSchoolId: schoolId, regFirstName: firstName, regLastName: lastName,
+    regEmail: email, regPassword: password, regConfirmPassword: confirm
+  };
+  let missing = false;
+  Object.entries(required).forEach(([id, v]) => {
+    if (!v) { document.getElementById(id).classList.add('error-field'); missing = true; }
+  });
+  if (missing) {
+    showMessageModal('Please fill in all required fields.');
+    return;
+  }
+
+  if (!/^[A-Z0-9-]{4,20}$/.test(schoolId)) {
+    document.getElementById('regSchoolId').classList.add('error-field');
+    showMessageModal('School ID must be 4 to 20 characters: letters, numbers, or dashes only.');
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('regEmail').classList.add('error-field');
+    showMessageModal('The email address is not valid.');
     return;
   }
 
   if (password.length < 8) {
+    document.getElementById('regPassword').classList.add('error-field');
     showMessageModal('Password must be at least 8 characters long.');
     return;
   }
 
   if (password !== confirm) {
+    document.getElementById('regConfirmPassword').classList.add('error-field');
     showMessageModal('Passwords do not match.');
     return;
   }
 
+  isRegistering = true;
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    // Send verification email
-    await sendEmailVerification(userCredential.user);
-    // Create a user document in Firestore with default role 'user'
     await setDoc(doc(db, 'users', userCredential.user.uid), {
-      email: email,
+      email,
+      schoolId,
+      firstName,
+      lastName,
       role: 'user',
       approved: false,
       createdAt: new Date()
     });
-    showMessageModal('Registration successful! Please check your email to verify your account before logging in.');
+    await sendEmailVerification(userCredential.user);
+    // Registering signs the new user in automatically; they must verify and be approved first.
+    await signOut(auth);
+
     closeRegisterModal();
-    document.getElementById('regEmail').value = '';
-    document.getElementById('regPassword').value = '';
-    document.getElementById('regConfirmPassword').value = '';
+    showMessageModal(
+      'Registration successful!\n\n' +
+      `A verification email was sent to ${email}. Please check your inbox and also your spam or junk folder.\n\n` +
+      'After verifying your email, your account must be approved by an administrator before you can log in.'
+    );
   } catch (err) {
     if (err.code === 'auth/email-already-in-use') {
       showMessageModal('This email is already registered. Please use a different email or login.');
     } else if (err.code === 'auth/weak-password') {
-      showMessageModal('Password is too weak. Please use a stronger password (at least 6 characters).');
+      showMessageModal('Password is too weak. Please use at least 8 characters.');
     } else if (err.code === 'auth/invalid-email') {
       showMessageModal('The email address is not valid.');
     } else {
       showMessageModal('Registration failed: ' + err.message);
     }
+  } finally {
+    isRegistering = false;
   }
 }
 
@@ -2921,7 +2682,7 @@ async function sendPasswordReset() {
   }
   try {
     await sendPasswordResetEmail(auth, email);
-    showMessageModal('Password reset email sent. Check your inbox.');
+    showMessageModal('Password reset email sent.\nPlease check your inbox, and also your spam or junk folder.');
     closeForgotPasswordModal();
     document.getElementById('resetEmail').value = '';
   } catch (err) {
@@ -3020,6 +2781,323 @@ function handleHelpClick() {
     window.location.href = 'superadmin.html';
   } else {
     showHelpModal();
+  }
+}
+
+// ==================== IMPORT STUDENTS (admin / superadmin only) ====================
+const IMPORT_MAX_ROWS = 2000;
+const IMPORT_MAX_BYTES = 5 * 1024 * 1024;
+// Security rules may only do 20 document lookups per batched write, and each student write
+// looks up the user's role, so keep batches small.
+const IMPORT_BATCH_SIZE = 10;
+
+const IMPORT_COLUMNS = [
+  { key: 'rfidNumber',    label: 'RFID No.',      required: true,  aliases: ['rfid', 'rfidno', 'rfidnumber'] },
+  { key: 'studentNumber', label: 'Student No.',   required: true,  aliases: ['studentno', 'studentnumber', 'idnumber', 'idno', 'studentid'] },
+  { key: 'surname',       label: 'Surname',       required: true,  aliases: ['surname', 'lastname', 'familyname'] },
+  { key: 'firstName',     label: 'First Name',    required: true,  aliases: ['firstname', 'givenname'] },
+  { key: 'middleName',    label: 'Middle Name',   required: false, aliases: ['middlename'] },
+  { key: 'program',       label: 'Program',       required: true,  aliases: ['program', 'course', 'programcourse', 'programcode'] },
+  { key: 'yearLevel',     label: 'Year Level',    required: true,  aliases: ['yearlevel', 'year'] },
+  { key: 'academicYear',  label: 'Academic Year', required: true,  aliases: ['academicyear', 'ay', 'schoolyear', 'sy'] },
+  { key: 'gender',        label: 'Gender',        required: true,  aliases: ['gender', 'sex'] }
+];
+
+const IMPORT_YEAR_LEVELS = {
+  '1': '1st', '1st': '1st', 'first': '1st',
+  '2': '2nd', '2nd': '2nd', 'second': '2nd',
+  '3': '3rd', '3rd': '3rd', 'third': '3rd',
+  '4': '4th', '4th': '4th', 'fourth': '4th',
+  'irregular': 'Irregular', 'irreg': 'Irregular'
+};
+
+const IMPORT_GENDERS = {
+  'male': 'Male', 'm': 'Male',
+  'female': 'Female', 'f': 'Female',
+  'other': 'Other', 'o': 'Other'
+};
+
+let pendingImportRecords = [];
+
+async function assertImportAllowed() {
+  const role = await getUserRole(auth.currentUser);
+  if (role !== 'admin' && role !== 'superadmin') {
+    throw new Error('Only admins and superadmins can import students.');
+  }
+}
+
+async function showImportModal() {
+  try {
+    await assertImportAllowed();
+  } catch (err) {
+    showMessageModal(err.message);
+    return;
+  }
+  resetImportModal();
+  document.getElementById('importModal').style.display = 'flex';
+}
+
+function closeImportModal() {
+  document.getElementById('importModal').style.display = 'none';
+  resetImportModal();
+}
+
+function resetImportModal() {
+  pendingImportRecords = [];
+  document.getElementById('importFile').value = '';
+  const summary = document.getElementById('importSummary');
+  summary.style.display = 'none';
+  summary.innerHTML = '';
+  const btn = document.getElementById('importConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Import';
+}
+
+function downloadImportTemplate() {
+  const wb = XLSX.utils.book_new();
+
+  const students = XLSX.utils.aoa_to_sheet([IMPORT_COLUMNS.map(c => c.label)]);
+  students['!cols'] = IMPORT_COLUMNS.map(c => ({ wch: Math.max(c.label.length + 4, 16) }));
+  XLSX.utils.book_append_sheet(wb, students, 'Students');
+
+  const year = Number(toPhDateString(new Date()).slice(0, 4));
+  const help = XLSX.utils.aoa_to_sheet([
+    ['Column', 'What to enter'],
+    ['RFID No.', 'Digits only. Format this column as Text in Excel so leading zeros are kept.'],
+    ['Student No.', 'One letter followed by 6 digits, e.g. C123456'],
+    ['Surname / First Name', 'Letters, spaces, apostrophes and hyphens. Capitalization is fixed automatically.'],
+    ['Middle Name', 'Optional. Every other column is required.'],
+    ['Program', 'One of: ' + (programs.map(p => p.programCode).concat('Others').join(', '))],
+    ['Year Level', '1st, 2nd, 3rd, 4th or Irregular (1, 2, 3, 4 also work)'],
+    ['Academic Year', `e.g. ${year}-${year + 1} (second year must be the first year + 1)`],
+    ['Gender', 'Male, Female or Other']
+  ]);
+  help['!cols'] = [{ wch: 22 }, { wch: 90 }];
+  XLSX.utils.book_append_sheet(wb, help, 'Instructions');
+
+  XLSX.writeFile(wb, 'student_import_template.xlsx');
+}
+
+// RFID numbers and student numbers already in Firestore (fresh read, not the cached table)
+async function fetchExistingStudentKeys() {
+  const snapshot = await getDocs(collection(db, 'students'));
+  const rfids = new Set();
+  const numbers = new Set();
+  snapshot.docs.forEach(d => {
+    rfids.add(d.id);
+    const n = d.data().studentNumber;
+    if (n) numbers.add(n);
+  });
+  return { rfids, numbers };
+}
+
+function normalizeImportHeader(text) {
+  return String(text ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function cleanImportName(value, maxLength) {
+  const cleaned = String(value ?? '')
+    .replace(/[^\p{L}\s'-]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return capitalizeNameWords(cleaned).slice(0, maxLength);
+}
+
+// Returns { record, errors } for one spreadsheet row, with proper formatting applied.
+function validateImportRow(raw, resolveProgram) {
+  const errors = [];
+  const text = key => String(raw[key] ?? '').trim();
+
+  const rfidNumber = text('rfidNumber').replace(/\s/g, '');
+  if (!rfidNumber) {
+    errors.push('RFID No. is required');
+  } else if (/^\d+(\.\d+)?e[+-]?\d+$/i.test(rfidNumber)) {
+    errors.push('RFID No. is in scientific notation (format the column as Text in Excel)');
+  } else if (!/^\d{1,32}$/.test(rfidNumber)) {
+    errors.push('RFID No. must be digits only');
+  }
+
+  const studentNumber = text('studentNumber').replace(/\s/g, '').toUpperCase();
+  if (!isValidStudentNumber(studentNumber)) {
+    errors.push('Student No. must be one letter followed by 6 digits (e.g. C123456)');
+  }
+
+  const surname = cleanImportName(raw.surname, 64);
+  if (!surname) errors.push('Surname is required');
+  const firstName = cleanImportName(raw.firstName, 64);
+  if (!firstName) errors.push('First Name is required');
+  const middleName = cleanImportName(raw.middleName, 30);
+
+  const program = resolveProgram(text('program'));
+  if (!text('program')) errors.push('Program is required');
+  else if (!program) errors.push(`Unknown program "${text('program')}"`);
+
+  const yearKey = text('yearLevel').toLowerCase().replace(/\b(year|yr)\b/g, '').replace(/[\s.]/g, '');
+  const yearLevel = IMPORT_YEAR_LEVELS[yearKey];
+  if (!yearLevel) errors.push(`Invalid Year Level "${text('yearLevel')}"`);
+
+  const ay = text('academicYear').match(/^(\d{4})\s*[-\u2013/]\s*(\d{4})$/);
+  const academicYear = ay && Number(ay[2]) === Number(ay[1]) + 1 ? `${ay[1]}-${ay[2]}` : '';
+  if (!academicYear) errors.push(`Academic Year "${text('academicYear')}" must look like 2025-2026`);
+
+  const gender = IMPORT_GENDERS[text('gender').toLowerCase()];
+  if (!gender) errors.push(`Invalid Gender "${text('gender')}"`);
+
+  return {
+    errors,
+    record: { rfidNumber, studentNumber, surname, firstName, middleName, program, yearLevel, academicYear, gender }
+  };
+}
+
+async function handleImportFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const summary = document.getElementById('importSummary');
+  const confirmBtn = document.getElementById('importConfirmBtn');
+  pendingImportRecords = [];
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Import';
+  summary.style.display = 'block';
+  summary.textContent = 'Reading file...';
+
+  try {
+    await assertImportAllowed();
+    if (!/\.(xlsx|xls|csv)$/i.test(file.name)) throw new Error('Please choose an .xlsx, .xls or .csv file.');
+    if (file.size > IMPORT_MAX_BYTES) throw new Error('The file is too large (5 MB maximum).');
+    if (!programs.length) await loadPrograms();
+
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', raw: true });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '', blankrows: true });
+    if (matrix.length < 2) throw new Error('The file has no student rows.');
+    if (matrix.length - 1 > IMPORT_MAX_ROWS) throw new Error(`Too many rows (${IMPORT_MAX_ROWS} maximum per import).`);
+
+    // Map columns by header name
+    const columnIndex = {};
+    matrix[0].forEach((header, i) => {
+      const norm = normalizeImportHeader(header);
+      const col = IMPORT_COLUMNS.find(c => c.aliases.includes(norm));
+      if (col && !(col.key in columnIndex)) columnIndex[col.key] = i;
+    });
+    const missingCols = IMPORT_COLUMNS.filter(c => c.required && !(c.key in columnIndex)).map(c => c.label);
+    if (missingCols.length) throw new Error('Missing column(s): ' + missingCols.join(', ') + '. Download the template to see the expected headers.');
+
+    const programLookup = new Map();
+    programs.forEach(p => {
+      programLookup.set(p.programCode.toLowerCase(), p.programCode);
+      programLookup.set(String(p.programName).toLowerCase(), p.programCode);
+    });
+    programLookup.set('others', 'Others');
+    const resolveProgram = v => programLookup.get(v.toLowerCase());
+
+    const existing = await fetchExistingStudentKeys();
+    const seenRfid = new Map();
+    const seenNumber = new Map();
+    const records = [];
+    const issues = [];
+
+    for (let r = 1; r < matrix.length; r++) {
+      const cells = matrix[r];
+      if (cells.every(c => String(c).trim() === '')) continue;   // skip blank rows
+
+      const raw = {};
+      Object.entries(columnIndex).forEach(([key, i]) => { raw[key] = cells[i]; });
+      const sheetRow = r + 1;
+      const { record, errors } = validateImportRow(raw, resolveProgram);
+
+      if (!errors.length) {
+        if (existing.rfids.has(record.rfidNumber)) errors.push('RFID No. is already registered');
+        else if (seenRfid.has(record.rfidNumber)) errors.push(`RFID No. is repeated in this file (row ${seenRfid.get(record.rfidNumber)})`);
+        if (existing.numbers.has(record.studentNumber)) errors.push('Student No. is already registered');
+        else if (seenNumber.has(record.studentNumber)) errors.push(`Student No. is repeated in this file (row ${seenNumber.get(record.studentNumber)})`);
+      }
+
+      if (errors.length) {
+        issues.push({ row: sheetRow, messages: errors });
+      } else {
+        records.push(record);
+        seenRfid.set(record.rfidNumber, sheetRow);
+        seenNumber.set(record.studentNumber, sheetRow);
+      }
+    }
+
+    pendingImportRecords = records;
+    renderImportSummary(records.length, issues);
+    confirmBtn.disabled = records.length === 0;
+    confirmBtn.textContent = records.length ? `Import ${records.length} student${records.length === 1 ? '' : 's'}` : 'Import';
+  } catch (err) {
+    console.error('Import read error:', err);
+    summary.textContent = err.message;
+    summary.classList.add('import-error');
+  }
+}
+
+function renderImportSummary(validCount, issues) {
+  const summary = document.getElementById('importSummary');
+  summary.classList.remove('import-error');
+  summary.innerHTML = '';
+
+  const line = document.createElement('p');
+  line.textContent = `${validCount} row(s) ready to import. ${issues.length} row(s) will be skipped.`;
+  summary.appendChild(line);
+
+  if (issues.length) {
+    const list = document.createElement('ul');
+    list.className = 'import-issues';
+    issues.slice(0, 50).forEach(issue => {
+      const li = document.createElement('li');
+      li.textContent = `Row ${issue.row}: ${issue.messages.join('; ')}`;
+      list.appendChild(li);
+    });
+    if (issues.length > 50) {
+      const more = document.createElement('li');
+      more.textContent = `...and ${issues.length - 50} more`;
+      list.appendChild(more);
+    }
+    summary.appendChild(list);
+  }
+}
+
+async function confirmImport() {
+  if (isProcessing || pendingImportRecords.length === 0) return;
+  isProcessing = true;
+  const confirmBtn = document.getElementById('importConfirmBtn');
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Importing...';
+
+  let written = 0;
+  let total = 0;
+  try {
+    await assertImportAllowed();
+
+    // Re-check against Firestore right before writing; someone may have registered a student meanwhile
+    const existing = await fetchExistingStudentKeys();
+    const toWrite = pendingImportRecords.filter(r => !existing.rfids.has(r.rfidNumber) && !existing.numbers.has(r.studentNumber));
+    const skipped = pendingImportRecords.length - toWrite.length;
+    total = toWrite.length;
+    const dateTime = getPhilippinesDateTimeString();
+
+    for (let i = 0; i < toWrite.length; i += IMPORT_BATCH_SIZE) {
+      const batch = writeBatch(db);
+      toWrite.slice(i, i + IMPORT_BATCH_SIZE).forEach(rec => {
+        batch.set(doc(db, 'students', rec.rfidNumber), { ...rec, dateTime });
+      });
+      await batch.commit();
+      written += Math.min(IMPORT_BATCH_SIZE, toWrite.length - i);
+      confirmBtn.textContent = `Importing ${written}/${total}...`;
+    }
+
+    closeImportModal();
+    await loadStudents();
+    showMessageModal(`Imported ${written} student(s).` + (skipped ? `\n${skipped} skipped because they were registered in the meantime.` : ''));
+  } catch (err) {
+    console.error('Import error:', err);
+    showMessageModal(`Import stopped after ${written} of ${total} student(s): ${err.message}`);
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Retry import';
+  } finally {
+    isProcessing = false;
   }
 }
 
@@ -3202,6 +3280,8 @@ async function exportData(type) {
       filterInfo.courseFull = getProgramFullName(courseCode);
       filterInfo.remarks = document.getElementById('remarksFilter')?.value || '';
       filterInfo.status = document.getElementById('statusFilter')?.value || '';
+      filterInfo.dateFrom = document.getElementById('dateFrom')?.value || '';
+      filterInfo.dateTo = document.getElementById('dateTo')?.value || '';
     } else {
       // Home page
       const courseCode = document.getElementById('courseFilter')?.value || '';
@@ -3209,6 +3289,8 @@ async function exportData(type) {
       filterInfo.year = document.getElementById('yearFilter')?.value || '';
       filterInfo.acadYear = document.getElementById('acadYearFilterHome')?.value || '';
       filterInfo.gender = document.getElementById('genderFilterHome')?.value || '';
+      filterInfo.dateFrom = document.getElementById('dateFrom')?.value || '';
+      filterInfo.dateTo = document.getElementById('dateTo')?.value || '';
     }
 
     showPrintDialog(headers, bodyRows, title, filterInfo);
@@ -3248,4 +3330,4 @@ async function exportData(type) {
       URL.revokeObjectURL(url);
     }
   }
-}
+}

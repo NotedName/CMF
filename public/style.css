@@ -13,15 +13,7 @@ html, body {
 
 body {
   margin: 0;
-  background: url('Resources/bgcmflight.svg') no-repeat center center fixed;
-  background-size: cover;
-  background-attachment: fixed;
   min-height: 100vh;
-}
-body.dark-mode {
-  background: url('Resources/bgcmfdark.svg') no-repeat center center fixed;
-  background-size: cover;
-  background-attachment: fixed;
 }
 
 /* Smooth transitions for dark mode */
@@ -43,7 +35,7 @@ input, select, textarea {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 input:focus, select:focus, textarea:focus {
-  box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.2);
+  box-shadow: 0 0 0 4px rgba(85, 134, 199, 0.2);
 }
 html {
   scroll-behavior: smooth;
@@ -85,13 +77,13 @@ html {
   background: #2a2a2a;
 }
 .dark-mode ::-webkit-scrollbar-thumb {
-  background: #555;
+  background: #555555;
 }
 .dark-mode ::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: #666666;
 }
 .dark-mode * {
-  scrollbar-color: #555 #2a2a2a;
+  scrollbar-color: #555555 #2a2a2a;
 }
 
 /* ==================== MODALS ==================== */
@@ -105,7 +97,7 @@ html {
   top: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0,0,0,0);
+  background-color: rgba(0, 0, 0, 0);
   align-items: center;
   justify-content: center;
   opacity: 0;
@@ -115,7 +107,7 @@ html {
 
 /* Visible modal */
 .modal[style*="display: flex"] {
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   opacity: 1;
   pointer-events: auto;
 }
@@ -126,7 +118,7 @@ html {
   padding: 20px;
   border-radius: 8px;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   max-width: 90%;
   transform: scale(0.8);
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -143,7 +135,7 @@ html {
 
 .modal-content button {
   padding: 8px 20px;
-  background: #2f80ed;
+  background: #5586c7;
   color: white;
   border: none;
   border-radius: 5px;
@@ -154,12 +146,8 @@ html {
 /* Dark mode overrides for modals */
 .dark-mode .modal-content {
   background: #2a2a2a;
-  color: #eee;
-  border: 1px solid #555;
-}
-
-.dark-mode .modal-content button {
-  background: #3a6ea5;
+  color: #eeeeee;
+  border: 1px solid #555555;
 }
 
 /* Ensure message modal always appears on top */
@@ -180,12 +168,12 @@ html {
   text-align: center;
   margin-bottom: 25px;
   font-size: 18px;
-  color: #333;
+  color: #333333;
 }
 
 .dark-mode #registerModal h3,
 .dark-mode #forgotPasswordModal h3 {
-  color: #eee;
+  color: #eeeeee;
 }
 
 /* Input fields (shared) */
@@ -195,7 +183,7 @@ html {
   height: 42px;
   padding: 10px 12px;
   margin-bottom: 20px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   border-radius: 8px;
   font-size: 14px;
   transition: all 0.2s ease;
@@ -205,23 +193,23 @@ html {
 #registerModal input:focus,
 #forgotPasswordModal input:focus {
   outline: none;
-  border-color: #2f80ed;
-  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+  border-color: #5586c7;
+  box-shadow: 0 0 0 3px rgba(85, 134, 199, 0.1);
   background: #fff;
 }
 
 .dark-mode #registerModal input,
 .dark-mode #forgotPasswordModal input {
-  background: rgba(20, 20, 30, 0.8);
-  border-color: #555;
+  background: rgba(22, 22, 28, 0.8);
+  border-color: #555555;
   color: #fff;
 }
 
 .dark-mode #registerModal input:focus,
 .dark-mode #forgotPasswordModal input:focus {
-  border-color: #5a9cff;
-  box-shadow: 0 0 0 3px rgba(90, 156, 255, 0.3);
-  background: rgba(30, 30, 40, 0.9);
+  border-color: #7ba3de;
+  box-shadow: 0 0 0 3px rgba(123, 163, 222, 0.3);
+  background: rgba(32, 32, 38, 0.9);
 }
 
 /* Show password row for Register modal (aligned right) */
@@ -231,12 +219,12 @@ html {
   align-items: center;
   font-size: 12px;
   margin-bottom: 20px;
-  color: #666;
+  color: #666666;
 }
 
 #registerModal .show-password-reg span {
   line-height: 16px;        /* match checkbox height */
-  color: #555;
+  color: #555555;
 }
 
 #registerModal .show-password-reg input[type="checkbox"] {
@@ -244,25 +232,25 @@ html {
   width: 16px;
   height: 16px;
   margin: 0;                /* remove default margins */
-  accent-color: #2f80ed;
+  accent-color: #5586c7;
   transition: transform 0.2s ease;
 }
 
 #registerModal .show-password-reg input[type="checkbox"]:checked {
   transform: scale(1.1);
-  accent-color: #1e5bb8;
+  accent-color: #3d6199;
 }
 
 .dark-mode #registerModal .show-password-reg {
-  color: #eee;
+  color: #eeeeee;
 }
 
 .dark-mode #registerModal .show-password-reg span {
-  color: #ddd;
+  color: #dddddd;
 }
 
 .dark-mode #registerModal .show-password-reg input[type="checkbox"] {
-  accent-color: #5a9cff;
+  accent-color: #7ba3de;
   filter: brightness(1.2);
 }
 
@@ -289,21 +277,21 @@ html {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   line-height: 1;
 }
 
 /* Use existing button color classes */
 #registerModal .export-btn,
 #forgotPasswordModal .export-btn {
-  background: #2f80ed;
+  background: #5586c7;
   color: white;
 }
 
 #registerModal .export-btn:hover,
 #forgotPasswordModal .export-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+  box-shadow: 0 6px 20px rgba(85, 134, 199, 0.45);
 }
 
 #registerModal .clear-btn,
@@ -325,7 +313,7 @@ html {
   width: 100%;
   z-index: 1000;
   height: 50px;
-  background: linear-gradient(135deg, #7fb3ff 0%, #5a9cff 100%);
+  background: linear-gradient(135deg, #99b8e5 0%, #7ba3de 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -439,7 +427,7 @@ html {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: #555;
+  color: #555555;
   position: relative;
   overflow: hidden;
   height: 50px;
@@ -456,19 +444,19 @@ html {
   transform: scaleY(0);
   transition: transform 0.3s ease;
 }
-.nav::before { background: #2f80ed; }
-.logout::before { background: #d32f2f; }
+.nav::before { background: #5586c7; }
+.logout::before { background: #b25050; }
 .nav:hover {
-  background: rgba(47, 128, 237, 0.08);
-  color: #2f80ed;
+  background: rgba(85, 134, 199, 0.08);
+  color: #5586c7;
   padding-left: 18px;
 }
 .nav:hover::before, .logout:hover::before {
   transform: scaleY(1);
 }
 .nav.active {
-  background: linear-gradient(135deg, rgba(207, 238, 255, 0.6), rgba(234, 246, 255, 0.6));
-  color: #2f80ed;
+  background: linear-gradient(135deg, rgba(217, 235, 245, 0.6), rgba(238, 245, 251, 0.6));
+  color: #5586c7;
   font-weight: 600;
 }
 .nav.active::before {
@@ -478,19 +466,19 @@ html {
   flex: 0 0 10%;
 }
 .logout {
-  color: #d32f2f;
+  color: #b25050;
 }
 .logout:hover {
-  background: rgba(211, 47, 47, 0.08);
+  background: rgba(178, 80, 80, 0.08);
   padding-left: 18px;
 }
 
 .disabled-nav {
   background: transparent !important;
-  color: #aaa !important;
+  color: #aaaaaa !important;
 }
 .dark-mode .disabled-nav {
-  color: #666 !important;
+  color: #666666 !important;
 }
 
 .sidebar .nav.hidden {
@@ -515,8 +503,8 @@ html {
   content: "";
   width: 30px;
   height: 30px;
-  border: 3px solid #ccc;
-  border-top-color: #2f80ed;
+  border: 3px solid #cccccc;
+  border-top-color: #5586c7;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -530,7 +518,7 @@ html {
   text-align: center;
   padding: 10px;
   font-size: 11px;
-  color: #777;
+  color: #777777;
   background: rgba(255, 255, 255, 0.3);
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   margin-top: 20px;
@@ -538,9 +526,9 @@ html {
   backdrop-filter: blur(5px);
 }
 .dark-mode .footer {
-  background: rgba(30, 30, 40, 0.3);
-  color: #aaa;
-  border-top-color: rgba(255,255,255,0.1);
+  background: rgba(32, 32, 38, 0.3);
+  color: #aaaaaa;
+  border-top-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Sidebar footer */
@@ -548,13 +536,13 @@ html {
   text-align: center;
   padding: 10px 5px;
   font-size: 10px;
-  color: #777;
-  border-top: 1px solid rgba(0,0,0,0.1);
+  color: #777777;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
   margin-top: 5px;
 }
 .dark-mode .sidebar-footer {
-  color: #aaa;
-  border-top-color: rgba(255,255,255,0.1);
+  color: #aaaaaa;
+  border-top-color: rgba(255, 255, 255, 0.1);
 }
 
 /* ==================== CONTENT AREA ==================== */
@@ -583,7 +571,7 @@ html {
   z-index: 1;
 }
 .dark-mode .login-container {
-  background: rgba(30, 30, 40, 0.37) !important;
+  background: rgba(32, 32, 38, 0.37) !important;
   border-color: rgba(255, 255, 255, 0.15);
   color: #fff;
 }
@@ -621,14 +609,14 @@ html {
   display: block;
   font-size: 12px;
   margin-bottom: 6px;
-  color: #555;
+  color: #555555;
   font-weight: 600;
   letter-spacing: 0.5px;
 }
 .field input {
   width: 100%;
   height: 38px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 13px;
@@ -637,9 +625,9 @@ html {
 }
 .field input:focus {
   outline: none;
-  border-color: #2f80ed;
+  border-color: #5586c7;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+  box-shadow: 0 0 0 3px rgba(85, 134, 199, 0.1);
 }
 .show-password {
   display: flex;
@@ -647,23 +635,23 @@ html {
   align-items: center;
   font-size: 12px;
   margin-bottom: 25px;
-  color: #666;
+  color: #666666;
 }
 .show-password input {
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: #2f80ed;
+  accent-color: #5586c7;
   transition: transform 0.2s ease;
 }
 .show-password input:checked {
   transform: scale(1.1);
-  accent-color: #1e5bb8;
+  accent-color: #3d6199;
 }
 .login-container button {
   width: 100%;
   height: 38px;
-  background: linear-gradient(135deg, #2f80ed 0%, #1e5bb8 100%);
+  background: linear-gradient(135deg, #5586c7 0%, #3d6199 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -672,25 +660,25 @@ html {
   font-weight: 600;
   letter-spacing: 0.5px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+  box-shadow: 0 4px 12px rgba(85, 134, 199, 0.3);
 }
 .login-container button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+  box-shadow: 0 6px 20px rgba(85, 134, 199, 0.45);
 }
-.dark-mode .field label { color: #ddd; }
+.dark-mode .field label { color: #dddddd; }
 .dark-mode .field input {
-  background: rgba(20, 20, 30, 0.8);
-  border-color: #555;
+  background: rgba(22, 22, 28, 0.8);
+  border-color: #555555;
   color: #fff;
 }
 .dark-mode .field input:focus {
-  border-color: #5a9cff;
-  box-shadow: 0 0 0 3px rgba(90, 156, 255, 0.3);
-  background: rgba(30, 30, 40, 0.9);
+  border-color: #7ba3de;
+  box-shadow: 0 0 0 3px rgba(123, 163, 222, 0.3);
+  background: rgba(32, 32, 38, 0.9);
 }
-.dark-mode .show-password { color: #eee; }
-.dark-mode .show-password input { accent-color: #5a9cff; filter: brightness(1.2); }
+.dark-mode .show-password { color: #eeeeee; }
+.dark-mode .show-password input { accent-color: #7ba3de; filter: brightness(1.2); }
 
 /* Login container links */
 .login-container .links {
@@ -701,32 +689,32 @@ html {
 }
 
 .login-container .links a {
-  color: #2f80ed;
+  color: #5586c7;
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
   padding: 6px 12px;
   border-radius: 20px;
-  background: rgba(47, 128, 237, 0.05);
+  background: rgba(85, 134, 199, 0.05);
   transition: all 0.2s ease;
   border: 1px solid transparent;
 }
 
 .login-container .links a:hover {
-  background: rgba(47, 128, 237, 0.1);
-  border-color: #2f80ed;
-  color: #1e5bb8;
+  background: rgba(85, 134, 199, 0.1);
+  border-color: #5586c7;
+  color: #3d6199;
 }
 
 .dark-mode .login-container .links a {
-  color: #5a9cff;
-  background: rgba(90, 156, 255, 0.1);
+  color: #7ba3de;
+  background: rgba(123, 163, 222, 0.1);
 }
 
 .dark-mode .login-container .links a:hover {
-  background: rgba(90, 156, 255, 0.2);
-  border-color: #5a9cff;
-  color: #a0c8ff;
+  background: rgba(123, 163, 222, 0.2);
+  border-color: #7ba3de;
+  color: #b3cbec;
 }
 
 /* ==================== SEARCH & FILTER BAR ==================== */
@@ -747,7 +735,7 @@ html {
   width: 100%;
   height: 38px;
   padding: 8px 12px 8px 40px; /* left padding for icon */
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   border-radius: 10px;
   font-size: 12px;
   transition: all 0.3s ease;
@@ -755,8 +743,8 @@ html {
 }
 .search-wrapper input:focus {
   outline: none;
-  border-color: #2f80ed;
-  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+  border-color: #5586c7;
+  box-shadow: 0 0 0 3px rgba(85, 134, 199, 0.1);
   background: #fff;
 }
 .search-icon {
@@ -766,32 +754,29 @@ html {
   transform: translateY(-50%);
   width: 16px;
   height: 16px;
-  color: #aaa;
+  color: #aaaaaa;
   pointer-events: none;
 }
 .search-icon svg {
   width: 100%;
   height: 100%;
-  stroke: #2f80ed;
+  stroke: #5586c7;
   stroke-width: 2;
   fill: none;
 }
 
 /* Refresh button (styled like export/update buttons) */
 .refresh-btn {
-  background: #2f80ed;
+  background: #5586c7;
   color: white;
-  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+  box-shadow: 0 4px 12px rgba(85, 134, 199, 0.3);
 }
 .refresh-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+  box-shadow: 0 6px 20px rgba(85, 134, 199, 0.45);
 }
 .refresh-btn:active {
   animation: pulse 0.3s ease;
-}
-.dark-mode .refresh-btn {
-  background: #4d8cff; /* lighter blue for dark mode */
 }
 
 /* ----- Buttons ----- */
@@ -807,27 +792,27 @@ button, .register-btn, .delete-btn, .export-btn, .clear-btn, #deleteSelectedBtn,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   line-height: 1;
   white-space: nowrap;
 }
 .delete-btn, #deleteSelectedBtn {
-  background: #d32f2f;
+  background: #b25050;
   color: white;
-  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+  box-shadow: 0 4px 12px rgba(178, 80, 80, 0.3);
 }
 .delete-btn:hover, #deleteSelectedBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(211, 47, 47, 0.45);
+  box-shadow: 0 6px 20px rgba(178, 80, 80, 0.45);
 }
 .export-btn, .update-btn {
-  background: #2f80ed;
+  background: #5586c7;
   color: white;
-  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+  box-shadow: 0 4px 12px rgba(85, 134, 199, 0.3);
 }
 .export-btn:hover, .update-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+  box-shadow: 0 6px 20px rgba(85, 134, 199, 0.45);
 }
 .clear-btn {
   background: #6c757d;
@@ -841,7 +826,7 @@ button:active, .register-btn:active, .delete-btn:active, .export-btn:active, .up
   height: 38px;
   padding: 0 8px;
   border-radius: 8px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   background: white;
 }
 /* Slight spacing adjustment for superadmin buttons */
@@ -870,7 +855,7 @@ button:active, .register-btn:active, .delete-btn:active, .export-btn:active, .up
 .filter-bar label {
   font-size: 12px;
   font-weight: 600;
-  color: #555;
+  color: #555555;
   margin-right: 4px;
   width: 60px;            /* fixed width for all labels */
   text-align: right;      /* optional: right-align text */
@@ -879,7 +864,7 @@ button:active, .register-btn:active, .delete-btn:active, .export-btn:active, .up
   height: 38px;
   padding: 0 8px;
   border-radius: 8px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   background: white;
   font-size: 12px;
   width: 80px;
@@ -892,12 +877,12 @@ button:active, .register-btn:active, .delete-btn:active, .export-btn:active, .up
   padding: 0 16px;
 }
 .dark-mode .filter-bar {
-  background: rgba(30, 30, 40, 0.5);
+  background: rgba(32, 32, 38, 0.5);
 }
-.dark-mode .filter-bar label { color: #ddd; }
+.dark-mode .filter-bar label { color: #dddddd; }
 .dark-mode .filter-bar select {
-  background: rgba(20, 20, 30, 0.8);
-  border-color: #555;
+  background: rgba(22, 22, 28, 0.8);
+  border-color: #555555;
   color: #fff;
 }
 
@@ -905,7 +890,7 @@ button:active, .register-btn:active, .delete-btn:active, .export-btn:active, .up
   background: rgba(255, 255, 255, 0.9) !important; /* match search input */
 }
 .dark-mode .filter-bar select {
-  background: rgba(20, 20, 30, 0.8) !important; /* match dark mode search input */
+  background: rgba(22, 22, 28, 0.8) !important; /* match dark mode search input */
 }
 
 .filter-bar .filter-group {
@@ -914,7 +899,6 @@ button:active, .register-btn:active, .delete-btn:active, .export-btn:active, .up
   gap: 10px;
   align-items: center;
 }
-
 
 /* ==================== TABLES ==================== */
 .table-responsive {
@@ -933,21 +917,21 @@ table {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 table thead {
-  background: linear-gradient(135deg, #cfe8ff 0%, #e1f0ff 100%);
+  background: linear-gradient(135deg, #d9e8f5 0%, #e7f0f9 100%);
 }
 table th {
-  border: 1px solid rgba(207, 232, 255, 0.6);
+  border: 1px solid rgba(217, 232, 245, 0.6);
   padding: 12px 8px;
   text-align: center;
   font-weight: 600;
-  color: #333;
+  color: #333333;
   letter-spacing: 0.3px;
   white-space: nowrap;
 }
 table td {
-  border: 1px solid rgba(207, 232, 255, 0.4);
+  border: 1px solid rgba(217, 232, 245, 0.4);
   padding: 8px 6px;
-  color: #666;
+  color: #666666;
   text-align: center;
   white-space: nowrap;
 }
@@ -1041,41 +1025,41 @@ table tbody tr:nth-child(19) { animation-delay: 0.57s; }
 table tbody tr:nth-child(20) { animation-delay: 0.60s; }
 
 table tbody tr:hover {
-  background: rgba(127, 179, 255, 0.12);
-  box-shadow: inset 0 0 8px rgba(47, 128, 237, 0.1);
+  background: rgba(153, 184, 229, 0.12);
+  box-shadow: inset 0 0 8px rgba(85, 134, 199, 0.1);
 }
 table tbody tr:nth-child(even) {
-  background: rgba(240, 249, 255, 0.5);
+  background: rgba(243, 248, 252, 0.5);
 }
 table tbody tr:nth-child(even):hover {
-  background: rgba(127, 179, 255, 0.12);
+  background: rgba(153, 184, 229, 0.12);
 }
 .status-select, .remarks-select, .acad-select, .semester-select {
   height: 36px;
   padding: 8px 12px;
   border-radius: 8px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   font-size: 12px;
   font-weight: 500;
   background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: all 0.3s ease;
-  color: #555;
+  color: #555555;
   width: 100%;
   min-width: 100px;
   box-sizing: border-box;
 }
 .status-select:hover, .remarks-select:hover, .acad-select:hover, .semester-select:hover {
-  border-color: #2f80ed;
-  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.2);
+  border-color: #5586c7;
+  box-shadow: 0 4px 12px rgba(85, 134, 199, 0.2);
 }
 .status-select:focus, .remarks-select:focus, .acad-select:focus, .semester-select:focus {
   outline: none;
-  border-color: #2f80ed;
-  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+  border-color: #5586c7;
+  box-shadow: 0 0 0 3px rgba(85, 134, 199, 0.1);
 }
-.status-select option[value="Claimed"] { background-color: #c8e6c9; }
-.status-select option[value="Returned"] { background-color: #ffcdd2; }
+.status-select option[value="Claimed"] { background-color: #cee0cf; }
+.status-select option[value="Returned"] { background-color: #f5d7da; }
 th.sort-asc::after { content: " ▲"; font-size: 10px; }
 th.sort-desc::after { content: " ▼"; font-size: 10px; }
 
@@ -1103,8 +1087,8 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   display: inline-block;
   width: 30px;
   height: 30px;
-  border: 3px solid #ccc;
-  border-top-color: #2f80ed;
+  border: 3px solid #cccccc;
+  border-top-color: #5586c7;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1138,7 +1122,7 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 .rfid-container label {
   font-size: 12px;
   font-weight: 600;
-  color: #555;
+  color: #555555;
   margin-bottom: 4px;
   display: block;
   letter-spacing: 0.5px;
@@ -1148,15 +1132,15 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   height: 38px;
   padding: 8px 12px;
   font-size: 13px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
   transition: all 0.3s ease;
 }
 #rfidNumber:focus {
   outline: none;
-  border-color: #2f80ed;
-  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+  border-color: #5586c7;
+  box-shadow: 0 0 0 3px rgba(85, 134, 199, 0.1);
   background: #fff;
 }
 .registration-form {
@@ -1172,7 +1156,7 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 .form-column label {
   font-size: 12px;
   font-weight: 600;
-  color: #555;
+  color: #555555;
   margin-bottom: 2px;
   letter-spacing: 0.5px;
 }
@@ -1181,25 +1165,25 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   height: 38px;
   padding: 8px 12px;
   font-size: 13px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
   transition: all 0.3s ease;
 }
 .form-column input:focus, .form-column select:focus {
   outline: none;
-  border-color: #2f80ed;
-  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.1);
+  border-color: #5586c7;
+  box-shadow: 0 0 0 3px rgba(85, 134, 199, 0.1);
   background: #fff;
 }
 .form-column input.error-field, .form-column select.error-field, #rfidNumber.error-field {
-  border-color: #d32f2f !important;
-  background: #ffcdd2 !important;
+  border-color: #b25050 !important;
+  background: #f5d7da !important;
 }
 .register-btn {
   width: 100%;
   height: 38px;
-  background: linear-gradient(135deg, #2f80ed 0%, #1e5bb8 100%);
+  background: linear-gradient(135deg, #5586c7 0%, #3d6199 100%);
   color: white;
   font-size: 13px;
   font-weight: 600;
@@ -1207,12 +1191,12 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+  box-shadow: 0 4px 12px rgba(85, 134, 199, 0.3);
   margin-top: 20px;
 }
 .register-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(47, 128, 237, 0.45);
+  box-shadow: 0 6px 20px rgba(85, 134, 199, 0.45);
 }
 .registration-content-page {
   padding-left: 30px;
@@ -1246,7 +1230,7 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   flex: 1;
   height: 38px;
   padding: 8px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   border-radius: 8px;
   font-size: 13px;
   background: white;
@@ -1267,18 +1251,18 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 .student-info-table th, .student-info-table td {
   padding: 10px 12px;
   text-align: left;
-  border: 1px solid rgba(207, 232, 255, 0.4);
+  border: 1px solid rgba(217, 232, 245, 0.4);
   word-break: break-word;
 }
 .student-info-table th {
-  background: rgba(47, 128, 237, 0.1);
+  background: rgba(85, 134, 199, 0.1);
   font-weight: 600;
   width: 40%;
-  color: #333;
+  color: #333333;
 }
 .student-info-table td {
   background: rgba(255, 255, 255, 0.7);
-  color: #555;
+  color: #555555;
 }
 .button-group {
   display: flex;
@@ -1298,19 +1282,19 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-.btn-release { background: #28a745; }
+.btn-release { background: #418e53; }
 .btn-release:hover {
-  background: #218838;
+  background: #367343;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.45);
+  box-shadow: 0 6px 20px rgba(65, 142, 83, 0.45);
 }
-.btn-receive { background: #dc3545; }
+.btn-receive { background: #bb5660; }
 .btn-receive:hover {
-  background: #c82333;
+  background: #a7444e;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.45);
+  box-shadow: 0 6px 20px rgba(187, 86, 96, 0.45);
 }
 .dropdown-group {
   display: flex;
@@ -1327,7 +1311,7 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 .dropdown-item label {
   font-size: 12px;
   font-weight: 600;
-  color: #555;
+  color: #555555;
   margin-bottom: 4px;
   letter-spacing: 0.5px;
 }
@@ -1337,28 +1321,28 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 }
 
 /* ==================== FORM VALIDATION ==================== */
-.required { color: #d32f2f; font-weight: bold; }
+.required { color: #b25050; font-weight: bold; }
 .field-error { display: none; }
 
 /* ==================== ADMIN PAGE LAYOUT FIXES ==================== */
 #programsTable thead, #adminStudentsTable thead {
-  background: linear-gradient(135deg, #cfe8ff 0%, #e1f0ff 100%);
+  background: linear-gradient(135deg, #d9e8f5 0%, #e7f0f9 100%);
 }
 #programsTable th, #adminStudentsTable th {
-  border: 1px solid rgba(207, 232, 255, 0.6);
+  border: 1px solid rgba(217, 232, 245, 0.6);
   padding: 12px 8px;
   text-align: center;
   font-weight: 600;
-  color: #333;
+  color: #333333;
   letter-spacing: 0.3px;
   white-space: nowrap;
 }
 .dark-mode #programsTable thead, .dark-mode #adminStudentsTable thead {
-  background: linear-gradient(135deg, #2a3f5e, #1c2a40);
+  background: linear-gradient(135deg, #344154, #232c39);
 }
 .dark-mode #programsTable th, .dark-mode #adminStudentsTable th {
-  color: #eee;
-  border-color: #444;
+  color: #eeeeee;
+  border-color: #444444;
 }
 #programsTable td:last-child, #adminStudentsTable td:last-child {
   white-space: nowrap;
@@ -1389,7 +1373,7 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     transition: left 0.3s ease;
     z-index: 1000;
     background: rgba(255, 255, 255, 0.95);
-    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
     padding-top: 20px;
     overflow-y: auto;
     padding-bottom: 20px;
@@ -1402,7 +1386,7 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
     left: 0;
     width: 100%;
     height: calc(100vh - 50px);
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     z-index: 999;
   }
   .menu-overlay.active { display: block; }
@@ -1464,7 +1448,7 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   height: 45px;
   border: none;
   border-radius: 50%;
-  background: #2f80ed;
+  background: #5586c7;
   color: white;
   font-size: 24px;
   font-weight: bold;
@@ -1483,18 +1467,18 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   visibility: visible;
 }
 #scrollToTopBtn:hover {
-  background: #1e5bb8;
+  background: #3d6199;
   transform: scale(1.1);
 }
 #scrollToTopBtn:active {
   transform: scale(0.95);
 }
 .dark-mode #scrollToTopBtn {
-  background: #4d8cff;
+  background: #7196db;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 .dark-mode #scrollToTopBtn:hover {
-  background: #3a6ea5;
+  background: #4f6f90;
 }
 
 /* ==================== VERY SMALL DEVICES ==================== */
@@ -1515,90 +1499,86 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 /* ==================== DARK MODE ENHANCEMENTS ==================== */
 .dark-mode .content, .dark-mode .registration-content, .dark-mode .login-container,
 .dark-mode .status-update-card {
-  background: rgba(30, 30, 40, 0.37) !important;
+  background: rgba(32, 32, 38, 0.37) !important;
   border-color: rgba(255, 255, 255, 0.15);
   color: #fff;
 }
 .dark-mode .sidebar {
-  background: rgba(25, 25, 35, 0.9) !important;
+  background: rgba(27, 27, 33, 0.9) !important;
   border-right-color: rgba(255, 255, 255, 0.1);
 }
-.dark-mode .nav, .dark-mode .logout { color: #ccc; }
+.dark-mode .nav, .dark-mode .logout { color: #cccccc; }
 .dark-mode .nav.active {
-  background: linear-gradient(135deg, rgba(60, 100, 200, 0.5), rgba(40, 70, 150, 0.5));
+  background: linear-gradient(135deg, rgba(88, 112, 172, 0.5), rgba(62, 80, 128, 0.5));
   color: white;
 }
 .dark-mode table {
-  background: rgba(30, 30, 40, 0.8);
-  color: #ddd;
+  background: rgba(32, 32, 38, 0.8);
+  color: #dddddd;
 }
 .dark-mode table thead {
-  background: linear-gradient(135deg, #2a3f5e, #1c2a40);
+  background: linear-gradient(135deg, #344154, #232c39);
 }
 .dark-mode table th {
-  color: #eee;
-  border-color: #444;
+  color: #eeeeee;
+  border-color: #444444;
 }
 .dark-mode table td {
-  border-color: #444;
-  color: #ccc;
+  border-color: #444444;
+  color: #cccccc;
 }
 .dark-mode table tbody tr {
   background: rgba(40, 40, 50, 0.6);
 }
 .dark-mode table tbody tr:nth-child(even) {
-  background: rgba(30, 30, 40, 0.8);
+  background: rgba(32, 32, 38, 0.8);
 }
 .dark-mode input, .dark-mode select, .dark-mode textarea {
-  background: rgba(20, 20, 30, 0.8) !important;
-  border-color: #555 !important;
+  background: rgba(22, 22, 28, 0.8) !important;
+  border-color: #555555 !important;
   color: #fff !important;
 }
 .dark-mode input:focus, .dark-mode select:focus {
-  border-color: #5a9cff !important;
-  box-shadow: 0 0 0 3px rgba(90, 156, 255, 0.3) !important;
-  background: rgba(30, 30, 40, 0.9) !important;
+  border-color: #7ba3de !important;
+  box-shadow: 0 0 0 3px rgba(123, 163, 222, 0.3) !important;
+  background: rgba(32, 32, 38, 0.9) !important;
 }
 .dark-mode .status-select, .dark-mode .remarks-select, .dark-mode .acad-select, .dark-mode .semester-select {
-  background: rgba(20, 20, 30, 0.8) !important;
-  border-color: #555 !important;
+  background: rgba(22, 22, 28, 0.8) !important;
+  border-color: #555555 !important;
   color: #fff !important;
 }
-.dark-mode .export-btn, .dark-mode .update-btn { background: #4d8cff; }
-.dark-mode .delete-btn, .dark-mode #deleteSelectedBtn { background: #cc5555; }
-.dark-mode .clear-btn { background: #7a7a7a; }
 .dark-mode .modal-content {
   background: #2a2a2a;
-  color: #eee;
-  border: 1px solid #555;
+  color: #eeeeee;
+  border: 1px solid #555555;
 }
-.dark-mode .modal-content button { background: #3a6ea5; }
-.dark-mode label { color: #ddd !important; }
+.dark-mode label { color: #dddddd !important; }
 .dark-mode input::placeholder, .dark-mode select::placeholder, .dark-mode textarea::placeholder {
-  color: #aaa !important;
+  color: #aaaaaa !important;
   opacity: 1;
 }
-.dark-mode .search-wrapper input::placeholder { color: #aaa !important; }
-.dark-mode .logout { color: #d32f2f !important; }
+.dark-mode .search-wrapper input::placeholder { color: #aaaaaa !important; }
+.dark-mode .logout { color: #b25050 !important; }
 .dark-mode .login-container h1 {
   color: #fff;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 .dark-mode .info-grid {
-  background: rgba(20, 20, 30, 0.6);
+  background: rgba(22, 22, 28, 0.6);
 }
 .dark-mode .info-grid div { color: #fff; }
-.dark-mode .info-grid strong { color: #bbb; }
+.dark-mode .info-grid strong { color: #bbbbbb; }
 .dark-mode .dropdown-item label { color: #fff; }
 .dark-mode .search-row input {
-  background: rgba(20, 20, 30, 0.8);
-  border-color: #555;
+  background: rgba(22, 22, 28, 0.8);
+  border-color: #555555;
   color: #fff;
 }
-.dark-mode .search-row input::placeholder { color: #aaa; }
+.dark-mode .search-row input::placeholder { color: #aaaaaa; }
 .dark-mode .remarks-select, .dark-mode .acad-select, .dark-mode .semester-select {
   background: rgba(40, 40, 50, 0.95) !important;
-  border-color: #666 !important;
+  border-color: #666666 !important;
   color: #fff !important;
 }
 .dark-mode .remarks-select option, .dark-mode .acad-select option, .dark-mode .semester-select option {
@@ -1607,52 +1587,52 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 }
 .dark-mode .dropdown-item label { color: #fff !important; }
 .dark-mode .search-row input {
-  background: rgba(20, 20, 30, 0.8) !important;
-  border-color: #555 !important;
+  background: rgba(22, 22, 28, 0.8) !important;
+  border-color: #555555 !important;
   color: #fff !important;
 }
 .dark-mode .search-row input:focus {
-  border-color: #5a9cff !important;
-  box-shadow: 0 0 0 3px rgba(90, 156, 255, 0.3) !important;
-  background: rgba(30, 30, 40, 0.9) !important;
+  border-color: #7ba3de !important;
+  box-shadow: 0 0 0 3px rgba(123, 163, 222, 0.3) !important;
+  background: rgba(32, 32, 38, 0.9) !important;
 }
-.dark-mode .search-row input::placeholder { color: #aaa !important; }
+.dark-mode .search-row input::placeholder { color: #aaaaaa !important; }
 .dark-mode .remarks-select, .dark-mode .acad-select, .dark-mode .semester-select {
-  background: rgba(20, 20, 30, 0.8) !important;
-  border-color: #555 !important;
+  background: rgba(22, 22, 28, 0.8) !important;
+  border-color: #555555 !important;
   color: #fff !important;
 }
 .dark-mode .remarks-select:focus, .dark-mode .acad-select:focus, .dark-mode .semester-select:focus {
-  border-color: #5a9cff !important;
-  box-shadow: 0 0 0 3px rgba(90, 156, 255, 0.3) !important;
-  background: rgba(30, 30, 40, 0.9) !important;
+  border-color: #7ba3de !important;
+  box-shadow: 0 0 0 3px rgba(123, 163, 222, 0.3) !important;
+  background: rgba(32, 32, 38, 0.9) !important;
 }
 .dark-mode .remarks-select option, .dark-mode .acad-select option, .dark-mode .semester-select option {
   background: #2a2a2a;
   color: #fff;
 }
-.dark-mode .dropdown-item label { color: #ddd !important; }
+.dark-mode .dropdown-item label { color: #dddddd !important; }
 .dark-mode .info-grid {
-  background: rgba(20, 20, 30, 0.6) !important;
+  background: rgba(22, 22, 28, 0.6) !important;
 }
 .dark-mode .info-grid div { color: #fff !important; }
-.dark-mode .info-grid strong { color: #bbb !important; }
+.dark-mode .info-grid strong { color: #bbbbbb !important; }
 .dark-mode #studentResult {
-  background: rgba(30, 30, 40, 0.9) !important;
-  border-color: #555 !important;
+  background: rgba(32, 32, 38, 0.9) !important;
+  border-color: #555555 !important;
 }
 .dark-mode .student-info-table {
-  background: rgba(20, 20, 30, 0.6);
+  background: rgba(22, 22, 28, 0.6);
 }
 .dark-mode .student-info-table th {
-  background: rgba(60, 100, 200, 0.2);
-  color: #ddd;
-  border-color: #444;
+  background: rgba(88, 112, 172, 0.2);
+  color: #dddddd;
+  border-color: #444444;
 }
 .dark-mode .student-info-table td {
-  background: rgba(30, 30, 40, 0.7);
+  background: rgba(32, 32, 38, 0.7);
   color: #fff;
-  border-color: #444;
+  border-color: #444444;
 }
 .dark-mode .table-responsive::-webkit-scrollbar {
   height: 8px;
@@ -1662,25 +1642,25 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   border-radius: 4px;
 }
 .dark-mode .table-responsive::-webkit-scrollbar-thumb {
-  background: #555;
+  background: #555555;
   border-radius: 4px;
 }
 .dark-mode .table-responsive::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: #666666;
 }
 .dark-mode .table-responsive {
-  scrollbar-color: #555 #2a2a2a;
+  scrollbar-color: #555555 #2a2a2a;
   scrollbar-width: thin;
 }
-.dark-mode .show-password { color: #eee; }
+.dark-mode .show-password { color: #eeeeee; }
 .dark-mode .show-password input[type="checkbox"] {
-  accent-color: #5a9cff;
+  accent-color: #7ba3de;
   filter: brightness(1.2);
 }
 .dark-mode #displayDate {
-  background: #333 !important;        /* dark background */
-  color: #eee !important;              /* light text */
-  border-color: #555 !important;
+  background: #333333 !important;        /* dark background */
+  color: #eeeeee !important;              /* light text */
+  border-color: #555555 !important;
 }
 
 /* ==================== Display Date Styles ==================== */
@@ -1689,33 +1669,33 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
   align-items: center;
   height: 38px;
   padding: 8px 12px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
-  color: #555;
+  color: #555555;
   width: 100%;
   box-sizing: border-box;
   font-size: 13px;
 }
 .dark-mode .display-date-field {
-  background: rgba(20, 20, 30, 0.8);
-  border-color: #555;
+  background: rgba(22, 22, 28, 0.8);
+  border-color: #555555;
   color: #fff;
 }
 #displayDate {
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.9)!important;
   border-radius: 8px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   width: 100%;
   display: inline-block;
   transition: all 0.3s ease;
   font-size: 13px;
 }
 .dark-mode #displayDate {
-  background: rgba(20, 20, 30, 0.8) !important;
+  background: rgba(22, 22, 28, 0.8) !important;
   color: #fff !important;
-  border-color: #555 !important;
+  border-color: #555555 !important;
 }
 
 /* ==================== PRINT STYLES ==================== */
@@ -1847,7 +1827,7 @@ th.sort-desc::after { content: " ▼"; font-size: 10px; }
 h2.page-title {
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: #333333;
   margin-bottom: 20px;
   background: rgba(255, 255, 255, 0.5);
   padding: 12px 20px;
@@ -1857,7 +1837,7 @@ h2.page-title {
   width: auto;
 }
 .dark-mode h2.page-title {
-  background: rgba(30, 30, 40, 0.5);
+  background: rgba(32, 32, 38, 0.5);
   color: #fff;
 }
 
@@ -1866,14 +1846,14 @@ h2.page-title {
   height: 38px;
   padding: 0 8px;
   border-radius: 8px;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid #dddddd;
   background: rgba(255, 255, 255, 0.9);
   font-size: 12px;
   box-sizing: border-box;
 }
 .dark-mode .filter-bar input[type="date"] {
-  background: rgba(20, 20, 30, 0.8);
-  border-color: #555;
+  background: rgba(22, 22, 28, 0.8);
+  border-color: #555555;
   color: #fff;
   color-scheme: dark;
 }
@@ -1887,21 +1867,21 @@ h2.page-title {
   margin-bottom: 14px;
 }
 #registerModal input.error-field {
-  border-color: #d32f2f !important;
-  background: #ffcdd2 !important;
+  border-color: #b25050 !important;
+  background: #f5d7da !important;
 }
-#registerModal input.match-ok { border-color: #2e7d32; }
-#registerModal input.match-bad { border-color: #d32f2f; }
+#registerModal input.match-ok { border-color: #3e6d40; }
+#registerModal input.match-bad { border-color: #b25050; }
 .pw-match {
   min-height: 18px;
   margin: -6px 0 12px;
   font-size: 12px;
   text-align: left;
 }
-.pw-match.ok { color: #2e7d32; }
-.pw-match.bad { color: #d32f2f; }
-.dark-mode .pw-match.ok { color: #81c784; }
-.dark-mode .pw-match.bad { color: #ef9a9a; }
+.pw-match.ok { color: #3e6d40; }
+.pw-match.bad { color: #b25050; }
+.dark-mode .pw-match.ok { color: #8fb991; }
+.dark-mode .pw-match.bad { color: #deabab; }
 
 /* ==================== IMPORT STUDENTS MODAL ==================== */
 .import-modal {
@@ -1912,22 +1892,22 @@ h2.page-title {
 }
 .import-modal h3 { margin-bottom: 10px; }
 .import-modal input[type="file"] { margin-bottom: 15px; max-width: 100%; }
-.import-help a { color: #2f80ed; }
-.dark-mode .import-help a { color: #5a9cff; }
+.import-help a { color: #5586c7; }
+.dark-mode .import-help a { color: #7ba3de; }
 .import-summary {
   text-align: left;
   font-size: 13px;
   margin-bottom: 15px;
 }
-.import-summary.import-error { color: #d32f2f; }
+.import-summary.import-error { color: #b25050; }
 .import-issues {
   max-height: 200px;
   overflow-y: auto;
   margin: 8px 0 0 18px;
   font-size: 12px;
-  color: #d32f2f;
+  color: #b25050;
 }
-.dark-mode .import-issues { color: #ef9a9a; }
+.dark-mode .import-issues { color: #deabab; }
 
 /* ==================== LOGIN PAGE LAYOUT (footer sticks to the bottom, adapts to any window size) ==================== */
 body.login-page {
@@ -1978,15 +1958,14 @@ body.login-page .menu-overlay { display: none !important; }
 .credits-copy { margin-top: 20px; font-size: 11px; opacity: 0.7; }
 
 /* ==================== SIDEBAR NAV: badge + no flash before the role is known ==================== */
-body:not([class*="role-"]) .sidebar .nav { visibility: hidden; }
-.nav:focus-visible { outline: 2px solid #5a9cff; outline-offset: -2px; }
+.nav:focus-visible { outline: 2px solid #7ba3de; outline-offset: -2px; }
 .nav-badge {
   margin-left: auto;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background: #d32f2f;
+  background: #b25050;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -1995,3 +1974,250 @@ body:not([class*="role-"]) .sidebar .nav { visibility: hidden; }
   box-sizing: border-box;
 }
 .nav-badge[hidden] { display: none; }
+
+/* ============================================================================================
+   DESIGN REFINEMENTS
+   1. Soft palette tokens   2. Button hierarchy (one primary action)   3. Scannable text & tables
+   4. Format-hint placeholders   5. Skeleton loader while the role is being verified
+   ============================================================================================ */
+
+/* ---------- 1. Tokens ---------- */
+:root {
+  --text: #2a3340;
+  --text-muted: #556070;
+  --text-faint: #6b7686;
+  --line: rgba(42, 51, 64, 0.12);
+  --thead-bg: #e6ebf2;
+  --primary: #396093;
+  --primary-hover: #2d4f7b;
+  --primary-shadow: rgba(57, 96, 147, 0.28);
+  --accent-text: #294870;
+  --accent-soft: rgba(64, 108, 165, 0.10);
+  --accent-soft-hover: rgba(64, 108, 165, 0.18);
+  --accent-border: rgba(64, 108, 165, 0.32);
+  --danger-text: #823835;
+  --danger-fill: #944542;
+  --danger-soft: rgba(181, 78, 74, 0.10);
+  --danger-soft-hover: rgba(181, 78, 74, 0.18);
+  --danger-border: rgba(181, 78, 74, 0.34);
+  --ok-text: #2f6047;
+  --ok-soft: rgba(71, 133, 102, 0.12);
+  --ok-border: rgba(71, 133, 102, 0.36);
+  --skeleton: rgba(42, 51, 64, 0.09);
+}
+body.dark-mode {
+  --text: #e4e8ee;
+  --text-muted: #aab3c0;
+  --text-faint: #8b95a4;
+  --line: rgba(255, 255, 255, 0.10);
+  --thead-bg: rgba(255, 255, 255, 0.07);
+  --primary: #466fa4;
+  --primary-hover: #517eb8;
+  --primary-shadow: rgba(70, 111, 164, 0.35);
+  --accent-text: #b8ceea;
+  --accent-soft: rgba(125, 163, 212, 0.16);
+  --accent-soft-hover: rgba(125, 163, 212, 0.26);
+  --accent-border: rgba(125, 163, 212, 0.40);
+  --danger-text: #eabab8;
+  --danger-fill: #a04e4b;
+  --danger-soft: rgba(199, 110, 107, 0.16);
+  --danger-soft-hover: rgba(199, 110, 107, 0.26);
+  --danger-border: rgba(199, 110, 107, 0.42);
+  --ok-text: #b0ddc7;
+  --ok-soft: rgba(106, 175, 140, 0.16);
+  --ok-border: rgba(106, 175, 140, 0.42);
+  --skeleton: rgba(255, 255, 255, 0.09);
+}
+
+/* Soften the background artwork (the SVG files themselves are unchanged) */
+body { background: none; }
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: #eef1f5 url('Resources/bgcmflight.svg') no-repeat center center / cover;
+  filter: saturate(0.6);
+}
+body.dark-mode::before {
+  background: #1c1f26 url('Resources/bgcmfdark.svg') no-repeat center center / cover;
+}
+
+/* ---------- 2. Buttons: ONE primary per screen, everything else quieter ---------- */
+/* Secondary (default): soft tint, no glow */
+.export-btn, .refresh-btn, .update-btn, .modal-content button, .btn-secondary {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border: 1px solid var(--accent-border);
+  box-shadow: none;
+  font-weight: 600;
+}
+.export-btn:hover, .refresh-btn:hover, .update-btn:hover, .modal-content button:hover, .btn-secondary:hover {
+  background: var(--accent-soft-hover);
+  transform: none;
+  box-shadow: none;
+}
+/* Tertiary: outline only (Clear, Cancel) */
+.clear-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--line);
+  box-shadow: none;
+  font-weight: 500;
+}
+.clear-btn:hover { background: var(--accent-soft); color: var(--text); }
+.modal-content button.clear-btn { background: transparent; color: var(--text-muted); border: 1px solid var(--line); }
+.modal-content button.clear-btn:hover { background: var(--accent-soft); color: var(--text); }
+/* Destructive: red tint, fills only on hover */
+.delete-btn, #deleteSelectedBtn {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
+  box-shadow: none;
+}
+.delete-btn:hover, #deleteSelectedBtn:hover {
+  background: var(--danger-fill);
+  color: #fff;
+  border-color: var(--danger-fill);
+  transform: none;
+  box-shadow: none;
+}
+/* Primary: the only solid, saturated button */
+.btn-primary, .register-btn, .login-container button,
+.modal-content button:only-child, .modal-content button:first-child:not(:last-child),
+.btn-release {
+  background: var(--primary);
+  color: #fff;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 8px var(--primary-shadow);
+  font-weight: 600;
+}
+.btn-primary:hover, .register-btn:hover, .login-container button:hover,
+.modal-content button:only-child:hover, .modal-content button:first-child:not(:last-child):hover,
+.btn-release:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--primary-shadow);
+}
+/* explicit secondary inside modals always wins over the "first button is primary" rule */
+.modal-content button.btn-secondary {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border: 1px solid var(--accent-border);
+  box-shadow: none;
+}
+.modal-content button.btn-secondary:hover { background: var(--accent-soft-hover); transform: none; box-shadow: none; }
+/* Receive is the second step of the flow: quiet, but still clearly a button */
+.btn-receive {
+  background: var(--ok-soft);
+  color: var(--ok-text);
+  border: 1px solid var(--ok-border);
+  box-shadow: none;
+}
+.btn-receive:hover { background: var(--ok-soft); filter: brightness(0.96); transform: none; box-shadow: none; }
+
+button:disabled, button[disabled] { opacity: 0.45; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+button:focus-visible, .nav:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ---------- 3. Easier to scan ---------- */
+body { color: var(--text); line-height: 1.5; }
+.sidebar .nav, .sidebar .logout { font-size: 13px; letter-spacing: 0.02em; }
+.sidebar-footer, .footer { font-size: 12px; line-height: 1.6; }
+.filter-bar label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+.dark-mode .filter-bar label { color: var(--text-muted) !important; }
+.modal-content p { font-size: 15px; line-height: 1.55; color: var(--text); }
+.modal-content h3 { font-size: 18px; margin-bottom: 14px; }
+.required { color: var(--danger-text); }
+
+table { font-size: 13px; }
+table th, .dark-mode table th,
+table td, .dark-mode table td {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+table th, .dark-mode table th {
+  padding: 12px 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--thead-bg);
+}
+table thead, .dark-mode table thead { background: var(--thead-bg); }
+table td, .dark-mode table td {
+  padding: 11px 14px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+table th:has(> input[type="checkbox"]), table td:has(> input[type="checkbox"]) { text-align: center; width: 44px; }
+table tbody tr:last-child td { border-bottom: 0; }
+
+/* ---------- 4. Placeholders show the expected format, softly ---------- */
+::placeholder, .dark-mode input::placeholder, .dark-mode select::placeholder, .dark-mode textarea::placeholder {
+  color: var(--text-faint) !important;
+  opacity: 1;
+  font-style: normal;
+}
+
+/* ---------- 5. Skeleton loader: nothing real is shown until the role is verified ---------- */
+@keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+/* page content (title, filters, table, forms) */
+body:not([class*="role-"]) .main-wrapper .content > * { display: none !important; }
+body:not([class*="role-"]) .main-wrapper .content::before {
+  content: '';
+  display: block;
+  width: 240px;
+  max-width: 70%;
+  height: 46px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  background: var(--skeleton);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+body:not([class*="role-"]) .main-wrapper .content::after {
+  content: '';
+  display: block;
+  height: min(62vh, 440px);
+  border-radius: 12px;
+  background: repeating-linear-gradient(180deg, var(--skeleton) 0 38px, transparent 38px 52px);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+/* sidebar items */
+body:not([class*="role-"]) .sidebar .nav {
+  color: transparent !important;
+  pointer-events: none;
+  position: relative;
+}
+body:not([class*="role-"]) .sidebar .nav::before { display: none; }
+body:not([class*="role-"]) .sidebar .nav::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  width: 62%;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 6px;
+  background: var(--skeleton);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+/* role label in the top bar */
+#helpText:empty::before {
+  content: '';
+  display: inline-block;
+  width: 46px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  body:not([class*="role-"]) .main-wrapper .content::before,
+  body:not([class*="role-"]) .main-wrapper .content::after,
+  body:not([class*="role-"]) .sidebar .nav::after,
+  #helpText:empty::before { animation: none; }
+}

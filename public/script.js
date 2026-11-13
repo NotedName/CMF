@@ -340,7 +340,7 @@ async function updateStudentsProgram(oldCode, newCode) {
 // ==================== PAGE INIT ====================
 // Data loading happens in each page's own script, after checkPageAccess() resolves.
 document.addEventListener('DOMContentLoaded', function() {
-  updateTopBarForRole(null);   // "NEED HELP" until checkPageAccess() learns the role
+  if (!document.querySelector('.main-wrapper')) updateTopBarForRole(null);   // login page only; app pages wait for the verified role
 
   attachSortListeners();
   addCreditsLinks();
@@ -740,7 +740,7 @@ function renderUsersTable() {
         <td>${approved}</td>
         <td>${escapeHtml(createdAt)}</td>
         <td>
-          ${!user.approved ? `<button onclick="showApproveConfirm('${uid}')" class="export-btn" style="margin-right:5px;">Approve</button>` : ''}
+          ${!user.approved ? `<button onclick="showApproveConfirm('${uid}')" class="btn-primary" style="margin-right:5px;">Approve</button>` : ''}
           <select id="role-${uid}" style="margin-right:5px; height:30px;">
             <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
             <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
@@ -790,6 +790,10 @@ function showApproveConfirm(uid) {
 }
 
 function showDeleteConfirm(uid) {
+  if (auth.currentUser && uid === auth.currentUser.uid) {
+    showMessageModal('You cannot delete your own account.\nAsk another superadmin to do it if it is really needed.');
+    return;
+  }
   pendingUserAction = { uid, action: 'delete' };
   document.getElementById('confirmMessage').innerText = 'Are you sure you want to delete this user from Firestore? (Authentication account will remain.)';
   document.getElementById('confirmModal').style.display = 'flex';
@@ -798,6 +802,25 @@ function showDeleteConfirm(uid) {
 function showUpdateRoleConfirm(uid) {
   const select = document.getElementById(`role-${uid}`);
   const newRole = select.value;
+  const target = users.find(u => u.uid === uid);
+  const currentRole = target ? (target.role || 'user') : 'user';
+
+  if (newRole === currentRole) {
+    showMessageModal(`This account's role is already set to ${newRole}. Choose a different role first.`);
+    return;
+  }
+
+  // A superadmin lowering their own role would lock themselves out of this page
+  if (auth.currentUser && uid === auth.currentUser.uid && newRole !== 'superadmin') {
+    select.value = currentRole;   // put the dropdown back
+    showMessageModal(
+      'You cannot lower your own role.\n\n' +
+      'You are signed in as a superadmin, and changing this would remove your access to Account Management. ' +
+      'Ask another superadmin to change your role if it is really needed.'
+    );
+    return;
+  }
+
   pendingUserAction = { uid, action: 'updateRole', newRole };
   document.getElementById('confirmMessage').innerText = `Are you sure you want to change this user's role to ${newRole}?`;
   document.getElementById('confirmModal').style.display = 'flex';
@@ -1400,6 +1423,7 @@ async function setupEditMode(docId) {
 
     // after setting common fields
     const academicYearSelect = document.getElementById('academicYear');
+    populateAcademicYearDropdown(studentType, student.academicYear || '');
     if (student.academicYear) {
       academicYearSelect.value = student.academicYear;
     } else {
@@ -2014,18 +2038,36 @@ function handleStatusUpdateWheel(e) {
   }
 }
 
-function populateAcademicYearDropdown() {
+// Oldest academic year an old student can be registered under
+const OLDEST_ACADEMIC_YEAR = 1980;
+
+// 'new' (Current Student): a window around today, oldest first.
+// 'old' (Old Student): every year from now back to OLDEST_ACADEMIC_YEAR, newest first.
+// keepValue: a saved A.Y. that must always be selectable (editing a student), even outside the range.
+function populateAcademicYearDropdown(tab = 'new', keepValue = '') {
   const select = document.getElementById('academicYear');
   if (!select) return;
+  const previous = keepValue || select.value;
   const currentYear = new Date().getFullYear();
-  select.innerHTML = '<option value="" disabled selected>Select A.Y.</option>';
-  for (let year = currentYear - 5; year <= currentYear + 5; year++) {
-    const acad = `${year}-${year + 1}`;
-    const option = document.createElement('option');
-    option.value = acad;
-    option.textContent = acad;
-    select.appendChild(option);
+
+  const years = [];
+  if (tab === 'old') {
+    for (let year = currentYear; year >= OLDEST_ACADEMIC_YEAR; year--) years.push(year);
+  } else {
+    for (let year = currentYear - 5; year <= currentYear + 5; year++) years.push(year);
   }
+  const values = years.map(year => `${year}-${year + 1}`);
+  if (keepValue && !values.includes(keepValue)) values.push(keepValue);
+
+  select.innerHTML = '<option value="" disabled selected>Select A.Y.</option>';
+  values.forEach(value => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
+  });
+  // keep the current choice when switching tabs, if it exists in the new list
+  if (previous && values.includes(previous)) select.value = previous;
 }
 
 // ==================== CLEARANCE LOG HELPERS ====================
@@ -3416,4 +3458,4 @@ async function exportData(type) {
       URL.revokeObjectURL(url);
     }
   }
-}
+}

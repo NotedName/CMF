@@ -92,11 +92,11 @@
     </div>
     <div class="field">
       <label>USERNAME</label>
-      <input type="text" id="username" autocomplete="off" onkeydown="return event.key !== ' '">
+      <input type="text" id="username" placeholder="name@example.com" autocomplete="off" onkeydown="return event.key !== ' '">
     </div>
     <div class="field">
       <label>PASSWORD</label>
-      <input type="text" id="password" style="-webkit-text-security: disc;" autocomplete="off" onkeydown="return event.key !== ' '">
+      <input type="text" id="password" placeholder="Enter your password" style="-webkit-text-security: disc;" autocomplete="off" onkeydown="return event.key !== ' '">
     </div>
     <div class="show-password">
       <span>SHOW PASSWORD</span>
@@ -129,22 +129,22 @@
   <div id="registerModal" class="modal">
     <div class="modal-content">
       <h3>Register New Account</h3>
-      <input type="text" id="regSchoolId" placeholder="School ID *" tabindex="1" maxlength="20"
+      <input type="text" id="regSchoolId" placeholder="School ID *  (e.g. 2024-0001)" tabindex="1" maxlength="20"
             oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')"
             onkeydown="registerKeyNav(event)"
             autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
-      <input type="text" id="regFirstName" placeholder="First Name *" tabindex="2" maxlength="64"
+      <input type="text" id="regFirstName" placeholder="First Name *  (e.g. Juan)" tabindex="2" maxlength="64"
             oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
             onkeydown="registerKeyNav(event)"
             autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
-      <input type="text" id="regLastName" placeholder="Last Name *" tabindex="3" maxlength="64"
+      <input type="text" id="regLastName" placeholder="Last Name *  (e.g. Dela Cruz)" tabindex="3" maxlength="64"
             oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
             onkeydown="registerKeyNav(event)"
             autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
-      <input type="email" id="regEmail" placeholder="Email *" tabindex="4"
+      <input type="email" id="regEmail" placeholder="Email *  (name@example.com)" tabindex="4"
             onkeydown="registerKeyNav(event)"
             autocomplete="off" spellcheck="false" autocorrect="off" readonly onfocus="this.removeAttribute('readonly')">
-      <input type="password" id="regPassword" placeholder="Password (min. 8 characters) *" tabindex="5"
+      <input type="password" id="regPassword" placeholder="Password *  (at least 8 characters)" tabindex="5"
             oninput="this.value = this.value.replace(/\s/g, ''); updatePasswordMatch()"
             onkeydown="registerKeyNav(event)"
             autocomplete="new-password" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
@@ -168,7 +168,7 @@
   <div id="forgotPasswordModal" class="modal">
     <div class="modal-content">
       <h3>Reset Password</h3>
-      <input type="email" id="resetEmail" placeholder="Enter your email"
+      <input type="email" id="resetEmail" placeholder="Your email (name@example.com)"
             autocomplete="off" spellcheck="false" autocorrect="off"
             readonly onfocus="this.removeAttribute('readonly')">
       <div class="button-group">
@@ -193,4 +193,4 @@
     © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
   </div>
 </body>
-</html>
+</html>

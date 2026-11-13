@@ -89,18 +89,18 @@
       <div class="sidebar-spacer"></div>
       <div class="logout" onclick="logout()">LOGOUT</div>
       <div class="sidebar-footer">
-        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.<br><a href="#" class="credits-link" onclick="showCreditsModal(); return false;">Credits</a>
+        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
       </div>
     </div>
     <div class="content">
       <h2 class="page-title">Release / Receive Clearance</h2>
       <div class="status-update-card">
         <div style="display: flex; gap: 10px; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto; flex-wrap: wrap;">
-          <input type="text" id="rfidSearch" placeholder="Scan RFID or Enter ID Number"
+          <input type="text" id="rfidSearch" placeholder="Scan RFID or type Student No. (e.g. C123456)"
                 style="flex:1; height:38px; padding:8px; border:1.5px solid #ddd; border-radius:8px;"
                 autocomplete="off" maxlength="32"
                 oninput="this.value = this.value.toUpperCase()">
-          <button onclick="searchStudent()" class="export-btn" style="width:auto;">Search</button>
+          <button onclick="searchStudent()" class="btn-primary" style="width:auto;">Search</button>
           <button onclick="clearStatusUpdate()" class="clear-btn" style="width:auto;">Clear</button>
         </div>
         <div id="studentResult" style="display: none;"></div>
@@ -116,9 +116,9 @@
   </script>
   <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
   <div id="logoutModal" class="modal"><div class="modal-content"><p id="logoutMessage">Are you sure you want to logout?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmLogout()">Yes</button><button onclick="closeLogoutModal()">No</button></div></div></div>
-  <div id="exportModal" class="modal"><div class="modal-content"><p>Choose export format:</p><div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;"><button onclick="exportChosen('pdf')">PDF</button><button onclick="exportChosen('excel')">Excel</button></div><div style="display: flex; justify-content: center;"><button onclick="closeExportModal()">Cancel</button></div></div></div>
+  <div id="exportModal" class="modal"><div class="modal-content"><p>Choose export format:</p><div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;"><button class="btn-secondary" onclick="exportChosen('pdf')">PDF</button><button class="btn-secondary" onclick="exportChosen('excel')">Excel</button></div><div style="display: flex; justify-content: center;"><button class="btn-secondary" onclick="closeExportModal()">Cancel</button></div></div></div>
   <div id="messageModal" class="modal"><div class="modal-content"><p id="messageModalText">Message</p><button onclick="closeMessageModal()">OK</button></div></div>
   <div class="menu-overlay" onclick="closeMobileMenu()"></div>
   <button id="scrollToTopBtn" title="Go to top">↑</button>
 </body>
-</html>
+</html>

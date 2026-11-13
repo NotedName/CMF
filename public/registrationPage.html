@@ -238,7 +238,7 @@
       <div class="sidebar-spacer"></div>
       <div class="logout" onclick="logout()">LOGOUT</div>
       <div class="sidebar-footer">
-        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.<br><a href="#" class="credits-link" onclick="showCreditsModal(); return false;">Credits</a>
+        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
       </div>
     </div>
     <div class="content registration-content-page">
@@ -251,7 +251,7 @@
           <!-- Top bar: tabs on left, action buttons on right -->
           <div class="top-bar">
             <div class="registration-tabs">
-              <button class="tab-button active" id="tabNew" onclick="switchRegistrationTab('new')">New Student</button>
+              <button class="tab-button active" id="tabNew" onclick="switchRegistrationTab('new')">Current Student</button>
               <button class="tab-button" id="tabOld" onclick="switchRegistrationTab('old')">Old Student</button>
             </div>
             <div class="top-actions">
@@ -264,10 +264,10 @@
           <div class="registration-form">
             <!-- Left Column -->
             <div class="form-column">
-              <!-- RFID Number – visible only for new students -->
+              <!-- RFID Number – visible only for current students -->
               <div id="rfidFieldGroup" class="field-group">
                 <label>RFID NUMBER <span class="required">*</span></label>
-                <input type="text" id="rfidNumber" placeholder="Enter RFID" tabindex="1"
+                <input type="text" id="rfidNumber" inputmode="numeric" placeholder="Digits only (e.g. 0012345678)" tabindex="1"
                       onblur="checkRFID()" onkeypress="if(event.key==='Enter') checkRFID()"
                       onchange="clearFieldError('rfidNumber')"
                       oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="32"
@@ -276,14 +276,14 @@
 
               <div class="field-group">
                 <label>SURNAME <span class="required">*</span></label>
-                <input type="text" id="surname" data-field="surname" placeholder="Enter Surname" tabindex="3"
+                <input type="text" id="surname" data-field="surname" placeholder="e.g. Dela Cruz" tabindex="3"
                       maxlength="64" oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
                       onchange="clearFieldError('surname')" autocomplete="off">
               </div>
 
               <div class="field-group">
                 <label>MIDDLE NAME</label>
-                <input type="text" id="middleName" data-field="middleName" placeholder="Enter Middle Name (optional)" tabindex="5"
+                <input type="text" id="middleName" data-field="middleName" placeholder="e.g. Santos (optional)" tabindex="5"
                       maxlength="30" oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
                       onchange="clearFieldError('middleName')" autocomplete="off">
               </div>
@@ -309,17 +309,17 @@
 
             <!-- Right Column -->
             <div class="form-column">
-              <!-- Student Number – visible only for new students -->
+              <!-- Student Number – visible only for current students -->
               <div id="studentNumberFieldGroup" class="field-group">
                 <label>STUDENT NUMBER <span class="required">*</span></label>
-                <input type="text" id="studentNumber" placeholder="Enter Student Number" tabindex="2"
+                <input type="text" id="studentNumber" placeholder="Letter + 6 digits (e.g. C123456)" tabindex="2"
                       maxlength="7" oninput="formatStudentNumber(this)" onchange="clearFieldError('studentNumber')"
                       autocomplete="off">
               </div>
 
               <div class="field-group">
                 <label>FIRST NAME <span class="required">*</span></label>
-                <input type="text" id="firstName" data-field="firstName" placeholder="Enter First Name" tabindex="4"
+                <input type="text" id="firstName" data-field="firstName" placeholder="e.g. Juan" tabindex="4"
                       maxlength="64" oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
                       onchange="clearFieldError('firstName')" autocomplete="off">
               </div>
@@ -387,6 +387,7 @@
     // Tab switching function with row-first tab order
     function switchRegistrationTab(tab) {
       document.getElementById('studentType').value = tab;
+      populateAcademicYearDropdown(tab);
       const tabNew = document.getElementById('tabNew');
       const tabOld = document.getElementById('tabOld');
       const rfidFieldGroup = document.getElementById('rfidFieldGroup');
@@ -492,4 +493,4 @@
   <button id="scrollToTopBtn" title="Go to top">↑</button>
   <div id="printContainer" style="display: none;"></div>
 </body>
-</html>
+</html>

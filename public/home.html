@@ -91,7 +91,7 @@
       <div class="sidebar-spacer"></div>
       <div class="logout" onclick="logout()">LOGOUT</div>
       <div class="sidebar-footer">
-        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.<br><a href="#" class="credits-link" onclick="showCreditsModal(); return false;">Credits</a>
+        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
       </div>
     </div>
     <div class="content">
@@ -101,7 +101,7 @@
         <!-- Left section: search and filter dropdowns -->
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           <div class="search-wrapper" style="margin:0; min-width: 200px;">
-            <input type="text" id="search" placeholder="Search by any field" onkeyup="applyFilters()" autocomplete="off">
+            <input type="text" id="search" placeholder="Search name, ID number or RFID" onkeyup="applyFilters()" autocomplete="off">
             <span class="search-icon">
               <svg viewBox="0 0 24 24">
                 <circle cx="11" cy="11" r="7"></circle>
@@ -150,7 +150,7 @@
           <button onclick="editSelectedHome()" class="export-btn">Edit Selected</button>
           <button onclick="deleteSelectedHome()" class="delete-btn">Delete Selected</button>
           <button id="importBtn" onclick="showImportModal()" class="export-btn" style="display:none;">Import</button>
-          <button onclick="showExportModal()" class="export-btn">Export</button>
+          <button onclick="showExportModal()" class="btn-primary">Export</button>
         </div>
       </div>
       <div class="table-responsive">
@@ -191,12 +191,12 @@
     <div class="modal-content">
       <p>Choose export format:</p>
       <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
-        <button onclick="exportChosen('pdf')">PDF</button>
-        <button onclick="exportChosen('excel')">Excel</button>
-        <button onclick="exportChosen('csv')">CSV</button>   <!-- new -->
+        <button class="btn-secondary" onclick="exportChosen('pdf')">PDF</button>
+        <button class="btn-secondary" onclick="exportChosen('excel')">Excel</button>
+        <button class="btn-secondary" onclick="exportChosen('csv')">CSV</button>   <!-- new -->
       </div>
       <div style="display: flex; justify-content: center;">
-        <button onclick="closeExportModal()">Cancel</button>
+        <button class="btn-secondary" onclick="closeExportModal()">Cancel</button>
       </div>
     </div>
   </div>  
@@ -218,4 +218,4 @@
   <button id="scrollToTopBtn" title="Go to top">↑</button>
   <div id="printContainer" style="display: none;"></div>
 </body>
-</html>
+</html>

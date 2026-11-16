@@ -1,0 +1,193 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() { return request.auth != null; }
+    function isVerified() { return isAuthenticated() && request.auth.token.email_verified == true; }
+    function getUserData() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isAdmin() { return isVerified() && getUserData().role in ['admin', 'superadmin']; }
+    function isSuperAdmin() { return isVerified() && getUserData().role == 'superadmin'; }
+    function isApproved() { return isVerified() && getUserData().approved == true; }
+    // Anyone allowed to use the app: admins/superadmins, or approved regular users
+    function isStaff() { return isAdmin() || isApproved(); }
+    function isPresent(field) { return field in request.resource.data && request.resource.data[field] != null && request.resource.data[field] != ""; }
+
+    function isValidName(name, maxLen) {
+      return name is string && name.size() >= 1 && name.size() <= maxLen;
+    }
+
+    // Program validation: any non-empty string (no existence check)
+    function isValidProgram(program) {
+      return program is string && program.size() > 0;
+    }
+
+    function isValidYearLevel(level) { return level in ['1st', '2nd', '3rd', '4th', 'Irregular']; }
+    function isValidGender(gender) { return gender in ['Male', 'Female', 'Other']; }
+    function isValidAcademicYear(year) { return year is string && year.matches('^[0-9]{4}-[0-9]{4}$'); }
+    function isValidSemester(semester) { return semester in ['1st', '2nd']; }
+    function isValidRemarks(remarks) { return remarks in ['None', 'Graduating', 'Moving Up', 'Transferring', 'Returning', 'Transfer', 'Drop', 'Others']; }
+    // The note is at most 100 characters, and is required when the remark is "Others"
+    function isValidRemarksNote(data) {
+      return (!('remarksNote' in data) || (data.remarksNote is string && data.remarksNote.size() <= 100))
+        && (data.remarks != 'Others' || ('remarksNote' in data && data.remarksNote is string && data.remarksNote.size() >= 1));
+    }
+    // Optional free-text comment, at most 200 characters
+    function isValidComment(data) {
+      return !('comment' in data) || (data.comment is string && data.comment.size() <= 200);
+    }
+    function isValidRFID(rfid) { return rfid is string && rfid.matches('^[0-9]{1,32}$'); }
+    function isValidStudentNumber(sn) { return sn is string && sn.matches('^[A-Z][0-9]{6}$'); }
+
+    match /students/{studentId} {
+      allow read: if isStaff();
+
+      allow create: if isStaff()
+        && request.resource.data.keys().hasAll([
+          'surname', 'firstName', 'program',
+          'yearLevel', 'dateTime', 'gender', 'academicYear'
+        ])
+        // no unexpected fields
+        && request.resource.data.keys().hasOnly([
+          'rfidNumber', 'studentNumber', 'surname', 'firstName', 'middleName', 'program',
+          'yearLevel', 'dateTime', 'gender', 'academicYear'
+        ])
+        && isValidName(request.resource.data.surname, 64)
+        && isValidName(request.resource.data.firstName, 64)
+        && ( !('middleName' in request.resource.data)
+             || request.resource.data.middleName == null
+             || request.resource.data.middleName == ""
+             || isValidName(request.resource.data.middleName, 30) )
+        && isValidProgram(request.resource.data.program)
+        && isValidYearLevel(request.resource.data.yearLevel)
+        && isValidGender(request.resource.data.gender)
+        && isValidAcademicYear(request.resource.data.academicYear)
+        && request.resource.data.dateTime is string
+        && request.resource.data.dateTime.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$')
+        && ( (isPresent('rfidNumber') && isPresent('studentNumber')
+              && request.resource.data.rfidNumber == studentId
+              && isValidRFID(request.resource.data.rfidNumber)
+              && isValidStudentNumber(request.resource.data.studentNumber)
+            )
+            || ( !('rfidNumber' in request.resource.data) && !('studentNumber' in request.resource.data) )
+        );
+
+      allow update: if isAdmin()
+        && request.resource.data.dateTime == resource.data.dateTime
+        && ( (('rfidNumber' in resource.data) && ('studentNumber' in resource.data)
+              && request.resource.data.rfidNumber == resource.data.rfidNumber
+              && request.resource.data.studentNumber == resource.data.studentNumber
+              && isValidRFID(request.resource.data.rfidNumber)
+              && isValidStudentNumber(request.resource.data.studentNumber)
+            )
+            || ( !('rfidNumber' in resource.data) && !('studentNumber' in resource.data)
+                 && !('rfidNumber' in request.resource.data)
+                 && !('studentNumber' in request.resource.data)
+            )
+        )
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['surname', 'firstName', 'middleName', 'program', 'yearLevel', 'gender', 'academicYear'])
+        && (!('surname' in request.resource.data) || isValidName(request.resource.data.surname, 64))
+        && (!('firstName' in request.resource.data) || isValidName(request.resource.data.firstName, 64))
+        && (!('middleName' in request.resource.data)
+            || request.resource.data.middleName == null
+            || request.resource.data.middleName == ""
+            || isValidName(request.resource.data.middleName, 30))
+        && (!('program' in request.resource.data) || isValidProgram(request.resource.data.program))
+        && (!('yearLevel' in request.resource.data) || isValidYearLevel(request.resource.data.yearLevel))
+        && (!('gender' in request.resource.data) || isValidGender(request.resource.data.gender))
+        && (!('academicYear' in request.resource.data) || isValidAcademicYear(request.resource.data.academicYear));
+
+      allow delete: if isAdmin();
+    }
+
+    // Release / receive and the logs page are admin-only in the app, so the rules match.
+    match /clearanceLogs/{logId} {
+      allow read: if isAdmin();
+
+      // Release
+      allow create: if isAdmin()
+        && request.resource.data.status == 'Claimed'
+        && request.resource.data.returnedDate == null
+        && request.resource.data.keys().hasAll(['rfid', 'studentNumber', 'name', 'status', 'claimedDate', 'academicYear', 'semester', 'remarks', 'timestamp'])
+        && request.resource.data.rfid is string
+        && request.resource.data.studentNumber is string
+        && request.resource.data.name is string
+        && isValidSemester(request.resource.data.semester)
+        && isValidRemarks(request.resource.data.remarks)
+        && isValidRemarksNote(request.resource.data)
+        && isValidComment(request.resource.data)
+        && isValidAcademicYear(request.resource.data.academicYear)
+        && (!('reReleaseCount' in request.resource.data) || request.resource.data.reReleaseCount == 0)
+        && request.resource.data.claimedDate is timestamp
+        && request.resource.data.timestamp is timestamp;
+
+      // Receive
+      allow update: if isAdmin()
+        && request.resource.data.status == 'Returned'
+        && request.resource.data.returnedDate != null
+        && request.resource.data.rfid == resource.data.rfid
+        && request.resource.data.studentNumber == resource.data.studentNumber
+        && request.resource.data.name == resource.data.name
+        && request.resource.data.claimedDate == resource.data.claimedDate
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'returnedDate', 'remarks', 'remarksNote', 'comment', 'academicYear', 'semester'])
+        && (!('semester' in request.resource.data) || isValidSemester(request.resource.data.semester))
+        && (!('remarks' in request.resource.data) || isValidRemarks(request.resource.data.remarks))
+        && isValidRemarksNote(request.resource.data)
+        && isValidComment(request.resource.data)
+        && (!('academicYear' in request.resource.data) || isValidAcademicYear(request.resource.data.academicYear));
+
+      // Re-release (lost clearance form): only on a form that is still released, and only +1 on the counter
+      allow update: if isAdmin()
+        && resource.data.status == 'Claimed'
+        && resource.data.returnedDate == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reReleaseCount', 'lastReReleasedDate'])
+        && request.resource.data.reReleaseCount is int
+        && request.resource.data.reReleaseCount == resource.data.get('reReleaseCount', 0) + 1
+        && request.resource.data.lastReReleasedDate is timestamp;
+
+      allow delete: if isSuperAdmin();
+    }
+
+    match /programs/{programCode} {
+      allow read: if isStaff();
+
+      allow create: if isAdmin()
+        && request.resource.data.programCode == programCode
+        && request.resource.data.programCode.matches('^[A-Za-z]+$')
+        && request.resource.data.programName is string
+        && request.resource.data.programName.size() > 0;
+
+      allow update: if isAdmin()
+        && (!('programCode' in request.resource.data) || request.resource.data.programCode == resource.data.programCode)
+        && request.resource.data.programName is string
+        && request.resource.data.programName.size() > 0;
+
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+
+      // SECURITY FIX: the old rule (`if isAuthenticated()`) let any signed-in person create a
+      // profile with role 'superadmin' and approved true. A new account can now only create
+      // its OWN profile, as an unapproved 'user'.
+      // (The email is not verified yet at this point, so isVerified() must not be required here.)
+      allow create: if isAuthenticated()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['email', 'schoolId', 'firstName', 'lastName', 'role', 'approved', 'createdAt'])
+        && request.resource.data.role == 'user'
+        && request.resource.data.approved == false
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.schoolId is string
+        && request.resource.data.schoolId.matches('^[A-Z0-9-]{4,20}$')
+        && isValidName(request.resource.data.firstName, 64)
+        && isValidName(request.resource.data.lastName, 64)
+        && request.resource.data.createdAt is timestamp;
+
+      // A superadmin cannot lower their own role or delete themselves (prevents locking everyone out)
+      allow update: if isSuperAdmin()
+        && (request.auth.uid != userId || request.resource.data.role == 'superadmin');
+      allow delete: if isSuperAdmin() && request.auth.uid != userId;
+    }
+  }
+}

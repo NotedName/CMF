@@ -949,31 +949,36 @@ table td {
   white-space: nowrap;
 }
 
-/* Column order: checkbox, RFID, ID, Name, Release, Receive, A.Y., Semester, Year Level, Course, Remarks, Status */
+/* Column order: checkbox, RFID, ID, Name, Release, Receive, A.Y., Semester, Year Level, Course, Remarks, Comment, Status, Re-releases.
+   The table is wider than the screen on purpose: the wrapper scrolls sideways instead of squeezing/truncating columns. */
 #clearanceLogTable th:nth-child(1),
-#clearanceLogTable td:nth-child(1) { width: 30px; }   /* checkbox */
+#clearanceLogTable td:nth-child(1) { width: 30px; }  /* checkbox */
 #clearanceLogTable th:nth-child(2),
 #clearanceLogTable td:nth-child(2) { width: 100px; }  /* RFID */
 #clearanceLogTable th:nth-child(3),
-#clearanceLogTable td:nth-child(3) { width: 90px; }   /* ID NUMBER */
+#clearanceLogTable td:nth-child(3) { width: 90px; }  /* ID NUMBER */
 #clearanceLogTable th:nth-child(4),
 #clearanceLogTable td:nth-child(4) { width: 180px; }  /* NAME */
 #clearanceLogTable th:nth-child(5),
-#clearanceLogTable td:nth-child(5) { width: 140px; }  /* RELEASE DATE */
+#clearanceLogTable td:nth-child(5) { width: 170px; }  /* RELEASE DATE */
 #clearanceLogTable th:nth-child(6),
-#clearanceLogTable td:nth-child(6) { width: 140px; }  /* RECEIVE DATE */
+#clearanceLogTable td:nth-child(6) { width: 170px; }  /* RECEIVE DATE */
 #clearanceLogTable th:nth-child(7),
 #clearanceLogTable td:nth-child(7) { width: 100px; }  /* A.Y. */
 #clearanceLogTable th:nth-child(8),
-#clearanceLogTable td:nth-child(8) { width: 80px; }   /* SEMESTER */
+#clearanceLogTable td:nth-child(8) { width: 90px; }  /* SEMESTER */
 #clearanceLogTable th:nth-child(9),
-#clearanceLogTable td:nth-child(9) { width: 90px; }   /* YEAR LEVEL */
+#clearanceLogTable td:nth-child(9) { width: 90px; }  /* YEAR LEVEL */
 #clearanceLogTable th:nth-child(10),
 #clearanceLogTable td:nth-child(10) { width: 90px; }  /* COURSE */
 #clearanceLogTable th:nth-child(11),
-#clearanceLogTable td:nth-child(11) { width: 100px; } /* REMARKS */
+#clearanceLogTable td:nth-child(11) { width: 170px; }  /* REMARKS */
 #clearanceLogTable th:nth-child(12),
-#clearanceLogTable td:nth-child(12) { width: 80px; }  /* STATUS */
+#clearanceLogTable td:nth-child(12) { width: 170px; }  /* COMMENT */
+#clearanceLogTable th:nth-child(13),
+#clearanceLogTable td:nth-child(13) { width: 90px; }  /* STATUS */
+#clearanceLogTable th:nth-child(14),
+#clearanceLogTable td:nth-child(14) { width: 110px; }  /* RE-RELEASES */
 
 /* On smaller screens, let the table scroll horizontally */
 @media (max-width: 1200px) {
@@ -2269,4 +2274,11 @@ body:not([class*="role-"]) .sidebar .nav::after {
   margin: 0 0 8px;
   font-size: 13px;
   color: var(--text-muted);
+}
+
+textarea.remarks-note {
+  height: auto;
+  min-height: 56px;
+  resize: vertical;
+  font-family: inherit;
 }

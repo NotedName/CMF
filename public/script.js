@@ -1186,9 +1186,11 @@ function renderClearanceLogs(logs, keepSort = false) {
     // Date range filter works on the release date, in Philippines time
     const filterDate = log.claimedDate ? toPhDateString(new Date(log.claimedDate.seconds * 1000)) : '';
     const reReleaseCount = log.reReleaseCount || 0;
+    // "Others" shows the remarks that were typed in; the plain remark is kept on the row for filtering
+    const remarksText = log.remarks === REMARKS_OTHERS && log.remarksNote ? `${log.remarks}: ${log.remarksNote}` : log.remarks;
     const lastReRelease = log.lastReReleasedDate ? `Last re-released: ${new Date(log.lastReReleasedDate.seconds * 1000).toLocaleString()}` : '';
     return `
-      <tr data-date="${escapeHtml(filterDate)}">
+      <tr data-date="${escapeHtml(filterDate)}" data-remarks="${escapeHtml(log.remarks)}">
         <td style="text-align: center;">
           <input type="checkbox" class="log-checkbox" data-log-id="${escapeHtml(log.id)}" onchange="updateSelectAllLogsState()">
         </td>
@@ -1201,8 +1203,8 @@ function renderClearanceLogs(logs, keepSort = false) {
         <td>${escapeHtml(log.semester)}</td>
         <td>${escapeHtml(log.yearLevel)}</td>
         <td>${escapeHtml(log.program)}</td>
-        <td>${escapeHtml(log.remarks)}</td>
-        <td>${escapeHtml(log.remarksNote)}</td>
+        <td title="${escapeHtml(remarksText)}">${escapeHtml(remarksText)}</td>
+        <td title="${escapeHtml(log.comment)}">${escapeHtml(log.comment)}</td>
         <td>${escapeHtml(log.status)}</td>
         <td title="${escapeHtml(lastReRelease)}">${reReleaseCount}</td>
       </tr>
@@ -1216,7 +1218,7 @@ function getSortProperty(columnIndex, isLogTable) {
   if (isLogTable) {
     // Clearance logs table column indices:
     // 0=checkbox, 1=RFID, 2=ID, 3=NAME, 4=RELEASE, 5=RECEIVE, 6=A.Y., 7=SEMESTER,
-    // 8=YEAR LEVEL, 9=COURSE, 10=REMARKS, 11=NOTE, 12=STATUS, 13=RE-RELEASES
+    // 8=YEAR LEVEL, 9=COURSE, 10=REMARKS, 11=COMMENT, 12=STATUS, 13=RE-RELEASES
     const map = {
       1: 'rfid',
       2: 'studentNumber',
@@ -1228,7 +1230,7 @@ function getSortProperty(columnIndex, isLogTable) {
       8: 'yearLevel',
       9: 'program',
       10: 'remarks',
-      11: 'remarksNote',
+      11: 'comment',
       12: 'status',
       13: 'reReleaseCount'
     };
@@ -1983,6 +1985,7 @@ async function displayStudentForUpdate(student) {
   const selectedRemarks = openClaim ? openClaim.remarks || 'None' : 'None';
   const selectedSemester = openClaim ? openClaim.semester || '1st' : '1st';
   const noteValue = openClaim ? openClaim.remarksNote || '' : '';
+  const commentValue = openClaim ? openClaim.comment || '' : '';
 
   const remarksOptions = REMARKS_OPTIONS.map(option =>
     `<option value="${option}" ${option === selectedRemarks ? 'selected' : ''}>${option}</option>`
@@ -2035,9 +2038,15 @@ async function displayStudentForUpdate(student) {
       </div>
 
       <div class="dropdown-item remarks-note-row" id="remarksNoteRow" style="${selectedRemarks === REMARKS_OTHERS ? '' : 'display: none;'}">
-        <label for="updateRemarksNote">Note <span class="required">*</span></label>
+        <label for="updateRemarksNote">Remarks <span class="required">*</span></label>
         <input type="text" id="updateRemarksNote" class="remarks-note" maxlength="100"
                placeholder="Specify the remark (e.g. Shifting course)" autocomplete="off" value="${escapeHtml(noteValue)}">
+      </div>
+
+      <div class="dropdown-item comment-row">
+        <label for="updateComment">Comment</label>
+        <textarea id="updateComment" class="remarks-note" maxlength="200" rows="2"
+                  placeholder="Optional comment" autocomplete="off">${escapeHtml(commentValue)}</textarea>
       </div>
     </div>
   `;
@@ -2056,16 +2065,17 @@ function readRemarksForm() {
   const remarks = document.getElementById('updateRemarks').value;
   const semester = document.getElementById('updateSemester').value;
   const note = remarks === REMARKS_OTHERS ? document.getElementById('updateRemarksNote').value.trim() : '';
+  const comment = document.getElementById('updateComment').value.trim();
 
   if (!semester) {
     showMessageModal('Please select a semester to proceed.');
     return null;
   }
   if (remarks === REMARKS_OTHERS && !note) {
-    showMessageModal('Please enter a note for the "Others" remark.');
+    showMessageModal('Please enter the remarks for "Others".');
     return null;
   }
-  return { remarks, semester, note };
+  return { remarks, semester, note, comment };
 }
 
 function attachStatusUpdateHoverScroll() {
@@ -2137,7 +2147,7 @@ async function findOpenClaim(rfid) {
   return null;
 }
 
-async function createReleaseLog(rfid, student, claimedDate, academicYear, semester, remarks, remarksNote) {
+async function createReleaseLog(rfid, student, claimedDate, academicYear, semester, remarks, remarksNote, comment) {
   const fullName = formatFullName(student);
   const logData = {
     rfid: rfid,
@@ -2152,6 +2162,7 @@ async function createReleaseLog(rfid, student, claimedDate, academicYear, semest
     semester: semester || '',
     remarks: remarks || '',
     remarksNote: remarksNote || '',
+    comment: comment || '',
     reReleaseCount: 0,
     lastReReleasedDate: null,
     timestamp: new Date()
@@ -2159,12 +2170,13 @@ async function createReleaseLog(rfid, student, claimedDate, academicYear, semest
   await addDoc(collection(db, 'clearanceLogs'), logData);
 }
 
-async function updateLogWithReturn(logId, returnedDate, newRemarks, newRemarksNote, newAcadYear, newSemester) {
+async function updateLogWithReturn(logId, returnedDate, newRemarks, newRemarksNote, newAcadYear, newSemester, newComment) {
   const updateData = {
     status: 'Returned',
     returnedDate: returnedDate,
     remarks: newRemarks,
     remarksNote: newRemarksNote,
+    comment: newComment,
     academicYear: newAcadYear,
     semester: newSemester
   };
@@ -2211,7 +2223,8 @@ async function releaseStudent(rfid) {
       student.academicYear,   // <-- use student's stored academic year
       form.semester,
       form.remarks,
-      form.note
+      form.note,
+      form.comment
     );
 
     showMessageModal('Student clearance form released successfully.');
@@ -2259,7 +2272,8 @@ async function receiveStudent(rfid) {
       form.remarks,
       form.note,
       student.academicYear,   // <-- use student's stored academic year
-      form.semester
+      form.semester,
+      form.comment
     );
 
     showMessageModal('Student clearance form has been returned successfully.');
@@ -2438,17 +2452,16 @@ function applyFilters() {
     if (show) {
       if (isLogTable) {
         // Clearance logs table column indices:
-        // 0:checkbox, 1:RFID, 2:ID, 3:NAME, 4:RELEASE, 5:RECEIVE, 6:A.Y., 7:SEMESTER, 8:YEAR LEVEL, 9:COURSE, 10:REMARKS, 11:NOTE, 12:STATUS, 13:RE-RELEASES
+        // 0:checkbox, 1:RFID, 2:ID, 3:NAME, 4:RELEASE, 5:RECEIVE, 6:A.Y., 7:SEMESTER, 8:YEAR LEVEL, 9:COURSE, 10:REMARKS, 11:COMMENT, 12:STATUS, 13:RE-RELEASES
         const statusCell = row.cells[12];
         const semesterCell = row.cells[7];
-        const remarksCell = row.cells[10];
         const courseCell = row.cells[9];
         const yearCell = row.cells[8];
         const acadYearCell = row.cells[6];
 
         if (statusFilter && statusCell && statusCell.innerText.trim() !== statusFilter) show = false;
         if (show && semesterFilter && semesterCell && semesterCell.innerText.trim() !== semesterFilter) show = false;
-        if (show && remarksFilter && remarksCell && remarksCell.innerText.trim() !== remarksFilter) show = false;
+        if (show && remarksFilter && row.dataset.remarks !== remarksFilter) show = false;
         if (show && courseFilterLogs && courseCell && courseCell.innerText.trim() !== courseFilterLogs) show = false;
         if (show && yearFilterLogs && yearCell && yearCell.innerText.trim() !== yearFilterLogs) show = false;
         if (show && acadYearFilter && acadYearCell && acadYearCell.innerText.trim() !== acadYearFilter) show = false;

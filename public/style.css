@@ -2221,3 +2221,52 @@ body:not([class*="role-"]) .sidebar .nav::after {
   body:not([class*="role-"]) .sidebar .nav::after,
   #helpText:empty::before { animation: none; }
 }
+
+/* ---------- Remarks note, re-release, log stats ---------- */
+.remarks-note-row { margin-bottom: 20px; }
+.remarks-note {
+  height: 36px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #dddddd;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #555555;
+  width: 100%;
+  box-sizing: border-box;
+}
+.remarks-note:focus {
+  outline: none;
+  border-color: #5586c7;
+  box-shadow: 0 0 0 3px rgba(85, 134, 199, 0.1);
+}
+.dark-mode .remarks-note {
+  background: rgba(22, 22, 28, 0.8);
+  border-color: #555555;
+  color: #fff;
+}
+.dark-mode .remarks-note::placeholder { color: #aaaaaa; }
+.dark-mode .remarks-note:focus { border-color: #7ba3de; box-shadow: 0 0 0 3px rgba(123, 163, 222, 0.3); }
+
+/* Re-release: a quiet secondary action, used only when a form was lost */
+.btn-rerelease {
+  flex: 1;
+  max-width: 200px;
+  height: 38px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border: 1px solid var(--accent-border);
+  box-shadow: none;
+  transition: background 0.2s ease;
+}
+.btn-rerelease:hover { background: var(--accent-soft-hover); }
+
+.log-stats {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}

@@ -17,6 +17,11 @@ let filteredUsers = [];                                   // for user table filt
 let pendingUserAction = null;                             // { uid, action, newRole? } for confirm modal      
 let userSort = { column: 0, direction: 'asc' };           // default sort by Email
 let pendingDeleteLogIds = [];                             // for clearance logs delete confirmation
+let pendingReReleaseRfid = null;                          // for the re-release confirmation (lost clearance form)
+
+const REMARKS_OPTIONS = ['None', 'Graduating', 'Moving Up', 'Transferring', 'Returning', 'Transfer', 'Drop', 'Others'];
+const REMARKS_OTHERS = 'Others';                          // the remark that requires a note
+const EXPORT_CREDIT = 'Exported from Clearance Monitoring Form™';
 
 // ==================== CREDITS (reads credits.txt) ====================
 // credits.txt format, one person per line:   Role : Name
@@ -1180,6 +1185,8 @@ function renderClearanceLogs(logs, keepSort = false) {
     const receiveDate = log.returnedDate ? new Date(log.returnedDate.seconds * 1000).toLocaleString() : '';
     // Date range filter works on the release date, in Philippines time
     const filterDate = log.claimedDate ? toPhDateString(new Date(log.claimedDate.seconds * 1000)) : '';
+    const reReleaseCount = log.reReleaseCount || 0;
+    const lastReRelease = log.lastReReleasedDate ? `Last re-released: ${new Date(log.lastReReleasedDate.seconds * 1000).toLocaleString()}` : '';
     return `
       <tr data-date="${escapeHtml(filterDate)}">
         <td style="text-align: center;">
@@ -1195,7 +1202,9 @@ function renderClearanceLogs(logs, keepSort = false) {
         <td>${escapeHtml(log.yearLevel)}</td>
         <td>${escapeHtml(log.program)}</td>
         <td>${escapeHtml(log.remarks)}</td>
+        <td>${escapeHtml(log.remarksNote)}</td>
         <td>${escapeHtml(log.status)}</td>
+        <td title="${escapeHtml(lastReRelease)}">${reReleaseCount}</td>
       </tr>
     `;
   }).join('');
@@ -1207,7 +1216,7 @@ function getSortProperty(columnIndex, isLogTable) {
   if (isLogTable) {
     // Clearance logs table column indices:
     // 0=checkbox, 1=RFID, 2=ID, 3=NAME, 4=RELEASE, 5=RECEIVE, 6=A.Y., 7=SEMESTER,
-    // 8=YEAR LEVEL, 9=COURSE, 10=REMARKS, 11=STATUS
+    // 8=YEAR LEVEL, 9=COURSE, 10=REMARKS, 11=NOTE, 12=STATUS, 13=RE-RELEASES
     const map = {
       1: 'rfid',
       2: 'studentNumber',
@@ -1219,7 +1228,9 @@ function getSortProperty(columnIndex, isLogTable) {
       8: 'yearLevel',
       9: 'program',
       10: 'remarks',
-      11: 'status'
+      11: 'remarksNote',
+      12: 'status',
+      13: 'reReleaseCount'
     };
     return map[columnIndex];
   } else {
@@ -1248,6 +1259,9 @@ function sortLogs(logs, columnIndex, direction) {
     if (prop === 'claimedDate' || prop === 'returnedDate') {
       valA = valA ? valA.seconds : 0;
       valB = valB ? valB.seconds : 0;
+    } else if (prop === 'reReleaseCount') {
+      valA = Number(valA);
+      valB = Number(valB);
     } else {
       if (typeof valA === 'string') valA = valA.toLowerCase();
       if (typeof valB === 'string') valB = valB.toLowerCase();
@@ -1950,7 +1964,7 @@ async function searchStudent() {
 
     if (student) {
       currentStudentForUpdate = student;
-      displayStudentForUpdate(student);
+      await displayStudentForUpdate(student);
     } else {
       showMessageModal('No student found with that RFID or Student Number.');
     }
@@ -1960,22 +1974,34 @@ async function searchStudent() {
   }
 }
 
-function displayStudentForUpdate(student) {
+async function displayStudentForUpdate(student) {
   const container = document.getElementById('studentResult');
-  container.style.display = 'block';
   const fullName = formatFullName(student);
 
-  // Default values for dropdowns
-  const defaultRemarks = 'None';
-  const defaultSemester = '1st';
+  // A released-but-not-received form keeps the remarks, note and semester it was released with
+  const openClaim = await findOpenClaim(student.rfidNumber);
+  const selectedRemarks = openClaim ? openClaim.remarks || 'None' : 'None';
+  const selectedSemester = openClaim ? openClaim.semester || '1st' : '1st';
+  const noteValue = openClaim ? openClaim.remarksNote || '' : '';
 
-  // Build semester options (no academic year dropdown)
+  const remarksOptions = REMARKS_OPTIONS.map(option =>
+    `<option value="${option}" ${option === selectedRemarks ? 'selected' : ''}>${option}</option>`
+  ).join('');
+
   const semesterOptions = `
     <option value="" disabled>Select Semester</option>
-    <option value="1st" ${defaultSemester === '1st' ? 'selected' : ''}>1st Semester</option>
-    <option value="2nd" ${defaultSemester === '2nd' ? 'selected' : ''}>2nd Semester</option>
+    <option value="1st" ${selectedSemester === '1st' ? 'selected' : ''}>1st Semester</option>
+    <option value="2nd" ${selectedSemester === '2nd' ? 'selected' : ''}>2nd Semester</option>
   `;
 
+  const claimRow = openClaim ? `
+        <tr><th>Clearance Form</th><td>Released on ${escapeHtml(new Date(openClaim.claimedDate.seconds * 1000).toLocaleString())}${openClaim.reReleaseCount ? ` (re-released ${escapeHtml(openClaim.reReleaseCount)}×)` : ''}</td></tr>` : '';
+
+  const reReleaseButton = openClaim
+    ? `<button class="btn-rerelease" onclick="showReReleaseConfirm('${escapeHtml(student.rfidNumber)}')">RE-RELEASE</button>`
+    : '';
+
+  container.style.display = 'block';
   container.innerHTML = `
     <div class="student-details">
       <table class="student-info-table">
@@ -1984,25 +2010,20 @@ function displayStudentForUpdate(student) {
         <tr><th>Year Level</th><td>${escapeHtml(student.yearLevel)}</td></tr>
         <tr><th>Student Number</th><td>${escapeHtml(student.studentNumber)}</td></tr>
         <tr><th>Academic Year</th><td>${escapeHtml(student.academicYear)}</td></tr>
-        <tr><th>Gender</th><td>${escapeHtml(student.gender)}</td></tr>
+        <tr><th>Gender</th><td>${escapeHtml(student.gender)}</td></tr>${claimRow}
       </table>
 
       <div class="button-group">
         <button class="btn-release" onclick="releaseStudent('${escapeHtml(student.rfidNumber)}')">RELEASE</button>
         <button class="btn-receive" onclick="receiveStudent('${escapeHtml(student.rfidNumber)}')">RECEIVE</button>
+        ${reReleaseButton}
       </div>
 
       <div class="dropdown-group">
         <div class="dropdown-item">
           <label>Remarks</label>
-          <select id="updateRemarks" class="remarks-select">
-            <option value="None" ${defaultRemarks === 'None' ? 'selected' : ''}>None</option>
-            <option value="Graduating" ${defaultRemarks === 'Graduating' ? 'selected' : ''}>Graduating</option>
-            <option value="Moving Up" ${defaultRemarks === 'Moving Up' ? 'selected' : ''}>Moving Up</option>
-            <option value="Transferring" ${defaultRemarks === 'Transferring' ? 'selected' : ''}>Transferring</option>
-            <option value="Returning" ${defaultRemarks === 'Returning' ? 'selected' : ''}>Returning</option>
-            <option value="Transfer" ${defaultRemarks === 'Transfer' ? 'selected' : ''}>Transfer</option>
-            <option value="Drop" ${defaultRemarks === 'Drop' ? 'selected' : ''}>Drop</option>
+          <select id="updateRemarks" class="remarks-select" onchange="toggleRemarksNote()">
+            ${remarksOptions}
           </select>
         </div>
         <div class="dropdown-item">
@@ -2012,10 +2033,39 @@ function displayStudentForUpdate(student) {
           </select>
         </div>
       </div>
+
+      <div class="dropdown-item remarks-note-row" id="remarksNoteRow" style="${selectedRemarks === REMARKS_OTHERS ? '' : 'display: none;'}">
+        <label for="updateRemarksNote">Note <span class="required">*</span></label>
+        <input type="text" id="updateRemarksNote" class="remarks-note" maxlength="100"
+               placeholder="Specify the remark (e.g. Shifting course)" autocomplete="off" value="${escapeHtml(noteValue)}">
+      </div>
     </div>
   `;
 
   attachStatusUpdateHoverScroll();
+}
+
+function toggleRemarksNote() {
+  const isOthers = document.getElementById('updateRemarks').value === REMARKS_OTHERS;
+  document.getElementById('remarksNoteRow').style.display = isOthers ? '' : 'none';
+  if (isOthers) document.getElementById('updateRemarksNote').focus();
+}
+
+// Reads and validates the remarks / note / semester inputs. Shows a message and returns null when invalid.
+function readRemarksForm() {
+  const remarks = document.getElementById('updateRemarks').value;
+  const semester = document.getElementById('updateSemester').value;
+  const note = remarks === REMARKS_OTHERS ? document.getElementById('updateRemarksNote').value.trim() : '';
+
+  if (!semester) {
+    showMessageModal('Please select a semester to proceed.');
+    return null;
+  }
+  if (remarks === REMARKS_OTHERS && !note) {
+    showMessageModal('Please enter a note for the "Others" remark.');
+    return null;
+  }
+  return { remarks, semester, note };
 }
 
 function attachStatusUpdateHoverScroll() {
@@ -2087,7 +2137,7 @@ async function findOpenClaim(rfid) {
   return null;
 }
 
-async function createReleaseLog(rfid, student, claimedDate, academicYear, semester, remarks) {
+async function createReleaseLog(rfid, student, claimedDate, academicYear, semester, remarks, remarksNote) {
   const fullName = formatFullName(student);
   const logData = {
     rfid: rfid,
@@ -2101,16 +2151,20 @@ async function createReleaseLog(rfid, student, claimedDate, academicYear, semest
     academicYear: academicYear || '',
     semester: semester || '',
     remarks: remarks || '',
+    remarksNote: remarksNote || '',
+    reReleaseCount: 0,
+    lastReReleasedDate: null,
     timestamp: new Date()
   };
   await addDoc(collection(db, 'clearanceLogs'), logData);
 }
 
-async function updateLogWithReturn(logId, returnedDate, newRemarks, newAcadYear, newSemester) {
+async function updateLogWithReturn(logId, returnedDate, newRemarks, newRemarksNote, newAcadYear, newSemester) {
   const updateData = {
     status: 'Returned',
     returnedDate: returnedDate,
     remarks: newRemarks,
+    remarksNote: newRemarksNote,
     academicYear: newAcadYear,
     semester: newSemester
   };
@@ -2126,13 +2180,8 @@ async function releaseStudent(rfid) {
   if (isProcessing) return;
   isProcessing = true;
   try {
-    const newRemarks = document.getElementById('updateRemarks').value;
-    const newSemester = document.getElementById('updateSemester').value;
-
-    if (!newSemester) {
-      showMessageModal('Please select a semester to proceed.');
-      return;
-    }
+    const form = readRemarksForm();
+    if (!form) return;
 
     const docRef = doc(db, 'students', rfid);
     const docSnap = await getDoc(docRef);
@@ -2160,8 +2209,9 @@ async function releaseStudent(rfid) {
       student,
       now,
       student.academicYear,   // <-- use student's stored academic year
-      newSemester,
-      newRemarks
+      form.semester,
+      form.remarks,
+      form.note
     );
 
     showMessageModal('Student clearance form released successfully.');
@@ -2180,13 +2230,8 @@ async function receiveStudent(rfid) {
   if (isProcessing) return;
   isProcessing = true;
   try {
-    const newRemarks = document.getElementById('updateRemarks').value;
-    const newSemester = document.getElementById('updateSemester').value;
-
-    if (!newSemester) {
-      showMessageModal('Please select a semester to proceed.');
-      return;
-    }
+    const form = readRemarksForm();
+    if (!form) return;
 
     const docRef = doc(db, 'students', rfid);
     const docSnap = await getDoc(docRef);
@@ -2211,9 +2256,10 @@ async function receiveStudent(rfid) {
     await updateLogWithReturn(
       openClaim.id,
       now,
-      newRemarks,
+      form.remarks,
+      form.note,
       student.academicYear,   // <-- use student's stored academic year
-      newSemester
+      form.semester
     );
 
     showMessageModal('Student clearance form has been returned successfully.');
@@ -2222,6 +2268,45 @@ async function receiveStudent(rfid) {
   } catch (err) {
     console.error('Receive error:', err);
     showMessageModal('Receive failed: ' + err.message);
+  } finally {
+    isProcessing = false;
+  }
+}
+
+// ==================== RE-RELEASE (lost clearance form) ====================
+function showReReleaseConfirm(rfid) {
+  pendingReReleaseRfid = rfid;
+  document.getElementById('reReleaseModal').style.display = 'flex';
+}
+
+function closeReReleaseModal() {
+  pendingReReleaseRfid = null;
+  document.getElementById('reReleaseModal').style.display = 'none';
+}
+
+async function confirmReReleaseStudent() {
+  const rfid = pendingReReleaseRfid;
+  closeReReleaseModal();
+  if (isProcessing) return;
+  isProcessing = true;
+  try {
+    const openClaim = await findOpenClaim(rfid);
+    if (!openClaim) {
+      showMessageModal('Student has no released clearance form. Please release first.');
+      return;
+    }
+
+    await updateDoc(doc(db, 'clearanceLogs', openClaim.id), {
+      reReleaseCount: (openClaim.reReleaseCount || 0) + 1,
+      lastReReleasedDate: new Date()
+    });
+
+    showMessageModal('Student clearance form re-released successfully.');
+    clearStatusUpdate();
+    loadClearanceLogs();
+  } catch (err) {
+    console.error('Re-release error:', err);
+    showMessageModal('Re-release failed: ' + err.message);
   } finally {
     isProcessing = false;
   }
@@ -2353,8 +2438,8 @@ function applyFilters() {
     if (show) {
       if (isLogTable) {
         // Clearance logs table column indices:
-        // 0:checkbox, 1:RFID, 2:ID, 3:NAME, 4:RELEASE, 5:RECEIVE, 6:A.Y., 7:SEMESTER, 8:YEAR LEVEL, 9:COURSE, 10:REMARKS, 11:STATUS
-        const statusCell = row.cells[11];
+        // 0:checkbox, 1:RFID, 2:ID, 3:NAME, 4:RELEASE, 5:RECEIVE, 6:A.Y., 7:SEMESTER, 8:YEAR LEVEL, 9:COURSE, 10:REMARKS, 11:NOTE, 12:STATUS, 13:RE-RELEASES
+        const statusCell = row.cells[12];
         const semesterCell = row.cells[7];
         const remarksCell = row.cells[10];
         const courseCell = row.cells[9];
@@ -2388,6 +2473,25 @@ function applyFilters() {
 
     row.style.display = show ? '' : 'none';
   });
+
+  if (isLogTable) updateLogStats(rows);
+}
+
+// Summary above the logs table: visible logs and how many forms were re-released (lost forms)
+function updateLogStats(rows) {
+  const stats = document.getElementById('logStats');
+  if (!stats) return;
+  let shown = 0;
+  let formsReReleased = 0;
+  let totalReReleases = 0;
+  rows.forEach(row => {
+    if (row.style.display === 'none') return;
+    shown++;
+    const count = Number(row.cells[13].innerText);
+    if (count > 0) formsReReleased++;
+    totalReReleases += count;
+  });
+  stats.textContent = `Showing ${shown} log(s) · Re-released forms: ${formsReReleased} · Total re-releases: ${totalReReleases}`;
 }
 
 // Keep the From/To pickers from allowing an impossible range
@@ -2557,6 +2661,8 @@ function showPrintDialog(headers, rows, title, filterInfo = {}) {
     th, td { border: 1px solid #000; padding: 2px 1px; text-align: center; word-wrap: break-word; }
     th { background-color: #f0f0f0; font-weight: bold; }
     thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+    tfoot td { border: none; padding-top: 6px; font-size: 8pt; color: #555; text-align: center; }
     tr { page-break-inside: avoid; }
   </style>
 </head>
@@ -2570,6 +2676,7 @@ function showPrintDialog(headers, rows, title, filterInfo = {}) {
   <table>
     <thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
     <tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="${headers.length}">${escapeHtml(EXPORT_CREDIT)}</td></tr></tfoot>
   </table>
 </body>
 </html>`;
@@ -3354,6 +3461,8 @@ async function exportData(type) {
       ws['!cols'] = colWidths;
     }
 
+    XLSX.utils.sheet_add_aoa(ws, [[EXPORT_CREDIT]], { origin: { r: rows.length + 1, c: 0 } });
+
     XLSX.utils.book_append_sheet(wb, ws, 'Students');
     const wbdata = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([wbdata], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -3438,6 +3547,9 @@ async function exportData(type) {
       tr.querySelectorAll('td').forEach(td => row.push(td.innerText.trim()));
       rows.push(row);
     });
+
+    rows.push([]);
+    rows.push([EXPORT_CREDIT]);
 
     // Convert to CSV string
     const csvContent = rows.map(row =>

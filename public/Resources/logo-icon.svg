@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="590 130 1020 1180" width="510" height="590" role="img" aria-label="Clearance Monitoring">
+  <defs>
+    <linearGradient id="cbl" gradientUnits="userSpaceOnUse" x1="607" y1="1290" x2="1330" y2="278">
+      <stop offset="0" stop-color="#0D2D73"/><stop offset=".55" stop-color="#22538D"/><stop offset="1" stop-color="#3F8AB1"/>
+    </linearGradient>
+    <linearGradient id="shl" gradientUnits="userSpaceOnUse" x1="1165" y1="752" x2="1559" y2="1215">
+      <stop offset="0" stop-color="#3F8AB1"/><stop offset="1" stop-color="#65D0E0"/>
+    </linearGradient>
+    <mask id="mkl" maskUnits="userSpaceOnUse" x="590" y="130" width="1020" height="1180">
+      <rect x="590" y="130" width="1020" height="1180" fill="#fff"/>
+      <rect x="868" y="275" width="199" height="70" fill="#000"/>
+      <path d="M 1362 752 L 1559 818 L 1559 930 C 1559 1075 1470 1165 1362 1215 C 1254 1165 1165 1075 1165 930 L 1165 818 Z" fill="#000" stroke="#000" stroke-width="112" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <g mask="url(#mkl)" fill="none" stroke="url(#cbl)">
+    <rect x="639" y="310" width="659" height="948" rx="22" stroke-width="64"/>
+    <g stroke-width="66" stroke-linecap="round">
+      <path d="M 771 545 H 1165"/><path d="M 771 680 H 1165"/><path d="M 771 817 H 1165"/><path d="M 771 951 H 1165"/>
+      <path d="M 771 1088 H 902"/><path d="M 1036 1088 H 1165"/>
+    </g>
+    <path d="M 839 210 L 872 210 C 895 165 930 143 968 143 C 1006 143 1041 165 1064 210 L 1099 210 Q 1133 210 1133 244 L 1133 376 Q 1133 410 1099 410 L 839 410 Q 805 410 805 376 L 805 244 Q 805 210 839 210 Z M 868 275 L 935 275 C 940 235 952 208 968 208 C 984 208 996 235 1001 275 L 1067 275 L 1067 345 L 868 345 Z" fill="url(#cbl)" fill-rule="evenodd" stroke="none"/>
+  </g>
+  <path d="M 1362 752 L 1559 818 L 1559 930 C 1559 1075 1470 1165 1362 1215 C 1254 1165 1165 1075 1165 930 L 1165 818 Z" fill="none" stroke="url(#shl)" stroke-width="66" stroke-linejoin="round"/>
+  <path d="M 1288 968 L 1326 1018 L 1438 943" fill="none" stroke="url(#shl)" stroke-width="62" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

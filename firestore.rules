@@ -35,7 +35,7 @@ service cloud.firestore {
     function isValidComment(data) {
       return !('comment' in data) || (data.comment is string && data.comment.size() <= 200);
     }
-    function isValidRFID(rfid) { return rfid is string && rfid.matches('^[0-9]{1,32}$'); }
+    function isValidRFID(rfid) { return rfid is string && rfid.matches('^[0-9]{1,10}$'); }
     function isValidStudentNumber(sn) { return sn is string && sn.matches('^[A-Z][0-9]{6}$'); }
 
     match /students/{studentId} {
@@ -63,8 +63,10 @@ service cloud.firestore {
         && isValidAcademicYear(request.resource.data.academicYear)
         && request.resource.data.dateTime is string
         && request.resource.data.dateTime.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$')
+        // The student number is the document ID, so one student number can only ever have one record.
+        // The RFID number is just the current ID card (it changes every year).
         && ( (isPresent('rfidNumber') && isPresent('studentNumber')
-              && request.resource.data.rfidNumber == studentId
+              && request.resource.data.studentNumber == studentId
               && isValidRFID(request.resource.data.rfidNumber)
               && isValidStudentNumber(request.resource.data.studentNumber)
             )
@@ -74,10 +76,12 @@ service cloud.firestore {
       allow update: if isAdmin()
         && request.resource.data.dateTime == resource.data.dateTime
         && ( (('rfidNumber' in resource.data) && ('studentNumber' in resource.data)
-              && request.resource.data.rfidNumber == resource.data.rfidNumber
+              // the student number never changes; the RFID number may (new ID card each year)
               && request.resource.data.studentNumber == resource.data.studentNumber
               && isValidRFID(request.resource.data.rfidNumber)
               && isValidStudentNumber(request.resource.data.studentNumber)
+              && (!('previousRfids' in request.resource.data)
+                  || (request.resource.data.previousRfids is list && request.resource.data.previousRfids.size() <= 20))
             )
             || ( !('rfidNumber' in resource.data) && !('studentNumber' in resource.data)
                  && !('rfidNumber' in request.resource.data)
@@ -85,7 +89,7 @@ service cloud.firestore {
             )
         )
         && request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['surname', 'firstName', 'middleName', 'program', 'yearLevel', 'gender', 'academicYear'])
+           .hasOnly(['surname', 'firstName', 'middleName', 'program', 'yearLevel', 'gender', 'academicYear', 'rfidNumber', 'previousRfids'])
         && (!('surname' in request.resource.data) || isValidName(request.resource.data.surname, 64))
         && (!('firstName' in request.resource.data) || isValidName(request.resource.data.firstName, 64))
         && (!('middleName' in request.resource.data)
@@ -109,22 +113,30 @@ service cloud.firestore {
         && request.resource.data.status == 'Claimed'
         && request.resource.data.returnedDate == null
         && request.resource.data.keys().hasAll(['rfid', 'studentNumber', 'name', 'status', 'claimedDate', 'academicYear', 'semester', 'remarks', 'timestamp'])
-        && request.resource.data.rfid is string
-        && request.resource.data.studentNumber is string
-        && request.resource.data.name is string
+        // no unexpected fields
+        && request.resource.data.keys().hasOnly(['rfid', 'studentNumber', 'name', 'program', 'yearLevel', 'status', 'claimedDate', 'returnedDate',
+                                                 'academicYear', 'semester', 'remarks', 'remarksNote', 'comment', 'reReleaseCount', 'lastReReleasedDate', 'reReleases', 'timestamp'])
+        && isValidRFID(request.resource.data.rfid)
+        && isValidStudentNumber(request.resource.data.studentNumber)
+        && isValidName(request.resource.data.name, 200)
+        && (!('program' in request.resource.data) || (request.resource.data.program is string && request.resource.data.program.size() <= 32))
+        && (!('yearLevel' in request.resource.data) || (request.resource.data.yearLevel is string && request.resource.data.yearLevel.size() <= 16))
         && isValidSemester(request.resource.data.semester)
         && isValidRemarks(request.resource.data.remarks)
         && isValidRemarksNote(request.resource.data)
         && isValidComment(request.resource.data)
         && isValidAcademicYear(request.resource.data.academicYear)
         && (!('reReleaseCount' in request.resource.data) || request.resource.data.reReleaseCount == 0)
+        && (!('reReleases' in request.resource.data) || request.resource.data.reReleases.size() == 0)
         && request.resource.data.claimedDate is timestamp
         && request.resource.data.timestamp is timestamp;
 
       // Receive
       allow update: if isAdmin()
+        && resource.data.status == 'Claimed'
+        && resource.data.returnedDate == null
         && request.resource.data.status == 'Returned'
-        && request.resource.data.returnedDate != null
+        && request.resource.data.returnedDate is timestamp
         && request.resource.data.rfid == resource.data.rfid
         && request.resource.data.studentNumber == resource.data.studentNumber
         && request.resource.data.name == resource.data.name
@@ -140,11 +152,46 @@ service cloud.firestore {
       allow update: if isAdmin()
         && resource.data.status == 'Claimed'
         && resource.data.returnedDate == null
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reReleaseCount', 'lastReReleasedDate'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reReleaseCount', 'lastReReleasedDate', 'reReleases'])
         && request.resource.data.reReleaseCount is int
         && request.resource.data.reReleaseCount == resource.data.get('reReleaseCount', 0) + 1
-        && request.resource.data.lastReReleasedDate is timestamp;
+        && request.resource.data.lastReReleasedDate is timestamp
+        // history: one { date, comment } entry added for this re-release
+        && request.resource.data.reReleases is list
+        && request.resource.data.reReleases.size() == resource.data.get('reReleases', []).size() + 1
+        && request.resource.data.reReleases[request.resource.data.reReleases.size() - 1].keys().hasOnly(['date', 'comment'])
+        && request.resource.data.reReleases[request.resource.data.reReleases.size() - 1].date is timestamp
+        && request.resource.data.reReleases[request.resource.data.reReleases.size() - 1].comment is string
+        && request.resource.data.reReleases[request.resource.data.reReleases.size() - 1].comment.size() <= 200;
 
+      // Verify: a photo of the returned form was saved (see clearancePhotos). Only on a returned form.
+      allow update: if isAdmin()
+        && resource.data.status == 'Returned'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verified', 'verifiedAt'])
+        && request.resource.data.verified == true
+        && request.resource.data.verifiedAt is timestamp;
+
+      // Unverify: the superadmin removed the photo (the log must be verified again)
+      allow update: if isSuperAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verified', 'verifiedAt'])
+        && request.resource.data.verified == false
+        && request.resource.data.verifiedAt == null;
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // Photo of a returned clearance form (one per log, same ID as the log). Only used to verify the
+    // returned status; never exported. A compressed JPEG data URL, at most 900,000 characters.
+    match /clearancePhotos/{logId} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['image', 'uploadedAt', 'uploadedBy'])
+        && request.resource.data.image is string
+        && request.resource.data.image.matches('^data:image/jpeg;base64,.*')
+        && request.resource.data.image.size() <= 900000
+        && request.resource.data.uploadedAt is timestamp
+        && request.resource.data.uploadedBy == request.auth.uid
+        && get(/databases/$(database)/documents/clearanceLogs/$(logId)).data.status == 'Returned';
       allow delete: if isSuperAdmin();
     }
 
@@ -153,14 +200,16 @@ service cloud.firestore {
 
       allow create: if isAdmin()
         && request.resource.data.programCode == programCode
-        && request.resource.data.programCode.matches('^[A-Za-z]+$')
+        && request.resource.data.programCode.matches('^[A-Za-z]{1,10}$')
         && request.resource.data.programName is string
-        && request.resource.data.programName.size() > 0;
+        && request.resource.data.programName.size() > 0
+        && request.resource.data.programName.size() <= 150;
 
       allow update: if isAdmin()
         && (!('programCode' in request.resource.data) || request.resource.data.programCode == resource.data.programCode)
         && request.resource.data.programName is string
-        && request.resource.data.programName.size() > 0;
+        && request.resource.data.programName.size() > 0
+        && request.resource.data.programName.size() <= 150;
 
       allow delete: if isAdmin();
     }

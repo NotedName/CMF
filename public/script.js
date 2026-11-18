@@ -4,7 +4,7 @@ let clearanceLogs = [];                                   // main clearance logs
 let programs = [];                                        // new: store programs
 let pendingDeleteRfids = [];                              // for home page delete confirmation               
 let homeSort = { column: 3, direction: 'asc' };           // default sort by Name (index 2, after adding checkbox column)
-let logSort = { column: 2, direction: 'asc' };            // default sort by Student Name (index 2)    
+let logSort = { column: 1, direction: 'asc' };            // default sort by Student name (index 1)
 let isEditMode = false;                                   // for registration page edit mode
 let currentStudentForUpdate = null;                       // store current student data when in edit mode
 let isProcessing = false;                                 // to prevent multiple simultaneous operations
@@ -17,11 +17,11 @@ let filteredUsers = [];                                   // for user table filt
 let pendingUserAction = null;                             // { uid, action, newRole? } for confirm modal      
 let userSort = { column: 0, direction: 'asc' };           // default sort by Email
 let pendingDeleteLogIds = [];                             // for clearance logs delete confirmation
-let pendingReReleaseRfid = null;                          // for the re-release confirmation (lost clearance form)
+let pendingReReleaseStudentNumber = null;                  // for the re-release confirmation (lost clearance form)
 
 const REMARKS_OPTIONS = ['None', 'Graduating', 'Moving Up', 'Transferring', 'Returning', 'Transfer', 'Drop', 'Others'];
 const REMARKS_OTHERS = 'Others';                          // the remark that requires a note
-const EXPORT_CREDIT = 'Exported from Clearance Monitoring Form™';
+const EXPORT_CREDIT = 'This is system-generated. Exported from Clearance Monitoring™';
 
 // ==================== CREDITS (reads credits.txt) ====================
 // credits.txt format, one person per line:   Role : Name
@@ -63,61 +63,35 @@ function renderCredits(container, text) {
   }
 }
 
-async function showCreditsModal() {
-  let modal = document.getElementById('creditsModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'creditsModal';
-    modal.className = 'modal';
-    modal.onclick = e => { if (e.target === modal) closeCreditsModal(); };
-    modal.innerHTML = '<div class="modal-content credits-modal"><h3>Credits</h3>' +
-      '<div id="creditsBody" class="credits-body">Loading...</div>' +
-      '<button onclick="closeCreditsModal()">Close</button></div>';
-    document.body.appendChild(modal);
-  }
-  modal.style.display = 'flex';
-
-  const body = document.getElementById('creditsBody');
-  try {
-    const response = await fetch('credits.txt', { cache: 'no-cache' });
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    renderCredits(body, await response.text());
-  } catch (err) {
-    console.error('Credits load error:', err);
-    body.textContent = 'Credits could not be loaded.';
-  }
-}
-
-function closeCreditsModal() {
-  const modal = document.getElementById('creditsModal');
-  if (modal) modal.style.display = 'none';
-}
-
 // ==================== NAVIGATION (one list drives every page's sidebar) ====================
 // Items a role is not allowed to see are never put on the page at all.
 const NAV_ITEMS = [
-  { label: 'STUDENT LIST',    href: 'home.html',              roles: ['admin', 'superadmin'] },
-  { label: 'REGISTRATION',    href: 'registrationPage.html',  roles: ['user', 'admin', 'superadmin'] },
-  { label: 'STATUS UPDATE',   href: 'statusupdate.html',      roles: ['admin', 'superadmin'] },
-  { label: 'CLEARANCE LOGS',  href: 'clearanceTracking.html', roles: ['admin', 'superadmin'] },
-  { label: 'MANAGE PROGRAMS', href: 'admin.html',             roles: ['admin', 'superadmin'] },
-  { label: 'MANAGE ACCOUNTS', href: 'superadmin.html',        roles: ['superadmin'], pendingBadge: true }
+  { label: 'Student List',    href: 'home.html',              roles: ['admin', 'superadmin'] },
+  { label: 'Registration',    href: 'registrationPage.html',  roles: ['user', 'admin', 'superadmin'] },
+  { label: 'Status Update',   href: 'statusupdate.html',      roles: ['admin', 'superadmin'] },
+  { label: 'Clearance Logs',  href: 'clearanceTracking.html', roles: ['admin', 'superadmin'] },
+  { label: 'Manage Programs', href: 'admin.html',             roles: ['admin', 'superadmin'] },
+  { label: 'Manage Accounts', href: 'superadmin.html',        roles: ['superadmin'], pendingBadge: true }
 ];
 const ROLE_HOME = { user: 'registrationPage.html', admin: 'home.html', superadmin: 'home.html' };
-const ROLE_LABELS = { superadmin: 'ITC', admin: 'ADMIN', user: 'USER' };
+const ROLE_LABELS = { superadmin: 'ITC', admin: 'Admin', user: 'User' };
 
-// Adds the "Credits" link under the copyright text of every page footer / sidebar footer
-function addCreditsLinks() {
-  document.querySelectorAll('.footer, .sidebar-footer').forEach(el => {
-    if (el.querySelector('.credits-link')) return;
-    const link = document.createElement('a');
-    link.href = '#';
-    link.className = 'credits-link';
-    link.textContent = 'Credits';
-    link.addEventListener('click', e => { e.preventDefault(); showCreditsModal(); });
-    el.appendChild(document.createElement('br'));
-    el.appendChild(link);
-  });
+// ==================== EXCEL LIBRARY (loaded only when needed) ====================
+const XLSX_URL = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+let xlsxLoading = null;
+
+function loadXlsx() {
+  if (window.XLSX) return Promise.resolve();
+  if (!xlsxLoading) {
+    xlsxLoading = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = XLSX_URL;
+      script.onload = resolve;
+      script.onerror = () => { xlsxLoading = null; reject(new Error('Could not load the Excel library. Check your internet connection.')); };
+      document.head.appendChild(script);
+    });
+  }
+  return xlsxLoading;
 }
 
 // ==================== SMALL HELPERS ====================
@@ -218,7 +192,7 @@ async function checkPageAccess(allowedRoles) {
       currentUserRole = role;
       document.body.classList.add(`role-${role}`);
       updateSidebarForRole(role);
-      updateTopBarForRole(role);
+      showAccountInTopBar(profile);
       if (role === 'superadmin') loadPendingAccountsBadge();
       resolve(role);
     });
@@ -309,16 +283,47 @@ async function loadPendingAccountsBadge() {
   }
 }
 
-// ==================== CHECK DUPLICATE STUDENT NUMBER ====================
-async function isStudentNumberDuplicate(studentNumber, excludeRfid = null) {
-  const q = query(collection(db, 'students'), where('studentNumber', '==', studentNumber));
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return false;
-  // If excludeRfid is provided, ignore that document (for updates)
-  if (excludeRfid) {
-    return snapshot.docs.some(doc => doc.id !== excludeRfid);
+// ==================== STUDENT LOOKUPS ====================
+// A student is identified by the STUDENT NUMBER (it never changes). The RFID number is just the
+// current ID card: it changes every year, so it is stored as a normal field and never used as the
+// identity. New student records use the student number as the document ID; older records may
+// still have their old RFID as the document ID, so every lookup goes through a query.
+async function findStudentByNumber(studentNumber) {
+  if (!studentNumber) return null;
+  const snap = await getDocs(query(collection(db, 'students'), where('studentNumber', '==', studentNumber)));
+  return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
+}
+
+async function findStudentByRfid(rfid) {
+  if (!rfid) return null;
+  const snap = await getDocs(query(collection(db, 'students'), where('rfidNumber', '==', rfid)));
+  return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
+}
+
+// A card that was replaced by a newer one is kept in previousRfids
+async function findStudentByOldRfid(rfid) {
+  if (!rfid) return null;
+  const snap = await getDocs(query(collection(db, 'students'), where('previousRfids', 'array-contains', rfid)));
+  return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
+}
+
+function isValidRfid(rfid) {
+  return /^\d{1,10}$/.test(rfid);
+}
+
+// The list of old RFID numbers after a student gets a new card
+function buildPreviousRfids(student, newRfid) {
+  const list = Array.isArray(student.previousRfids) ? [...student.previousRfids] : [];
+  if (student.rfidNumber && student.rfidNumber !== newRfid && !list.includes(student.rfidNumber)) {
+    list.push(student.rfidNumber);
   }
-  return true;
+  return list.filter(r => r !== newRfid).slice(-20);
+}
+
+// true when another student (not excludeDocId) already has this student number
+async function isStudentNumberDuplicate(studentNumber, excludeDocId = null) {
+  const found = await findStudentByNumber(studentNumber);
+  return !!found && found.id !== excludeDocId;
 }
 
 // ==================== UPDATE STUDENTS' PROGRAM ====================
@@ -338,17 +343,15 @@ async function updateStudentsProgram(oldCode, newCode) {
     console.log(`Updated ${snapshot.size} students from ${oldCode} to ${newCode}`);
   } catch (err) {
     console.error('Error updating students program:', err);
-    showMessageModal('Failed to update students using this program: ' + err.message);
+    showMessageModal('Failed to update students using this program: ' + friendlyError(err));
   }
 }
 
 // ==================== PAGE INIT ====================
 // Data loading happens in each page's own script, after checkPageAccess() resolves.
 document.addEventListener('DOMContentLoaded', function() {
-  if (!document.querySelector('.main-wrapper')) updateTopBarForRole(null);   // login page only; app pages wait for the verified role
-
+  buildTopBar();
   attachSortListeners();
-  addCreditsLinks();
 
   if (document.getElementById('date')) setDefaultDate();
 
@@ -366,6 +369,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  const usernameInput = document.getElementById('username');
+  if (usernameInput) {
+    usernameInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('password').focus(); }
+    });
+  }
   const passwordInput = document.getElementById('password');
   if (passwordInput) {
     passwordInput.addEventListener('keypress', function(e) {
@@ -373,7 +382,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  loadDarkModePreference();
+  applyTheme();
+  applyAppearance();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+  initPhotoDrop();
 
   document.addEventListener('click', function(e) {
     const th = e.target.closest('th');
@@ -462,7 +474,7 @@ async function loadStudents() {
     }
   } catch (err) {
     console.error('Failed to load students:', err);
-    showMessageModal('Failed to load students: ' + err.message);
+    showMessageModal('Failed to load students: ' + friendlyError(err));
   } finally {
     hideTableSpinner('#homeTable');
   }
@@ -479,10 +491,9 @@ async function loadClearanceLogs() {
       renderClearanceLogs(clearanceLogs, true);
       updateSortIndicators(logSort.column, logSort.direction, true);
     }
-    applyFilters();
   } catch (err) {
     console.error('Failed to load clearance logs:', err);
-    showMessageModal('Failed to load clearance logs: ' + err.message);
+    showMessageModal('Failed to load clearance logs: ' + friendlyError(err));
   } finally {
     hideTableSpinner('#clearanceLogTable');
   }
@@ -555,6 +566,7 @@ function renderProgramsTable() {
 }
 
 function showAddProgramModal() {
+  clearErrorsIn(document.getElementById('addProgramModal'));
   document.getElementById('newProgramCode').value = '';
   document.getElementById('newProgramName').value = '';
   document.getElementById('addProgramModal').style.display = 'flex';
@@ -567,15 +579,18 @@ async function addProgram() {
   let code = document.getElementById('newProgramCode').value.trim().toUpperCase();
   let name = document.getElementById('newProgramName').value.trim();
 
+  const prefix = 'new';
+  if (!code) showFieldError(prefix + 'ProgramCode');
+  if (!name) showFieldError(prefix + 'ProgramName');
   if (!code || !name) {
-    showMessageModal('Please enter both code and name.');
+    focusFirstError();
     return;
   }
 
   name = formatProgramName(name);
 
   if (!/^[A-Za-z]+$/.test(code)) {
-    showMessageModal('Program code must contain only letters.');
+    showFieldError(prefix + 'ProgramCode', 'Program code can only have letters, for example BSIT.');
     return;
   }
 
@@ -589,13 +604,14 @@ async function addProgram() {
     loadPrograms();
     showMessageModal('Program added successfully.');
   } catch (err) {
-    showMessageModal('Error adding program: ' + err.message);
+    showMessageModal('Error adding program: ' + friendlyError(err));
   }
 }
 
 function editProgram(id) {
   const program = programs.find(p => p.id === id);
   if (!program) return;
+  clearErrorsIn(document.getElementById('editProgramModal'));
   document.getElementById('editProgramId').value = id;
   document.getElementById('editProgramCode').value = program.programCode;
   document.getElementById('editProgramName').value = program.programName;
@@ -614,22 +630,25 @@ async function updateProgram() {
   let code = document.getElementById('editProgramCode').value.trim().toUpperCase();
   let name = document.getElementById('editProgramName').value.trim();
 
+  const prefix = 'edit';
+  if (!code) showFieldError(prefix + 'ProgramCode');
+  if (!name) showFieldError(prefix + 'ProgramName');
   if (!code || !name) {
-    showMessageModal('Please enter both code and name.');
+    focusFirstError();
     return;
   }
 
   name = formatProgramName(name);
 
   if (!/^[A-Za-z]+$/.test(code)) {
-    showMessageModal('Program code must contain only letters.');
+    showFieldError(prefix + 'ProgramCode', 'Program code can only have letters, for example BSIT.');
     return;
   }
 
   // If the code changed, you need to decide whether to allow it.
   // For simplicity, we'll disallow changing the code.
   if (code !== oldProgram.programCode) {
-    showMessageModal('Program code cannot be changed. Delete and recreate if needed.');
+    showFieldError('editProgramCode', 'The program code cannot be changed. Delete and re-add the program instead.');
     return;
   }
 
@@ -641,7 +660,7 @@ async function updateProgram() {
     loadPrograms();
     showMessageModal('Program updated successfully.');
   } catch (err) {
-    showMessageModal('Error updating program: ' + err.message);
+    showMessageModal('Error updating program: ' + friendlyError(err));
   }
 }
 
@@ -661,7 +680,12 @@ async function deleteProgram(id) {
 }
 
 async function confirmModalAction() {
-  if (pendingDeleteRfids.length > 0) {
+  if (pendingVerifySave) {
+    closeConfirmModal();
+    await saveVerification();
+  } else if (pendingRemovePhotoLogId) {
+    await confirmRemovePhoto();
+  } else if (pendingDeleteRfids.length > 0) {
     await confirmDelete();
   } else if (pendingDeleteLogIds.length > 0) {          // <-- new
     await confirmDeleteLogs();
@@ -685,7 +709,7 @@ async function confirmModalAction() {
       }
       loadUsers(); // refresh table
     } catch (err) {
-      showMessageModal('Error: ' + err.message);
+      showMessageModal('Error: ' + friendlyError(err));
     } finally {
       pendingUserAction = null;
     }
@@ -702,7 +726,7 @@ async function confirmProgramDelete() {
     loadPrograms();
     showMessageModal('Program deleted.');
   } catch (err) {
-    showMessageModal('Error deleting program: ' + err.message);
+    showMessageModal('Error deleting program: ' + friendlyError(err));
   }
 }
 
@@ -719,7 +743,7 @@ async function loadUsers() {
     sortUsers(); 
     renderUsersTable();
   } catch (err) {
-    showMessageModal('Failed to load users: ' + err.message);
+    showMessageModal('Failed to load users: ' + friendlyError(err));
   } finally {
     hideTableSpinner('#usersTable');
   }
@@ -746,7 +770,7 @@ function renderUsersTable() {
         <td>${escapeHtml(createdAt)}</td>
         <td>
           ${!user.approved ? `<button onclick="showApproveConfirm('${uid}')" class="btn-primary" style="margin-right:5px;">Approve</button>` : ''}
-          <select id="role-${uid}" style="margin-right:5px; height:30px;">
+          <select id="role-${uid}" style="margin-right:5px; width:auto; height:24px; font-size:13px;">
             <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
             <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
             <option value="superadmin" ${user.role === 'superadmin' ? 'selected' : ''}>Superadmin</option>
@@ -927,7 +951,7 @@ function renderAdminStudentsTable() {
         <td>${student.gender || ''}</td>
         <td>
           <button onclick="editStudent('${student.id}')" class="export-btn" style="padding:2px 8px; margin-right:5px;">Edit</button>
-          <button onclick="deleteSingleStudent('${student.rfidNumber}')" class="delete-btn" style="padding:2px 8px;">Delete</button>
+          <button onclick="deleteSingleStudent('${escapeHtml(student.id)}')" class="delete-btn" style="padding:2px 8px;">Delete</button>
         </td>
       </tr>
     `;
@@ -936,8 +960,8 @@ function renderAdminStudentsTable() {
   filterAdminTable(); 
 }
 
-function deleteSingleStudent(rfid) {
-  pendingAdminDelete = [rfid];
+function deleteSingleStudent(docId) {
+  pendingAdminDelete = [docId];
   document.getElementById('confirmMessage').textContent = 'Are you sure you want to delete this student?';
   document.getElementById('confirmModal').style.display = 'flex';
 }
@@ -947,10 +971,10 @@ function editStudent(docId) {
 }
 
 async function confirmAdminDelete() {
-  const rfids = [...pendingAdminDelete];
+  const docIds = [...pendingAdminDelete];
   closeConfirmModal();
   try {
-    const promises = rfids.map(rfid => deleteDoc(doc(db, 'students', rfid)));
+    const promises = docIds.map(docId => deleteDoc(doc(db, 'students', docId)));
     await Promise.all(promises);
     loadStudents();           // reload students for both tables
     if (window.location.pathname.includes('admin.html')) {
@@ -958,7 +982,7 @@ async function confirmAdminDelete() {
     }
     showMessageModal('Selected students deleted.');
   } catch (err) {
-    showMessageModal('Delete failed: ' + err.message);
+    showMessageModal('Delete failed: ' + friendlyError(err));
   }
 }
 
@@ -968,6 +992,8 @@ function closeConfirmModal() {
   pendingAdminDelete = [];
   pendingDeleteProgramId = null;
   pendingDeleteLogIds = [];
+  pendingVerifySave = false;
+  pendingRemovePhotoLogId = null;
   pendingUserAction = null;
 }
 
@@ -1167,7 +1193,7 @@ async function confirmDelete() {
     loadStudents();
     showMessageModal('Selected students deleted.');
   } catch (err) {
-    showMessageModal('Delete failed: ' + err.message);
+    showMessageModal('Delete failed: ' + friendlyError(err));
   }
 }
 
@@ -1176,63 +1202,302 @@ function populateStudentFilters() {
 }
 
 // ==================== RENDERING CLEARANCE LOGS TABLE ====================
+// Dates show as "Nov 16, 2026" with the time underneath, so a date column stays narrow.
+function formatLogDate(timestamp) {
+  if (!timestamp) return '';
+  const d = new Date(timestamp.seconds * 1000);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }) +
+    '\n' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' });
+}
+
+// "Remarks: note" text for a log ("Others" shows the note that was typed in)
+function logRemarksText(log) {
+  return log.remarks === REMARKS_OTHERS && log.remarksNote ? `${log.remarks}: ${log.remarksNote}` : log.remarks;
+}
+
+// Two lines in one cell: main text, then a muted detail line
+function twoLineCell(main, detail) {
+  return `<div>${escapeHtml(main)}</div>` + (detail ? `<div class="cell-sub">${escapeHtml(detail)}</div>` : '');
+}
+
+function dateCell(timestamp) {
+  const [date, time] = formatLogDate(timestamp).split('\n');
+  return date ? twoLineCell(date, time) : '';
+}
+
+// Every re-release is kept as { date, comment }. Forms re-released before the history was kept only have
+// a count and the last date, so that date is shown as one entry and the rest are counted as unrecorded.
+function reReleaseHistory(log) {
+  const total = log.reReleaseCount || 0;
+  const entries = (log.reReleases || []).map(r => ({ date: r.date, comment: r.comment }));
+  if (entries.length === 0 && total > 0 && log.lastReReleasedDate) entries.push({ date: log.lastReReleasedDate, comment: '' });
+  return { total, entries, unrecorded: Math.max(0, total - entries.length) };
+}
+
+// HTML list of every re-release: total first, then one line per re-release with its comment
+function reReleaseHtml(log) {
+  const { total, entries, unrecorded } = reReleaseHistory(log);
+  if (total === 0) return '';
+  return `<div class="rr-total">${total}× re-released</div>` +
+    (unrecorded ? `<div class="cell-sub">${unrecorded} earlier, no details recorded</div>` : '') +
+    entries.map((e, i) => {
+      const n = unrecorded + i + 1;
+      return `<div class="rr-entry"><span class="rr-num">#${n}</span> ${escapeHtml(formatLogDate(e.date).replace('\n', ' · '))}` +
+        (e.comment ? `<div class="cell-sub">${escapeHtml(e.comment)}</div>` : '') + `</div>`;
+    }).join('');
+}
+
 function renderClearanceLogs(logs, keepSort = false) {
   const tbody = document.querySelector('#clearanceLogTable tbody');
   if (!tbody) return;
   let data = keepSort ? sortLogs(logs, logSort.column, logSort.direction) : logs;
   tbody.innerHTML = data.map(log => {
-    const releaseDate = log.claimedDate ? new Date(log.claimedDate.seconds * 1000).toLocaleString() : '';
-    const receiveDate = log.returnedDate ? new Date(log.returnedDate.seconds * 1000).toLocaleString() : '';
     // Date range filter works on the release date, in Philippines time
     const filterDate = log.claimedDate ? toPhDateString(new Date(log.claimedDate.seconds * 1000)) : '';
     const reReleaseCount = log.reReleaseCount || 0;
-    // "Others" shows the remarks that were typed in; the plain remark is kept on the row for filtering
-    const remarksText = log.remarks === REMARKS_OTHERS && log.remarksNote ? `${log.remarks}: ${log.remarksNote}` : log.remarks;
-    const lastReRelease = log.lastReReleasedDate ? `Last re-released: ${new Date(log.lastReReleasedDate.seconds * 1000).toLocaleString()}` : '';
+    const remarksText = logRemarksText(log);
+    const reReleaseCell = reReleaseHtml(log);
+    const statusClass = log.status === 'Returned' ? 'status-returned' : 'status-claimed';
     return `
-      <tr data-date="${escapeHtml(filterDate)}" data-remarks="${escapeHtml(log.remarks)}">
+      <tr data-date="${escapeHtml(filterDate)}" data-remarks="${escapeHtml(log.remarks)}" data-status="${escapeHtml(log.status)}"
+          data-semester="${escapeHtml(log.semester)}" data-ay="${escapeHtml(log.academicYear)}"
+          data-year="${escapeHtml(log.yearLevel)}" data-course="${escapeHtml(log.program)}" data-rereleases="${reReleaseCount}"
+          data-verified="${log.verified ? 'yes' : (log.status === 'Returned' ? 'no' : '')}">
         <td style="text-align: center;">
           <input type="checkbox" class="log-checkbox" data-log-id="${escapeHtml(log.id)}" onchange="updateSelectAllLogsState()">
         </td>
-        <td>${escapeHtml(log.rfid)}</td>
-        <td>${escapeHtml(log.studentNumber)}</td>
-        <td>${escapeHtml(log.name)}</td>
-        <td>${escapeHtml(releaseDate)}</td>
-        <td>${escapeHtml(receiveDate)}</td>
-        <td>${escapeHtml(log.academicYear)}</td>
-        <td>${escapeHtml(log.semester)}</td>
-        <td>${escapeHtml(log.yearLevel)}</td>
-        <td>${escapeHtml(log.program)}</td>
-        <td title="${escapeHtml(remarksText)}">${escapeHtml(remarksText)}</td>
-        <td title="${escapeHtml(log.comment)}">${escapeHtml(log.comment)}</td>
-        <td>${escapeHtml(log.status)}</td>
-        <td title="${escapeHtml(lastReRelease)}">${reReleaseCount}</td>
+        <td>${twoLineCell(log.name, `${log.studentNumber} · RFID ${log.rfid}`)}</td>
+        <td>${twoLineCell(log.academicYear, log.semester)}</td>
+        <td>${twoLineCell(log.program, log.yearLevel)}</td>
+        <td>${dateCell(log.claimedDate)}</td>
+        <td>${dateCell(log.returnedDate)}</td>
+        <td>${reReleaseCell}</td>
+        <td title="${escapeHtml([remarksText, log.comment].filter(Boolean).join(' — '))}">${twoLineCell(remarksText, log.comment)}</td>
+        <td><span class="status-badge ${statusClass}">${escapeHtml(log.status)}</span></td>
+        <td>${verificationCell(log)}</td>
       </tr>
     `;
   }).join('');
   applyFilters();
 }
 
+// ==================== RETURNED FORM PHOTO (VERIFICATION) ====================
+// A returned log can get a photo of the clearance form, which marks it "Verified". The photo is a
+// compressed JPEG kept in its own collection (clearancePhotos/{logId}) so loading the log list stays
+// fast. It is only a check on the returned status and is never part of any export.
+const PHOTO_MAX_SIDE = 1400;       // longest side in pixels after compressing
+const PHOTO_QUALITY = 0.7;
+const PHOTO_MAX_CHARS = 900000;    // a Firestore document holds 1 MiB; firestore.rules enforces the same limit
+let verifyLogId = null;
+let verifyPhotoData = null;
+let pendingVerifySave = false;       // confirm dialog is asking to save the photo
+let pendingRemovePhotoLogId = null;  // confirm dialog is asking to remove this log's photo
+
+function verificationCell(log) {
+  if (log.status !== 'Returned') return '';
+  const id = escapeHtml(log.id);
+  if (log.verified) {
+    return `<span class="status-badge status-verified">Verified</span>` +
+      `<button type="button" class="photo-btn" onclick="viewLogPhoto('${id}')">View photo</button>`;
+  }
+  return `<button type="button" class="photo-btn photo-btn-primary" onclick="openVerifyModal('${id}')">Add photo</button>`;
+}
+
+async function compressPhoto(file) {
+  if (!file.type.startsWith('image/')) throw new Error('The selected file is not an image.');
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const data = canvas.toDataURL('image/jpeg', PHOTO_QUALITY);
+  if (data.length > PHOTO_MAX_CHARS) throw new Error('The photo is too detailed to save. Take it again with the form filling the frame.');
+  return data;
+}
+
+function openVerifyModal(logId) {
+  const log = clearanceLogs.find(l => l.id === logId);
+  if (!log) throw new Error('Clearance log not found: ' + logId);
+  verifyLogId = logId;
+  verifyPhotoData = null;
+  document.getElementById('verifyStudent').textContent = `${log.name} · ${log.studentNumber} · ${log.academicYear}, ${log.semester} semester`;
+  document.getElementById('verifyPreview').style.display = 'none';
+  document.getElementById('verifyPreviewEmpty').style.display = '';
+  document.getElementById('verifySaveBtn').disabled = true;
+  document.getElementById('verifyModal').style.display = 'flex';
+}
+
+function closeVerifyModal() {
+  document.getElementById('verifyModal').style.display = 'none';
+  verifyLogId = null;
+  verifyPhotoData = null;
+}
+
+function onPhotoPicked(input) {
+  const file = input.files[0];
+  input.value = '';   // picking the same file again must still fire a change
+  return usePhoto(file);
+}
+
+async function usePhoto(file) {
+  if (!file) return;
+  try {
+    verifyPhotoData = await compressPhoto(file);
+  } catch (err) {
+    verifyPhotoData = null;
+    document.getElementById('verifySaveBtn').disabled = true;
+    showMessageModal('Could not use this photo: ' + err.message);
+    return;
+  }
+  const preview = document.getElementById('verifyPreview');
+  preview.src = verifyPhotoData;
+  preview.style.display = 'block';
+  document.getElementById('verifyPreviewEmpty').style.display = 'none';
+  document.getElementById('verifySaveBtn').disabled = false;
+}
+
+// Desktop: drop a photo anywhere on the verify dialog. Dropping outside it must not make the browser open the file.
+function initPhotoDrop() {
+  const modal = document.getElementById('verifyModal');
+  if (!modal) return;
+  const zone = modal.querySelector('.photo-preview');
+  const hasFiles = e => e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files');
+  let depth = 0;
+  modal.addEventListener('dragenter', e => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    depth++;
+    zone.classList.add('drag-over');
+  });
+  modal.addEventListener('dragover', e => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  modal.addEventListener('dragleave', e => {
+    if (!hasFiles(e)) return;
+    depth--;
+    if (depth <= 0) { depth = 0; zone.classList.remove('drag-over'); }
+  });
+  modal.addEventListener('drop', e => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    depth = 0;
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length !== 1) { showMessageModal('Drop one photo at a time.'); return; }
+    usePhoto(e.dataTransfer.files[0]);
+  });
+}
+
+function askSaveVerification() {
+  if (!verifyLogId || !verifyPhotoData) throw new Error('No log or photo selected.');
+  pendingVerifySave = true;
+  document.getElementById('confirmMessage').textContent = 'Save this photo and mark the returned form as verified?';
+  document.getElementById('confirmModal').style.display = 'flex';
+}
+
+async function saveVerification() {
+  if (isProcessing) return;
+  if (!verifyLogId || !verifyPhotoData) throw new Error('No log or photo selected.');
+  isProcessing = true;
+  const saveBtn = document.getElementById('verifySaveBtn');
+  saveBtn.disabled = true;
+  try {
+    const now = new Date();
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'clearancePhotos', verifyLogId), { image: verifyPhotoData, uploadedAt: now, uploadedBy: auth.currentUser.uid });
+    batch.update(doc(db, 'clearanceLogs', verifyLogId), { verified: true, verifiedAt: now });
+    await batch.commit();
+    const log = clearanceLogs.find(l => l.id === verifyLogId);
+    log.verified = true;
+    log.verifiedAt = { seconds: Math.floor(now.getTime() / 1000) };
+    closeVerifyModal();
+    renderClearanceLogs(clearanceLogs, true);
+    showMessageModal('Photo saved. The returned form is now verified.');
+  } catch (err) {
+    saveBtn.disabled = false;
+    showMessageModal('Could not save the photo: ' + friendlyError(err));
+  } finally {
+    isProcessing = false;
+  }
+}
+
+async function viewLogPhoto(logId) {
+  const log = clearanceLogs.find(l => l.id === logId);
+  if (!log) throw new Error('Clearance log not found: ' + logId);
+  verifyLogId = logId;
+  const img = document.getElementById('photoViewImg');
+  img.style.display = 'none';
+  img.removeAttribute('src');
+  document.getElementById('photoViewMeta').textContent = `${log.name} · ${log.studentNumber} · Verified ${formatLogDate(log.verifiedAt).replace('\n', ' ')}`;
+  document.getElementById('photoReplaceBtn').style.display = currentUserRole === 'admin' ? 'none' : '';
+  document.getElementById('photoRemoveBtn').style.display = currentUserRole === 'superadmin' ? '' : 'none';
+  document.getElementById('photoViewModal').style.display = 'flex';
+  try {
+    const snap = await getDoc(doc(db, 'clearancePhotos', logId));
+    if (!snap.exists()) throw new Error('The photo for this log could not be found.');
+    img.src = snap.data().image;
+    img.style.display = 'block';
+  } catch (err) {
+    closePhotoViewModal();
+    showMessageModal('Could not load the photo: ' + friendlyError(err));
+  }
+}
+
+function closePhotoViewModal() {
+  document.getElementById('photoViewModal').style.display = 'none';
+  document.getElementById('photoViewImg').removeAttribute('src');
+}
+
+function askRemovePhoto() {
+  if (currentUserRole !== 'superadmin') throw new Error('Only the superadmin can remove a photo.');
+  pendingRemovePhotoLogId = verifyLogId;
+  document.getElementById('confirmMessage').textContent = 'Remove this photo? The log will become unverified and must be verified again.';
+  document.getElementById('confirmModal').style.display = 'flex';
+}
+
+async function confirmRemovePhoto() {
+  const logId = pendingRemovePhotoLogId;
+  closeConfirmModal();
+  closePhotoViewModal();
+  try {
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'clearancePhotos', logId));
+    batch.update(doc(db, 'clearanceLogs', logId), { verified: false, verifiedAt: null });
+    await batch.commit();
+    const log = clearanceLogs.find(l => l.id === logId);
+    log.verified = false;
+    log.verifiedAt = null;
+    renderClearanceLogs(clearanceLogs, true);
+    showMessageModal('Photo removed. The log is no longer verified.');
+  } catch (err) {
+    showMessageModal('Could not remove the photo: ' + friendlyError(err));
+  }
+}
+
+function replaceLogPhoto() {
+  const logId = verifyLogId;
+  closePhotoViewModal();
+  openVerifyModal(logId);
+}
+
 // ==================== SORTING ====================
 function getSortProperty(columnIndex, isLogTable) {
   if (isLogTable) {
-    // Clearance logs table column indices:
-    // 0=checkbox, 1=RFID, 2=ID, 3=NAME, 4=RELEASE, 5=RECEIVE, 6=A.Y., 7=SEMESTER,
-    // 8=YEAR LEVEL, 9=COURSE, 10=REMARKS, 11=COMMENT, 12=STATUS, 13=RE-RELEASES
+    // Clearance logs table: 0=checkbox, 1=STUDENT, 2=A.Y./SEM, 3=COURSE/YEAR, 4=RELEASED,
+    // 5=RECEIVED, 6=RE-RELEASED, 7=REMARKS, 8=STATUS, 9=VERIFICATION
     const map = {
-      1: 'rfid',
-      2: 'studentNumber',
-      3: 'name',
+      1: 'name',
+      2: 'academicYear',
+      3: 'program',
       4: 'claimedDate',
       5: 'returnedDate',
-      6: 'academicYear',
-      7: 'semester',
-      8: 'yearLevel',
-      9: 'program',
-      10: 'remarks',
-      11: 'comment',
-      12: 'status',
-      13: 'reReleaseCount'
+      6: 'lastReReleasedDate',
+      7: 'remarks',
+      8: 'status',
+      9: 'verifiedAt'
     };
     return map[columnIndex];
   } else {
@@ -1258,12 +1523,9 @@ function sortLogs(logs, columnIndex, direction) {
   return [...logs].sort((a, b) => {
     let valA = a[prop] || '';
     let valB = b[prop] || '';
-    if (prop === 'claimedDate' || prop === 'returnedDate') {
+    if (prop === 'claimedDate' || prop === 'returnedDate' || prop === 'lastReReleasedDate' || prop === 'verifiedAt') {
       valA = valA ? valA.seconds : 0;
       valB = valB ? valB.seconds : 0;
-    } else if (prop === 'reReleaseCount') {
-      valA = Number(valA);
-      valB = Number(valB);
     } else {
       if (typeof valA === 'string') valA = valA.toLowerCase();
       if (typeof valB === 'string') valB = valB.toLowerCase();
@@ -1372,16 +1634,15 @@ function deleteSelectedHome() {
 
 // ==================== RFID AUTO‑FILL ====================
 async function checkRFID() {
+  if (isEditMode) return;   // while editing, the RFID field is the value being changed
   const rfid = document.getElementById('rfidNumber').value.trim();
   if (!rfid) return;
   try {
-    const docRef = doc(db, 'students', rfid);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      // If exists, treat as edit mode
-      setupEditMode(rfid); // rfid is the document ID
+    const existing = await findStudentByRfid(rfid);
+    if (existing) {
+      // This card already belongs to a student: open that student for editing
+      setupEditMode(existing.id);
     } else {
-      // New student mode
       document.getElementById('rfidNumber').disabled = false;
       document.getElementById('studentNumber').disabled = false;
       document.getElementById('surname').disabled = false;
@@ -1389,7 +1650,7 @@ async function checkRFID() {
       document.getElementById('middleName').disabled = false;
       document.getElementById('date').disabled = false;
       const btn = document.getElementById('registerButton');
-      btn.textContent = 'REGISTER';
+      btn.textContent = 'Register';
       btn.onclick = validateAndRegister;
       isEditMode = false;
     }
@@ -1413,7 +1674,7 @@ async function setupEditMode(docId) {
     const studentId = docSnap.id; // document ID
 
     // Determine student type
-    const hasRfid = !!student.rfidNumber;
+    const hasRfid = !!student.studentNumber;
     const studentType = hasRfid ? 'new' : 'old';
 
     // Set the hidden field and switch tab
@@ -1422,8 +1683,8 @@ async function setupEditMode(docId) {
       switchRegistrationTab('new');
       document.getElementById('rfidNumber').value = student.rfidNumber || '';
       document.getElementById('studentNumber').value = student.studentNumber || '';
-      document.getElementById('rfidNumber').disabled = true;
-      document.getElementById('studentNumber').disabled = true;
+      document.getElementById('rfidNumber').disabled = false;       // a new ID card = new RFID number
+      document.getElementById('studentNumber').disabled = true;     // the student number never changes
     } else {
       switchRegistrationTab('old');
       // No RFID or student number fields to fill
@@ -1468,7 +1729,7 @@ async function setupEditMode(docId) {
     document.querySelector('[data-field="gender"]').disabled = false;
 
     const btn = document.getElementById('registerButton');
-    btn.textContent = 'UPDATE';
+    btn.textContent = 'Update';
     btn.onclick = () => validateAndUpdate(studentId); // pass docId
     isEditMode = true;
   } catch (err) {
@@ -1502,7 +1763,7 @@ async function registerOldStudent() {
   if (!academicYear) { showFieldError('academicYear'); hasErrors = true; }
   if (!gender) { showFieldError('gender'); hasErrors = true; }
   if (hasErrors) {
-    showMessageModal('Please fill in all required fields.');
+    focusFirstError();
     return;
   }
 
@@ -1543,7 +1804,7 @@ async function registerOldStudent() {
     document.getElementById('successModal').style.display = 'flex';
   } catch (err) {
     console.error('Old student registration error:', err);
-    showMessageModal('Registration failed: ' + err.message);
+    showMessageModal('Registration failed: ' + friendlyError(err));
   }
 }
 
@@ -1558,7 +1819,7 @@ function toggleRegistrationType(type) {
     rfidInput.disabled = false;
     studentNumberInput.disabled = false;
     registerBtn.onclick = validateAndRegister;
-    registerBtn.textContent = 'REGISTER';
+    registerBtn.textContent = 'Register';
     // Reset form for new student (optional)
     resetRegistrationForm();
   } else {
@@ -1566,7 +1827,7 @@ function toggleRegistrationType(type) {
     rfidInput.disabled = true;
     studentNumberInput.disabled = true;
     registerBtn.onclick = registerOldStudent;
-    registerBtn.textContent = 'REGISTER OLD STUDENT';
+    registerBtn.textContent = 'Register Old Student';
     // Clear old student fields (keep common fields)
     document.getElementById('surname').value = '';
     document.getElementById('firstName').value = '';
@@ -1586,8 +1847,7 @@ function validateDateIsToday() {
   const phNow = new Date(new Date().getTime() + (8 * 60 * 60 * 1000));
   const phDate = phNow.toISOString().split('T')[0];
   if (selectedDate !== phDate) {
-    showFieldError('date');
-    showMessageModal('Date must be today\'s date.');
+    showFieldError('date', 'Date must be today\'s date.');
     return false;
   }
   return true;
@@ -1630,22 +1890,23 @@ async function validateAndUpdate(docId) {
   if (!formData.gender) { showFieldError('gender'); hasErrors = true; }
   
   if (hasErrors) {
-    showMessageModal('Please fill in all required fields.');
+    focusFirstError();
     return;
   }
 
-  // For new students, check duplicate student number (excluding current)
   if (studentType === 'new') {
-    const isDuplicate = await isStudentNumberDuplicate(formData.studentNumber, formData.rfidNumber);
-    if (isDuplicate) {
-      showFieldError('studentNumber');
-      showMessageModal('Student number already exists.');
+    if (!isValidRfid(formData.rfidNumber)) {
+      showFieldError('rfidNumber', 'RFID number is 1 to 10 digits, for example 0012345678.');
       return;
     }
-
+    // The RFID must not belong to a different student
+    const rfidOwner = await findStudentByRfid(formData.rfidNumber);
+    if (rfidOwner && rfidOwner.id !== docId) {
+      showFieldError('rfidNumber', `This RFID number is already assigned to ${formatFullName(rfidOwner)} (${rfidOwner.studentNumber}).`);
+      return;
+    }
     if (!isValidStudentNumber(formData.studentNumber)) {
-      showFieldError('studentNumber');
-      showMessageModal('Student number must start with a letter followed by exactly 6 digits (e.g., C123456).');
+      showFieldError('studentNumber', 'Student number is one letter followed by 6 digits, for example C123456.');
       return;
     }
   }
@@ -1674,31 +1935,42 @@ async function confirmUpdate() {
     }
     const currentStudent = docSnap.data();
 
-    const updatedStudent = {
-      ...currentStudent,
+    // Same student number, new ID card: only the RFID changes, everything else stays as it was
+    if (formData.kind === 'rfidChange') {
+      await updateDoc(docRef, {
+        rfidNumber: formData.rfidNumber,
+        previousRfids: buildPreviousRfids(currentStudent, formData.rfidNumber)
+      });
+      document.getElementById('updateSuccessMessage').innerText = 'RFID number updated. All other student details were kept.';
+      document.getElementById('updateSuccessModal').style.display = 'flex';
+      return;
+    }
+
+    const changes = {
       surname: formData.surname,
       firstName: formData.firstName,
       middleName: formData.middleName,
       program: formData.program,
       yearLevel: formData.yearLevel,
       gender: formData.gender,
-      academicYear: formData.academicYear,   // new
+      academicYear: formData.academicYear
     };
 
-    // For new students, also update studentNumber (rfidNumber is immutable)
-    if (formData.studentNumber) {
-      updatedStudent.studentNumber = formData.studentNumber;
+    // The student number is fixed; the RFID number may change (new ID card)
+    if (formData.rfidNumber && formData.rfidNumber !== currentStudent.rfidNumber) {
+      changes.rfidNumber = formData.rfidNumber;
+      changes.previousRfids = buildPreviousRfids(currentStudent, formData.rfidNumber);
     }
 
-    await setDoc(docRef, updatedStudent);
-    
+    await updateDoc(docRef, changes);
+
     document.getElementById('updateSuccessMessage').innerText = 'Update successful!';
     document.getElementById('updateSuccessModal').style.display = 'flex';
   } catch (err) {
     if (err.code === 'permission-denied') {
       showMessageModal('Update not allowed: some fields cannot be changed.');
     } else {
-      showMessageModal('Update failed: ' + err.message);
+      showMessageModal('Update failed: ' + friendlyError(err));
     }
   } finally {
     delete window.pendingUpdateData;
@@ -1741,21 +2013,55 @@ async function validateAndRegister() {
   if (!formData.academicYear) { showFieldError('academicYear'); hasErrors = true; }
   if (!formData.gender) { showFieldError('gender'); hasErrors = true; }
   if (hasErrors) {
-    showMessageModal('Please fill in all required fields.');
-    return;
-  }
-
-  // Check for duplicate student number
-  const isDuplicate = await isStudentNumberDuplicate(formData.studentNumber);
-  if (isDuplicate) {
-    showFieldError('studentNumber');
-    showMessageModal('Student number already exists.');
+    focusFirstError();
     return;
   }
 
   if (!isValidStudentNumber(formData.studentNumber)) {
-    showFieldError('studentNumber');
-    showMessageModal('Student number must start with a letter followed by exactly 6 digits (e.g., A123456).');
+    showFieldError('studentNumber', 'Student number is one letter followed by 6 digits, for example C123456.');
+    return;
+  }
+  if (!isValidRfid(formData.rfidNumber)) {
+    showFieldError('rfidNumber', 'RFID number is 1 to 10 digits, for example 0012345678.');
+    return;
+  }
+
+  try {
+    const sameNumber = await findStudentByNumber(formData.studentNumber);
+    const sameRfid = await findStudentByRfid(formData.rfidNumber);
+
+    // The RFID card is already assigned to somebody else
+    if (sameRfid && (!sameNumber || sameRfid.id !== sameNumber.id)) {
+      showFieldError('rfidNumber', `This RFID number is already assigned to ${formatFullName(sameRfid)} (${sameRfid.studentNumber}).`);
+      return;
+    }
+
+    if (sameNumber) {
+      if (sameNumber.rfidNumber === formData.rfidNumber) {
+        showFieldError('studentNumber', `${formatFullName(sameNumber)} (${sameNumber.studentNumber}) is already registered with this RFID number.`);
+        return;
+      }
+      // Changing the RFID of an existing student is an update, which only admins can do
+      if (typeof currentUserRole !== 'undefined' && currentUserRole === 'user') {
+        showFieldError('studentNumber', `Student number ${sameNumber.studentNumber} is already registered to ${formatFullName(sameNumber)}. Please ask an admin to update their RFID number.`);
+        return;
+      }
+      // Existing student with a new ID card: ask before changing the RFID. Nothing else is overwritten.
+      window.pendingUpdateData = {
+        kind: 'rfidChange',
+        docId: sameNumber.id,
+        rfidNumber: formData.rfidNumber
+      };
+      document.getElementById('updateConfirmMessage').innerText =
+        `Student number ${sameNumber.studentNumber} is already registered to ${formatFullName(sameNumber)}.\n\n` +
+        `Change their RFID number from ${sameNumber.rfidNumber || '(none)'} to ${formData.rfidNumber}?\n` +
+        `Their other details will not be changed.`;
+      document.getElementById('updateConfirmModal').style.display = 'flex';
+      return;
+    }
+  } catch (err) {
+    console.error('Duplicate check error:', err);
+    showMessageModal('Could not check existing students: ' + friendlyError(err));
     return;
   }
 
@@ -1779,16 +2085,17 @@ async function registerStudent(formData) {
   };
 
   try {
-    await setDoc(doc(db, 'students', formData.rfidNumber), student);
+    // The student number is the document ID, so the same student can never be registered twice
+    await setDoc(doc(db, 'students', formData.studentNumber), student);
     resetRegistrationForm();
     document.getElementById('successModal').style.display = 'flex';
   } catch (err) {
     if (err.code === 'permission-denied') {
       showMessageModal('Permission denied. Check Firestore security rules.');
     } else if (err.code === 'already-exists') {
-      showMessageModal('RFID number already exists.');
+      showMessageModal('Student number already exists.');
     } else {
-      showMessageModal('Registration failed: ' + err.message);
+      showMessageModal('Registration failed: ' + friendlyError(err));
     }
   }
 }
@@ -1827,7 +2134,7 @@ function resetRegistrationForm() {
   // date remains disabled (already set)
   
   const btn = document.getElementById('registerButton');
-  btn.textContent = 'REGISTER';
+  btn.textContent = 'Register';
   btn.onclick = validateAndRegister;
   isEditMode = false;
   clearAllFieldErrors();
@@ -1873,15 +2180,97 @@ function refreshRegistrationForm() {
 }
 
 // ==================== FIELD VALIDATION ====================
-function showFieldError(fieldId) {
-  document.getElementById(fieldId).classList.add('error-field');
+// ==================== FORM FIELD ERRORS ====================
+// A field error is a red field plus a message right under it. Messages are removed again as soon as the user edits the field.
+const REQUIRED_MESSAGES = {
+  rfidNumber: 'Enter the RFID number.',
+  studentNumber: 'Enter the student number, for example C123456.',
+  surname: 'Enter the surname.',
+  firstName: 'Enter the first name.',
+  program: 'Select a program.',
+  yearLevel: 'Select a year level.',
+  academicYear: 'Select an academic year.',
+  gender: 'Select a gender.',
+  regSchoolId: 'Enter your school ID.',
+  regFirstName: 'Enter your first name.',
+  regLastName: 'Enter your last name.',
+  regEmail: 'Enter your email address.',
+  regPassword: 'Create a password.',
+  regConfirmPassword: 'Re-enter your password to confirm it.',
+  resetEmail: 'Enter the email address of your account.',
+  username: 'Enter your email address.',
+  password: 'Enter your password.',
+  newProgramCode: 'Enter the program code.',
+  newProgramName: 'Enter the program name.',
+  editProgramCode: 'Enter the program code.',
+  editProgramName: 'Enter the program name.',
+  rfidSearch: 'Enter an RFID or student number.',
+  updateSemester: 'Select a semester.',
+  updateRemarksNote: 'Enter the remarks for "Others".'
+};
+
+function showFieldError(fieldId, message = REQUIRED_MESSAGES[fieldId]) {
+  const input = document.getElementById(fieldId);
+  clearFieldError(fieldId);
+  input.classList.add('error-field');
+  input.setAttribute('aria-invalid', 'true');
+  if (!message) return;
+  const el = document.createElement('div');
+  el.id = fieldId + '-error';
+  el.className = 'field-error';
+  el.setAttribute('role', 'alert');
+  el.textContent = message;
+  // Inline rows (search box + buttons) keep the message under the whole row
+  (input.closest('.search-row-inline') || input).insertAdjacentElement('afterend', el);
+  input.setAttribute('aria-describedby', el.id);
 }
-function clearAllFieldErrors() {
-  document.querySelectorAll('.registration-layout input, .registration-layout select').forEach(f => f.classList.remove('error-field'));
-}
+
 function clearFieldError(fieldId) {
-  document.getElementById(fieldId).classList.remove('error-field');
+  const input = document.getElementById(fieldId);
+  if (!input) return;
+  input.classList.remove('error-field');
+  input.removeAttribute('aria-invalid');
+  input.removeAttribute('aria-describedby');
+  const el = document.getElementById(fieldId + '-error');
+  if (el) el.remove();
 }
+
+function clearErrorsIn(container) {
+  container.querySelectorAll('[aria-invalid]').forEach(input => clearFieldError(input.id));
+  container.querySelectorAll('.form-alert').forEach(el => { el.hidden = true; });
+}
+
+function clearAllFieldErrors() {
+  clearErrorsIn(document.querySelector('.registration-layout') || document.body);
+}
+
+// A message that is about the whole form, not one field (shown at the top of the form)
+function showFormAlert(alertId, message) {
+  const el = document.getElementById(alertId);
+  el.textContent = message;
+  el.hidden = false;
+  el.scrollIntoView({ block: 'nearest' });
+}
+
+function focusFirstError() {
+  const first = document.querySelector('[aria-invalid="true"]');
+  if (first) first.focus();
+}
+
+// Turns a Firebase / network error into a sentence that says what to do next
+function friendlyError(err) {
+  const code = err.code || '';
+  if (code === 'permission-denied') return 'You do not have permission to do this. Ask the ITC if you think this is a mistake.';
+  if (code === 'unauthenticated') return 'Your session has expired. Log in again.';
+  if (code === 'unavailable' || code === 'auth/network-request-failed') return 'The server cannot be reached. Check your internet connection and try again.';
+  if (code === 'resource-exhausted') return 'The system is busy right now. Try again in a few minutes.';
+  return err.message;
+}
+
+// Editing a field clears its error straight away
+['input', 'change'].forEach(type => document.addEventListener(type, e => {
+  if (e.target.getAttribute && e.target.getAttribute('aria-invalid') === 'true') clearFieldError(e.target.id);
+}));
 
 // ==================== NAME FORMATTING ====================
 function capitalizeNameWords(str) {
@@ -1941,34 +2330,31 @@ function isValidStudentNumber(studentNumber) {
 // ==================== STATUS UPDATE PAGE ====================
 async function searchStudent() {
   const input = document.getElementById('rfidSearch').value.trim();
+  clearFieldError('rfidSearch');
   if (!input) {
-    showMessageModal('Please enter an RFID or Student Number.');
+    showFieldError('rfidSearch');
+    return;
+  }
+  if (!/^[A-Z0-9]{1,10}$/.test(input)) {
+    showFieldError('rfidSearch', 'Use up to 10 letters or digits, for example C123456.');
     return;
   }
 
   try {
-    let student = null;
-
-    // First try: treat input as RFID (document ID)
-    const docRef = doc(db, 'students', input);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      student = docSnap.data();
-    } else {
-      // Second try: treat input as Student Number (field)
-      const q = query(collection(db, 'students'), where('studentNumber', '==', input));
-      const querySnap = await getDocs(q);
-      if (!querySnap.empty) {
-        // There should be only one because studentNumber is unique
-        student = querySnap.docs[0].data();
-      }
-    }
+    // The card number (RFID) or the student number can be typed or scanned
+    let student = await findStudentByRfid(input);
+    if (!student) student = await findStudentByNumber(input);
 
     if (student) {
       currentStudentForUpdate = student;
       await displayStudentForUpdate(student);
     } else {
-      showMessageModal('No student found with that RFID or Student Number.');
+      const replaced = await findStudentByOldRfid(input);
+      if (replaced) {
+        showMessageModal(`This RFID number is from an old ID card of ${formatFullName(replaced)} (${replaced.studentNumber}). Please use the new ID card or enter the student number.`);
+      } else {
+        showFieldError('rfidSearch', 'No student found with that RFID or student number. Check the number and try again.');
+      }
     }
   } catch (err) {
     console.error('Search error:', err);
@@ -1981,7 +2367,7 @@ async function displayStudentForUpdate(student) {
   const fullName = formatFullName(student);
 
   // A released-but-not-received form keeps the remarks, note and semester it was released with
-  const openClaim = await findOpenClaim(student.rfidNumber);
+  const openClaim = await findOpenClaim(student.studentNumber);
   const selectedRemarks = openClaim ? openClaim.remarks || 'None' : 'None';
   const selectedSemester = openClaim ? openClaim.semester || '1st' : '1st';
   const noteValue = openClaim ? openClaim.remarksNote || '' : '';
@@ -1998,10 +2384,12 @@ async function displayStudentForUpdate(student) {
   `;
 
   const claimRow = openClaim ? `
-        <tr><th>Clearance Form</th><td>Released on ${escapeHtml(new Date(openClaim.claimedDate.seconds * 1000).toLocaleString())}${openClaim.reReleaseCount ? ` (re-released ${escapeHtml(openClaim.reReleaseCount)}×)` : ''}</td></tr>` : '';
+        <tr><th>Clearance Form</th><td>Released on ${escapeHtml(new Date(openClaim.claimedDate.seconds * 1000).toLocaleString())}${openClaim.reReleaseCount ? ` (re-released ${escapeHtml(openClaim.reReleaseCount)}×)` : ''}</td></tr>` +
+    (openClaim.reReleaseCount ? `
+        <tr><th>Re-releases</th><td class="rr-list">${reReleaseHtml(openClaim)}</td></tr>` : '') : '';
 
   const reReleaseButton = openClaim
-    ? `<button class="btn-rerelease" onclick="showReReleaseConfirm('${escapeHtml(student.rfidNumber)}')">RE-RELEASE</button>`
+    ? `<button class="btn-rerelease" onclick="showReReleaseConfirm('${escapeHtml(student.studentNumber)}')">Re-release</button>`
     : '';
 
   container.style.display = 'block';
@@ -2017,8 +2405,8 @@ async function displayStudentForUpdate(student) {
       </table>
 
       <div class="button-group">
-        <button class="btn-release" onclick="releaseStudent('${escapeHtml(student.rfidNumber)}')">RELEASE</button>
-        <button class="btn-receive" onclick="receiveStudent('${escapeHtml(student.rfidNumber)}')">RECEIVE</button>
+        <button class="btn-release" onclick="releaseStudent('${escapeHtml(student.studentNumber)}')">Release</button>
+        <button class="btn-receive" onclick="receiveStudent('${escapeHtml(student.studentNumber)}')">Receive</button>
         ${reReleaseButton}
       </div>
 
@@ -2067,12 +2455,12 @@ function readRemarksForm() {
   const note = remarks === REMARKS_OTHERS ? document.getElementById('updateRemarksNote').value.trim() : '';
   const comment = document.getElementById('updateComment').value.trim();
 
-  if (!semester) {
-    showMessageModal('Please select a semester to proceed.');
-    return null;
-  }
-  if (remarks === REMARKS_OTHERS && !note) {
-    showMessageModal('Please enter the remarks for "Others".');
+  clearFieldError('updateSemester');
+  clearFieldError('updateRemarksNote');
+  if (!semester) showFieldError('updateSemester');
+  if (remarks === REMARKS_OTHERS && !note) showFieldError('updateRemarksNote');
+  if (document.querySelector('#studentResult [aria-invalid="true"]')) {
+    focusFirstError();
     return null;
   }
   return { remarks, semester, note, comment };
@@ -2131,26 +2519,27 @@ function populateAcademicYearDropdown(tab = 'new', keepValue = '') {
 }
 
 // ==================== CLEARANCE LOG HELPERS ====================
-async function findOpenClaim(rfid) {
+async function findOpenClaim(studentNumber) {
+  // Looked up by student number (it never changes), so a form released with last year's card is still found.
+  // Only equality filters are used, so no composite index is needed; the newest one is picked here.
   const q = query(
     collection(db, 'clearanceLogs'),
-    where('rfid', '==', rfid),
+    where('studentNumber', '==', studentNumber),
     where('status', '==', 'Claimed'),
-    where('returnedDate', '==', null),
-    orderBy('claimedDate', 'desc'),
-    limit(1)
+    where('returnedDate', '==', null)
   );
   const snapshot = await getDocs(q);
-  if (!snapshot.empty) {
-    return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-  }
-  return null;
+  if (snapshot.empty) return null;
+  const open = snapshot.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.claimedDate?.seconds || 0) - (a.claimedDate?.seconds || 0));
+  return open[0];
 }
 
-async function createReleaseLog(rfid, student, claimedDate, academicYear, semester, remarks, remarksNote, comment) {
+async function createReleaseLog(student, claimedDate, academicYear, semester, remarks, remarksNote, comment) {
   const fullName = formatFullName(student);
   const logData = {
-    rfid: rfid,
+    rfid: student.rfidNumber || '',            // the card the student had at the time
     studentNumber: student.studentNumber || '',
     name: fullName,
     program: student.program || '',          // <-- new
@@ -2188,20 +2577,18 @@ function isValidAcademicYear(year) {
 }
 
 // ==================== RELEASE STUDENT (Claimed) ====================
-async function releaseStudent(rfid) {
+async function releaseStudent(studentNumber) {
   if (isProcessing) return;
   isProcessing = true;
   try {
     const form = readRemarksForm();
     if (!form) return;
 
-    const docRef = doc(db, 'students', rfid);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
+    const student = await findStudentByNumber(studentNumber);
+    if (!student) {
       showMessageModal('Student not found.');
       return;
     }
-    const student = docSnap.data();
 
     // Validate that student has an academic year
     if (!student.academicYear) {
@@ -2209,7 +2596,7 @@ async function releaseStudent(rfid) {
       return;
     }
 
-    const openClaim = await findOpenClaim(rfid);
+    const openClaim = await findOpenClaim(student.studentNumber);
     if (openClaim) {
       showMessageModal('Student has already claimed. Please return first.');
       return;
@@ -2217,7 +2604,6 @@ async function releaseStudent(rfid) {
 
     const now = new Date();
     await createReleaseLog(
-      rfid,
       student,
       now,
       student.academicYear,   // <-- use student's stored academic year
@@ -2229,37 +2615,34 @@ async function releaseStudent(rfid) {
 
     showMessageModal('Student clearance form released successfully.');
     clearStatusUpdate();
-    loadClearanceLogs();
   } catch (err) {
     console.error('Release error:', err);
-    showMessageModal('Release failed: ' + err.message);
+    showMessageModal('Release failed: ' + friendlyError(err));
   } finally {
     isProcessing = false;
   }
 }
 
 // ==================== RECEIVE STUDENT (Returned) ====================
-async function receiveStudent(rfid) {
+async function receiveStudent(studentNumber) {
   if (isProcessing) return;
   isProcessing = true;
   try {
     const form = readRemarksForm();
     if (!form) return;
 
-    const docRef = doc(db, 'students', rfid);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
+    const student = await findStudentByNumber(studentNumber);
+    if (!student) {
       showMessageModal('Student not found.');
       return;
     }
-    const student = docSnap.data();
 
     if (!student.academicYear) {
       showMessageModal('Student does not have an academic year set. Please update the student record first.');
       return;
     }
 
-    const openClaim = await findOpenClaim(rfid);
+    const openClaim = await findOpenClaim(student.studentNumber);
     if (!openClaim) {
       showMessageModal('Student has yet to claim form. Please release first.');
       return;
@@ -2278,49 +2661,51 @@ async function receiveStudent(rfid) {
 
     showMessageModal('Student clearance form has been returned successfully.');
     clearStatusUpdate();
-    loadClearanceLogs();
   } catch (err) {
     console.error('Receive error:', err);
-    showMessageModal('Receive failed: ' + err.message);
+    showMessageModal('Receive failed: ' + friendlyError(err));
   } finally {
     isProcessing = false;
   }
 }
 
 // ==================== RE-RELEASE (lost clearance form) ====================
-function showReReleaseConfirm(rfid) {
-  pendingReReleaseRfid = rfid;
+function showReReleaseConfirm(studentNumber) {
+  pendingReReleaseStudentNumber = studentNumber;
+  document.getElementById('reReleaseComment').value = '';
   document.getElementById('reReleaseModal').style.display = 'flex';
 }
 
 function closeReReleaseModal() {
-  pendingReReleaseRfid = null;
+  pendingReReleaseStudentNumber = null;
   document.getElementById('reReleaseModal').style.display = 'none';
 }
 
 async function confirmReReleaseStudent() {
-  const rfid = pendingReReleaseRfid;
+  const studentNumber = pendingReReleaseStudentNumber;
+  const comment = document.getElementById('reReleaseComment').value.trim();
   closeReReleaseModal();
   if (isProcessing) return;
   isProcessing = true;
   try {
-    const openClaim = await findOpenClaim(rfid);
+    const openClaim = await findOpenClaim(studentNumber);
     if (!openClaim) {
       showMessageModal('Student has no released clearance form. Please release first.');
       return;
     }
 
+    const now = new Date();
     await updateDoc(doc(db, 'clearanceLogs', openClaim.id), {
       reReleaseCount: (openClaim.reReleaseCount || 0) + 1,
-      lastReReleasedDate: new Date()
+      lastReReleasedDate: now,
+      reReleases: [...(openClaim.reReleases || []), { date: now, comment }]
     });
 
     showMessageModal('Student clearance form re-released successfully.');
     clearStatusUpdate();
-    loadClearanceLogs();
   } catch (err) {
     console.error('Re-release error:', err);
-    showMessageModal('Re-release failed: ' + err.message);
+    showMessageModal('Re-release failed: ' + friendlyError(err));
   } finally {
     isProcessing = false;
   }
@@ -2337,24 +2722,10 @@ function closeMessageModal() {
 }
 
 // ==================== ERROR MODAL ====================
-function closeErrorModal() {
-  document.getElementById('errorModal').style.display = 'none';
-}
 
 // ==================== TOGGLE PASSWORD ====================
 function togglePassword() {
-  const passwordInput = document.getElementById('password');
-  const checkbox = event.target; // the checkbox that triggered the change
-
-  if (checkbox.checked) {
-    // Show password: remove the security style and set type to text
-    passwordInput.style.removeProperty('-webkit-text-security');
-    passwordInput.type = 'text';
-  } else {
-    // Hide password: restore the security style and keep type text
-    passwordInput.style.setProperty('-webkit-text-security', 'disc');
-    passwordInput.type = 'text';
-  }
+  document.getElementById('password').type = event.target.checked ? 'text' : 'password';
 }
 
 function toggleRegPassword() {
@@ -2370,26 +2741,60 @@ function toggleRegPassword() {
   }
 }
 
-// ==================== DARK MODE ====================
-function toggleDarkMode() {
-  const body = document.body;
-  body.classList.toggle('dark-mode');
-  const icon = document.getElementById('darkModeIcon');
-  if (icon) {
-    icon.textContent = body.classList.contains('dark-mode') ? '☼' : '☾';
-  }
-  localStorage.setItem('darkMode', body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
+// ==================== THEME ====================
+// 'system' follows the device; 'dark' / 'light' are fixed. Stored per device.
+const THEMES = [
+  { id: 'system', label: 'System' },
+  { id: 'dark',   label: 'Dark' },
+  { id: 'light',  label: 'Light' }
+];
+
+function getTheme() {
+  return localStorage.getItem('theme') || 'system';
 }
 
-function loadDarkModePreference() {
-  const darkMode = localStorage.getItem('darkMode');
-  const icon = document.getElementById('darkModeIcon');
-  if (darkMode === 'enabled') {
-    document.body.classList.add('dark-mode');
-    if (icon) icon.textContent = '☼';
-  } else {
-    if (icon) icon.textContent = '☾';
-  }
+function applyTheme() {
+  const theme = getTheme();
+  const dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.body.classList.toggle('dark-mode', dark);
+}
+
+function setTheme(theme) {
+  localStorage.setItem('theme', theme);
+  applyTheme();
+  renderSettingsPanel();
+}
+
+// Text size, bold text and high contrast. Stored per device, like the theme.
+const TEXT_SIZES = [
+  { id: 'small',  label: 'Small',  scale: 0.9 },
+  { id: 'normal', label: 'Normal', scale: 1 },
+  { id: 'large',  label: 'Large',  scale: 1.15 },
+  { id: 'xlarge', label: 'Extra large', scale: 1.3 }
+];
+
+function getTextSize() {
+  return localStorage.getItem('textSize') || 'normal';
+}
+
+function applyAppearance() {
+  const size = TEXT_SIZES.find(t => t.id === getTextSize());
+  if (!size) throw new Error('Unknown text size: ' + getTextSize());
+  document.documentElement.style.setProperty('--text-scale', size.scale);
+  document.body.classList.toggle('bold-text', localStorage.getItem('boldText') === 'on');
+  document.body.classList.toggle('high-contrast', localStorage.getItem('highContrast') === 'on');
+}
+
+function setTextSize(id) {
+  localStorage.setItem('textSize', id);
+  applyAppearance();
+  renderSettingsPanel();
+}
+
+function toggleAppearanceOption(key) {
+  localStorage.setItem(key, localStorage.getItem(key) === 'on' ? 'off' : 'on');
+  applyAppearance();
+  renderSettingsPanel();
 }
 
 // ==================== SET DEFAULT DATE ====================
@@ -2414,6 +2819,12 @@ function populateLogFilters() {
 
 // ==================== FILTERING ====================
 let searchTimeout;
+// Search boxes call this: wait for a short pause in typing before filtering the table
+function debounceFilters() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(applyFilters, 150);
+}
+
 function applyFilters() {
   const isLogTable = window.location.pathname.includes('clearanceTracking.html');
   const tableId = isLogTable ? '#clearanceLogTable' : '#homeTable';
@@ -2428,6 +2839,7 @@ function applyFilters() {
   const courseFilterLogs = document.getElementById('courseFilterLogs')?.value || '';
   const yearFilterLogs = document.getElementById('yearFilterLogs')?.value || '';
   const acadYearFilter = document.getElementById('acadYearFilter')?.value || ''; // logs
+  const verificationFilter = document.getElementById('verificationFilter')?.value || '';
 
   // Home page filters
   const courseFilterHome = document.getElementById('courseFilter')?.value || '';
@@ -2445,26 +2857,20 @@ function applyFilters() {
     let show = true;
 
     // Global search: check all text in the row
-    if (searchInput && !row.innerText.toLowerCase().includes(searchInput)) {
+    if (searchInput && !row.textContent.toLowerCase().includes(searchInput)) {
       show = false;
     }
 
     if (show) {
       if (isLogTable) {
-        // Clearance logs table column indices:
-        // 0:checkbox, 1:RFID, 2:ID, 3:NAME, 4:RELEASE, 5:RECEIVE, 6:A.Y., 7:SEMESTER, 8:YEAR LEVEL, 9:COURSE, 10:REMARKS, 11:COMMENT, 12:STATUS, 13:RE-RELEASES
-        const statusCell = row.cells[12];
-        const semesterCell = row.cells[7];
-        const courseCell = row.cells[9];
-        const yearCell = row.cells[8];
-        const acadYearCell = row.cells[6];
-
-        if (statusFilter && statusCell && statusCell.innerText.trim() !== statusFilter) show = false;
-        if (show && semesterFilter && semesterCell && semesterCell.innerText.trim() !== semesterFilter) show = false;
-        if (show && remarksFilter && row.dataset.remarks !== remarksFilter) show = false;
-        if (show && courseFilterLogs && courseCell && courseCell.innerText.trim() !== courseFilterLogs) show = false;
-        if (show && yearFilterLogs && yearCell && yearCell.innerText.trim() !== yearFilterLogs) show = false;
-        if (show && acadYearFilter && acadYearCell && acadYearCell.innerText.trim() !== acadYearFilter) show = false;
+        const d = row.dataset;
+        if (statusFilter && d.status !== statusFilter) show = false;
+        if (show && semesterFilter && d.semester !== semesterFilter) show = false;
+        if (show && remarksFilter && d.remarks !== remarksFilter) show = false;
+        if (show && courseFilterLogs && d.course !== courseFilterLogs) show = false;
+        if (show && yearFilterLogs && d.year !== yearFilterLogs) show = false;
+        if (show && acadYearFilter && d.ay !== acadYearFilter) show = false;
+        if (show && verificationFilter && d.verified !== verificationFilter) show = false;
       } else {
         // Home table – column indices: 0:checkbox, 1:RFID, 2:STUDENT NO, 3:NAME, 4:COURSE, 5:YEAR LEVEL, 6:A.Y., 7:GENDER, 8:DATE
         const courseCell = row.cells[4];
@@ -2472,10 +2878,10 @@ function applyFilters() {
         const acadYearCell = row.cells[6];
         const genderCell = row.cells[7];
 
-        if (courseFilterHome && courseCell && courseCell.innerText.trim() !== courseFilterHome) show = false;
-        if (show && yearFilterHome && yearCell && yearCell.innerText.trim() !== yearFilterHome) show = false;
-        if (show && acadYearFilterHome && acadYearCell && acadYearCell.innerText.trim() !== acadYearFilterHome) show = false;
-        if (show && genderFilterHome && genderCell && genderCell.innerText.trim() !== genderFilterHome) show = false;
+        if (courseFilterHome && courseCell && courseCell.textContent.trim() !== courseFilterHome) show = false;
+        if (show && yearFilterHome && yearCell && yearCell.textContent.trim() !== yearFilterHome) show = false;
+        if (show && acadYearFilterHome && acadYearCell && acadYearCell.textContent.trim() !== acadYearFilterHome) show = false;
+        if (show && genderFilterHome && genderCell && genderCell.textContent.trim() !== genderFilterHome) show = false;
       }
     }
 
@@ -2497,14 +2903,18 @@ function updateLogStats(rows) {
   let shown = 0;
   let formsReReleased = 0;
   let totalReReleases = 0;
+  let verified = 0;
+  let awaitingPhoto = 0;
   rows.forEach(row => {
     if (row.style.display === 'none') return;
     shown++;
-    const count = Number(row.cells[13].innerText);
+    if (row.dataset.verified === 'yes') verified++;
+    if (row.dataset.verified === 'no') awaitingPhoto++;
+    const count = Number(row.dataset.rereleases);
     if (count > 0) formsReReleased++;
     totalReReleases += count;
   });
-  stats.textContent = `Showing ${shown} log(s) · Re-released forms: ${formsReReleased} · Total re-releases: ${totalReReleases}`;
+  stats.textContent = `Showing ${shown} log(s) · Verified: ${verified} · Returned, no photo: ${awaitingPhoto} · Re-released forms: ${formsReReleased} · Total re-releases: ${totalReReleases}`;
 }
 
 // Keep the From/To pickers from allowing an impossible range
@@ -2533,6 +2943,8 @@ function clearFilters() {
   if (yearFilterLogs) yearFilterLogs.value = '';
   const acadYearFilter = document.getElementById('acadYearFilter');
   if (acadYearFilter) acadYearFilter.value = '';
+  const verificationFilter = document.getElementById('verificationFilter');
+  if (verificationFilter) verificationFilter.value = '';
 
   // Clear home page filters
   const courseFilterHome = document.getElementById('courseFilter');
@@ -2574,6 +2986,7 @@ function refreshTable() {
 // ==================== CLEAR STATUS UPDATE (Point 13) ====================
 function clearStatusUpdate() {
   document.getElementById('rfidSearch').value = '';
+  document.getElementById('rfidSearch').focus();   // ready for the next scan
   document.getElementById('studentResult').style.display = 'none';
   currentStudentForUpdate = null;
 }
@@ -2618,20 +3031,22 @@ async function confirmDeleteLogs() {
   const ids = [...pendingDeleteLogIds];
   closeConfirmModal();
   try {
-    const promises = ids.map(id => deleteDoc(doc(db, 'clearanceLogs', id)));
+    const promises = ids.flatMap(id => {
+      const deletes = [deleteDoc(doc(db, 'clearanceLogs', id))];
+      if (clearanceLogs.find(log => log.id === id)?.verified) deletes.push(deleteDoc(doc(db, 'clearancePhotos', id)));
+      return deletes;
+    });
     await Promise.all(promises);
     loadClearanceLogs();
     showMessageModal('Selected logs deleted.');
   } catch (err) {
-    showMessageModal('Delete failed: ' + err.message);
+    showMessageModal('Delete failed: ' + friendlyError(err));
   } finally {
     pendingDeleteLogIds = [];
   }
 }
 
 // ==================== MODALS ====================
-function showHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
-function closeHelpModal() { document.getElementById('helpModal').style.display = 'none'; }
 function showLogoutModal() { document.getElementById('logoutModal').style.display = 'flex'; }
 function closeLogoutModal() { document.getElementById('logoutModal').style.display = 'none'; }
 function showExportModal() { document.getElementById('exportModal').style.display = 'flex'; }
@@ -2714,22 +3129,33 @@ function showPrintDialog(headers, rows, title, filterInfo = {}) {
 }
 
 // ==================== LOGIN ====================
+let isLoggingIn = false;
+
 async function login() {
+  if (isLoggingIn) return;
   const email = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
 
-  if (email === '' || password === '') {
-    showMessageModal('Please enter email and password');
+  clearErrorsIn(document.querySelector('.login-container'));
+  if (!email) showFieldError('username');
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) showFieldError('username', 'Enter a valid email address, for example name@example.com.');
+  if (!password) showFieldError('password');
+  if (document.querySelector('.login-container [aria-invalid="true"]')) {
+    focusFirstError();
     return;
   }
 
+  isLoggingIn = true;
+  const loginButton = document.getElementById('loginButton');
+  loginButton.disabled = true;
+  loginButton.textContent = 'Logging in...';
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
     // 2FA: email must be verified
     if (!user.emailVerified) {
-      showMessageModal('Please verify your email before logging in.\nCheck your inbox, and if you cannot find the email, check your spam or junk folder.');
+      showFormAlert('loginAlert', 'Your email is not verified yet. Open the verification link we sent you, then log in again. If you cannot find it, check your spam or junk folder.');
       await signOut(auth);
       return;
     }
@@ -2737,7 +3163,7 @@ async function login() {
     // Fetch user role and approval status from Firestore
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     if (!userDoc.exists()) {
-      showMessageModal('User record not found. Please register again.');
+      showFormAlert('loginAlert', 'We could not find your account record. Create an account again, or ask the ITC for help.');
       await signOut(auth);
       return;
     }
@@ -2748,7 +3174,7 @@ async function login() {
 
     // For regular users, check approval
     if (role === 'user' && approved !== true) {
-      showMessageModal('Your account is pending approval by superadmin. Please wait.');
+      showFormAlert('loginAlert', 'Your account is waiting for approval. You can log in once an administrator approves it.');
       await signOut(auth);
       return;
     }
@@ -2757,13 +3183,17 @@ async function login() {
     window.location.href = ROLE_HOME[role] || 'home.html';
   } catch (err) {
     if (err.code === 'auth/invalid-credential') {
-      document.getElementById('errorModal').style.display = 'flex';
+      showFieldError('password', 'The email or password is incorrect. Check both and try again, or use "Forgot password?".');
     } else if (err.code === 'auth/too-many-requests') {
-      showMessageModal('Too many failed login attempts. Please try again later.');
+      showFormAlert('loginAlert', 'Too many failed attempts. Wait a few minutes, or reset your password with "Forgot password?".');
     } else {
       console.error('Login error:', err);
-      showMessageModal('Login failed: ' + err.message);
+      showFormAlert('loginAlert', 'Login failed. ' + friendlyError(err));
     }
+  } finally {
+    isLoggingIn = false;
+    loginButton.disabled = false;
+    loginButton.textContent = 'Log in';
   }
 }
 
@@ -2777,7 +3207,7 @@ async function confirmLogout() {
     window.location.href = 'index.html';
   } catch (err) {
     console.error('Logout error:', err);
-    showMessageModal('Logout failed: ' + err.message);
+    showMessageModal('Logout failed: ' + friendlyError(err));
   }
 }
 
@@ -2801,7 +3231,6 @@ function closeMobileMenu() {
 }
 
 // ==================== NAVIGATION ====================
-function needHelp() { showHelpModal(); }
 function goHome() { window.location.href = 'home.html'; }
 function goRegister() { window.location.href = 'registrationPage.html'; }
 function goStatusUpdate() { window.location.href = 'statusupdate.html'; }
@@ -2816,8 +3245,9 @@ function showRegisterModal() {
   REGISTER_FIELD_ORDER.forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
-    el.classList.remove('error-field', 'match-ok', 'match-bad');
+    el.classList.remove('match-ok', 'match-bad');
   });
+  clearErrorsIn(document.getElementById('registerModal'));
   const showPw = document.getElementById('showRegPassword');
   showPw.checked = false;
   toggleRegPassword();
@@ -2864,7 +3294,7 @@ function updatePasswordMatch() {
 async function register() {
   if (isRegistering) return;
 
-  REGISTER_FIELD_ORDER.forEach(id => document.getElementById(id).classList.remove('error-field'));
+  clearErrorsIn(document.getElementById('registerModal'));
 
   const value = id => document.getElementById(id).value;
   const schoolId = value('regSchoolId').trim().toUpperCase();
@@ -2874,45 +3304,34 @@ async function register() {
   const password = value('regPassword');
   const confirm = value('regConfirmPassword');
 
-  // Every field is required
+  // Every field is required; each message says what to enter
   const required = {
     regSchoolId: schoolId, regFirstName: firstName, regLastName: lastName,
     regEmail: email, regPassword: password, regConfirmPassword: confirm
   };
-  let missing = false;
-  Object.entries(required).forEach(([id, v]) => {
-    if (!v) { document.getElementById(id).classList.add('error-field'); missing = true; }
-  });
-  if (missing) {
-    showMessageModal('Please fill in all required fields.');
-    return;
-  }
+  Object.entries(required).forEach(([id, v]) => { if (!v) showFieldError(id); });
 
-  if (!/^[A-Z0-9-]{4,20}$/.test(schoolId)) {
-    document.getElementById('regSchoolId').classList.add('error-field');
-    showMessageModal('School ID must be 4 to 20 characters: letters, numbers, or dashes only.');
-    return;
+  if (schoolId && !/^[A-Z0-9-]{4,20}$/.test(schoolId)) {
+    showFieldError('regSchoolId', 'School ID needs 4 to 20 letters, numbers or dashes, for example 2024-0001.');
   }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    document.getElementById('regEmail').classList.add('error-field');
-    showMessageModal('The email address is not valid.');
-    return;
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showFieldError('regEmail', 'Enter a valid email address, for example name@example.com.');
   }
-
-  if (password.length < 8) {
-    document.getElementById('regPassword').classList.add('error-field');
-    showMessageModal('Password must be at least 8 characters long.');
-    return;
+  if (password && password.length < 8) {
+    showFieldError('regPassword', 'Use at least 8 characters.');
   }
-
-  if (password !== confirm) {
-    document.getElementById('regConfirmPassword').classList.add('error-field');
-    showMessageModal('Passwords do not match.');
+  if (password && confirm && password !== confirm) {
+    showFieldError('regConfirmPassword', 'The passwords do not match. Type the same password in both fields.');
+  }
+  if (document.querySelector('#registerModal [aria-invalid="true"]')) {
+    focusFirstError();
     return;
   }
 
   isRegistering = true;
+  const registerButton = document.getElementById('registerButton');
+  registerButton.disabled = true;
+  registerButton.textContent = 'Creating account...';
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await setDoc(doc(db, 'users', userCredential.user.uid), {
@@ -2936,21 +3355,26 @@ async function register() {
     );
   } catch (err) {
     if (err.code === 'auth/email-already-in-use') {
-      showMessageModal('This email is already registered. Please use a different email or login.');
+      showFieldError('regEmail', 'This email is already registered. Log in instead, or use a different email.');
     } else if (err.code === 'auth/weak-password') {
-      showMessageModal('Password is too weak. Please use at least 8 characters.');
+      showFieldError('regPassword', 'This password is too easy to guess. Use at least 8 characters, mixing letters and numbers.');
     } else if (err.code === 'auth/invalid-email') {
-      showMessageModal('The email address is not valid.');
+      showFieldError('regEmail', 'Enter a valid email address, for example name@example.com.');
     } else {
-      showMessageModal('Registration failed: ' + err.message);
+      console.error('Registration error:', err);
+      showFormAlert('registerAlert', 'Registration failed. ' + friendlyError(err));
     }
+    focusFirstError();
   } finally {
     isRegistering = false;
+    registerButton.disabled = false;
+    registerButton.textContent = 'Create account';
   }
 }
 
 // ==================== PASSWORD RESET ====================
 function showForgotPasswordModal() {
+  clearErrorsIn(document.getElementById('forgotPasswordModal'));
   document.getElementById('resetEmail').value = '';
   document.getElementById('forgotPasswordModal').style.display = 'flex';
 }
@@ -2959,26 +3383,35 @@ function closeForgotPasswordModal() {
 }
 async function sendPasswordReset() {
   const email = document.getElementById('resetEmail').value.trim();
+  clearFieldError('resetEmail');
   if (!email) {
-    showMessageModal('Please enter your email.');
+    showFieldError('resetEmail');
     return;
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showFieldError('resetEmail', 'Enter a valid email address, for example name@example.com.');
+    return;
+  }
+  const resetButton = document.getElementById('resetButton');
+  resetButton.disabled = true;
+  resetButton.textContent = 'Sending...';
   try {
     await sendPasswordResetEmail(auth, email);
-    showMessageModal('Password reset email sent.\nPlease check your inbox, and also your spam or junk folder.');
     closeForgotPasswordModal();
-    document.getElementById('resetEmail').value = '';
+    showMessageModal('If an account exists for ' + email + ', a reset link is on its way.\nCheck your inbox, and also your spam or junk folder.');
   } catch (err) {
-    // Handle specific Firebase error codes
     if (err.code === 'auth/invalid-email') {
-      showMessageModal('The email address is not valid.');
+      showFieldError('resetEmail', 'Enter a valid email address, for example name@example.com.');
     } else if (err.code === 'auth/user-not-found') {
-      showMessageModal('No account found with this email address.');
+      showFieldError('resetEmail', 'No account uses this email. Check the spelling, or create an account.');
     } else if (err.code === 'auth/too-many-requests') {
-      showMessageModal('Too many requests. Please try again later.');
+      showFieldError('resetEmail', 'Too many requests. Wait a few minutes and try again.');
     } else {
-      showMessageModal('Error: ' + err.message);
+      showFieldError('resetEmail', 'Could not send the reset link. ' + friendlyError(err));
     }
+  } finally {
+    resetButton.disabled = false;
+    resetButton.textContent = 'Send reset link';
   }
 }
 
@@ -3023,13 +3456,164 @@ function checkAdmin() {
   });
 }
 
-// ==================== DYNAMIC TOP BAR ====================
-function updateTopBarForRole(role) {
-  const helpText = document.getElementById('helpText');
-  if (helpText) helpText.textContent = ROLE_LABELS[role] || 'NEED HELP';
+// ==================== TOP BAR: ACCOUNT MENU + SETTINGS ====================
+const ICON_SETTINGS = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.5" fill="var(--color-bg-2)"/><circle cx="15" cy="17" r="2.5" fill="var(--color-bg-2)"/></svg>';
+const ICON_CHEVRON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+const SETTINGS_TABS = [
+  { id: 'appearance', label: 'Appearance', needsAccount: false },
+  { id: 'account',    label: 'Account',    needsAccount: true },
+  { id: 'about',      label: 'About',      needsAccount: false }
+];
+
+let currentProfile = null;
+let activeSettingsTab = 'appearance';
+
+// The login page has no signed-in user, so it only gets the settings button.
+function buildTopBar() {
+  const right = document.querySelector('.topbar-right');
+  const isAppPage = !!document.querySelector('.main-wrapper');
+  right.innerHTML =
+    (isAppPage
+      ? '<div class="account">' +
+          '<button id="accountButton" class="account-btn" aria-haspopup="menu" aria-expanded="false">' +
+            '<span id="accountName" class="account-name"></span>' + ICON_CHEVRON +
+          '</button>' +
+          '<div id="accountMenu" class="account-menu" role="menu" hidden>' +
+            '<div id="accountRole" class="account-menu-role"></div>' +
+            '<button role="menuitem" class="account-menu-item" onclick="closeAccountMenu(); logout()">Log out</button>' +
+          '</div>' +
+        '</div>'
+      : '') +
+    '<button id="settingsButton" class="icon-btn" aria-label="Settings" title="Settings">' + ICON_SETTINGS + '</button>';
+
+  document.getElementById('settingsButton').addEventListener('click', () => showSettings('appearance'));
+  const accountButton = document.getElementById('accountButton');
+  if (accountButton) accountButton.addEventListener('click', toggleAccountMenu);
 }
-function handleHelpClick() {
-  showHelpModal();
+
+function showAccountInTopBar(profile) {
+  currentProfile = profile;
+  document.getElementById('accountName').textContent = profile.lastName;
+  document.getElementById('accountRole').textContent = ROLE_LABELS[profile.role];
+}
+
+function toggleAccountMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('accountMenu');
+  const open = menu.hidden;
+  menu.hidden = !open;
+  document.getElementById('accountButton').setAttribute('aria-expanded', String(open));
+}
+
+function closeAccountMenu() {
+  const menu = document.getElementById('accountMenu');
+  if (!menu) return;
+  menu.hidden = true;
+  document.getElementById('accountButton').setAttribute('aria-expanded', 'false');
+}
+
+document.addEventListener('click', closeAccountMenu);
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  closeAccountMenu();
+  closeSettings();
+});
+
+// ---- Settings dialog
+function showSettings(tab) {
+  let modal = document.getElementById('settingsModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'settingsModal';
+    modal.className = 'modal';
+    modal.addEventListener('click', e => { if (e.target === modal) closeSettings(); });
+    modal.innerHTML =
+      '<div class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">' +
+        '<div class="settings-head"><h3 id="settingsTitle">Settings</h3>' +
+          '<button class="settings-close" aria-label="Close" onclick="closeSettings()">&times;</button></div>' +
+        '<div class="settings-body"><nav id="settingsNav" class="settings-nav"></nav><div id="settingsPanel" class="settings-panel"></div></div>' +
+        '<button class="settings-done" onclick="closeSettings()">Done</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+  }
+  activeSettingsTab = tab;
+  renderSettingsPanel();
+  modal.style.display = 'flex';
+}
+
+function closeSettings() {
+  const modal = document.getElementById('settingsModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function selectSettingsTab(tab) {
+  activeSettingsTab = tab;
+  renderSettingsPanel();
+}
+
+function renderSettingsPanel() {
+  const modal = document.getElementById('settingsModal');
+  if (!modal) return;
+
+  const tabs = SETTINGS_TABS.filter(t => !t.needsAccount || currentProfile);
+  document.getElementById('settingsNav').innerHTML = tabs.map(t =>
+    `<button class="settings-tab${t.id === activeSettingsTab ? ' active' : ''}" onclick="selectSettingsTab('${t.id}')">${t.label}</button>`
+  ).join('');
+
+  const panel = document.getElementById('settingsPanel');
+  if (activeSettingsTab === 'appearance') {
+    const theme = getTheme();
+    const dark = document.body.classList.contains('dark-mode');
+    panel.innerHTML =
+      '<h4 class="settings-heading">Theme <span>(this device)</span></h4>' +
+      '<div class="theme-options">' +
+        THEMES.map(t => `<button class="theme-option${t.id === theme ? ' active' : ''}" onclick="setTheme('${t.id}')">${t.label}</button>`).join('') +
+      '</div>' +
+      (theme === 'system' ? `<p class="settings-hint">Follows your device: currently ${dark ? 'dark' : 'light'}.</p>` : '') +
+      '<h4 class="settings-heading">Text size <span>(this device)</span></h4>' +
+      '<div class="theme-options text-size-options">' +
+        TEXT_SIZES.map(t => `<button class="theme-option${t.id === getTextSize() ? ' active' : ''}" onclick="setTextSize('${t.id}')">${t.label}</button>`).join('') +
+      '</div>' +
+      '<h4 class="settings-heading">Display <span>(this device)</span></h4>' +
+      [
+        ['boldText', 'Bold text', 'Makes all text heavier and easier to read.'],
+        ['highContrast', 'High contrast', 'Stronger text, borders and buttons.']
+      ].map(([key, label, hint]) => {
+        const on = localStorage.getItem(key) === 'on';
+        return `<div class="switch-row"><div><div class="switch-label">${label}</div><div class="switch-hint">${hint}</div></div>` +
+          `<button type="button" role="switch" aria-checked="${on}" aria-label="${label}" class="switch${on ? ' on' : ''}" onclick="toggleAppearanceOption('${key}')"></button></div>`;
+      }).join('');
+  } else if (activeSettingsTab === 'account') {
+    const p = currentProfile;
+    const rows = [
+      ['Name', `${p.firstName} ${p.lastName}`],
+      ['School ID', p.schoolId],
+      ['Email', p.email],
+      ['Role', ROLE_LABELS[p.role]]
+    ];
+    panel.innerHTML = '<h4 class="settings-heading">Account</h4><dl class="settings-list">' +
+      rows.map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(v)}</dd>`).join('') + '</dl>';
+  } else {
+    panel.innerHTML =
+      '<h4 class="settings-heading">About</h4>' +
+      '<div class="about-head">' +
+        '<img src="Resources/mcslogo.png" alt="Marian Computer Society logo" class="about-logo">' +
+        '<div><p class="settings-about-name">Clearance Monitoring</p>' +
+        '<p class="about-by">Marian Computer Society<br>St. Mary\'s College of Meycauayan, Inc.</p></div>' +
+      '</div>' +
+      '<p class="about-desc">Clearance Monitoring keeps track of student clearance forms from release to return and verification. ' +
+      'Staff can manage student records and programs, update clearance statuses, and confirm returned forms with a photo, all in one place.</p>' +
+      '<p class="settings-hint">Need help? Please contact the system developer for assistance.</p>' +
+      '<h4 class="settings-heading">Credits</h4><div id="creditsBody" class="credits-body">Loading...</div>';
+    loadCredits();
+  }
+}
+
+async function loadCredits() {
+  const body = document.getElementById('creditsBody');
+  const response = await fetch('credits.txt', { cache: 'no-cache' });
+  if (!response.ok) throw new Error('credits.txt: HTTP ' + response.status);
+  renderCredits(body, await response.text());
 }
 
 // ==================== IMPORT STUDENTS (admin / superadmin only) ====================
@@ -3065,7 +3649,7 @@ const IMPORT_GENDERS = {
   'other': 'Other', 'o': 'Other'
 };
 
-let pendingImportRecords = [];
+let pendingImportRecords = [];   // [{ type: 'create' | 'update', record, docId?, changes? }]
 
 async function assertImportAllowed() {
   const role = await getUserRole(auth.currentUser);
@@ -3101,7 +3685,14 @@ function resetImportModal() {
   btn.textContent = 'Import';
 }
 
-function downloadImportTemplate() {
+// Re-read the chosen file when the "update year level / A.Y." option is switched
+function reprocessImportFile() {
+  const input = document.getElementById('importFile');
+  if (input && input.files && input.files[0]) handleImportFile(input);
+}
+
+async function downloadImportTemplate() {
+  await loadXlsx();
   const wb = XLSX.utils.book_new();
 
   const students = XLSX.utils.aoa_to_sheet([IMPORT_COLUMNS.map(c => c.label)]);
@@ -3111,32 +3702,37 @@ function downloadImportTemplate() {
   const year = Number(toPhDateString(new Date()).slice(0, 4));
   const help = XLSX.utils.aoa_to_sheet([
     ['Column', 'What to enter'],
-    ['RFID No.', 'Digits only. Format this column as Text in Excel so leading zeros are kept.'],
-    ['Student No.', 'One letter followed by 6 digits, e.g. C123456'],
+    ['RFID No.', 'Digits only (1 to 10). Format this column as Text in Excel so leading zeros are kept. This is the number on the CURRENT ID card.'],
+    ['Student No.', 'One letter followed by 6 digits, e.g. C123456. This never changes, so it identifies the student.'],
     ['Surname / First Name', 'Letters, spaces, apostrophes and hyphens. Capitalization is fixed automatically.'],
     ['Middle Name', 'Optional. Every other column is required.'],
     ['Program', 'One of: ' + (programs.map(p => p.programCode).concat('Others').join(', '))],
     ['Year Level', '1st, 2nd, 3rd, 4th or Irregular (1, 2, 3, 4 also work)'],
     ['Academic Year', `e.g. ${year}-${year + 1} (second year must be the first year + 1)`],
-    ['Gender', 'Male, Female or Other']
+    ['Gender', 'Male, Female or Other'],
+    [],
+    ['Student No. not in the system yet', 'A new student is registered.'],
+    ['Student No. already in the system', 'The student is NOT replaced. Only the RFID No. is updated to the one in the file (the old card number is remembered). Name, program, year level and A.Y. are kept unless you tick the option in the import window.'],
+    ['RFID No. used by another student', 'The row is skipped and reported.'],
+    ['Exported file', 'The Excel/CSV exported from the Students page uses these same columns and can be imported again.']
   ]);
-  help['!cols'] = [{ wch: 22 }, { wch: 90 }];
+  help['!cols'] = [{ wch: 34 }, { wch: 110 }];
   XLSX.utils.book_append_sheet(wb, help, 'Instructions');
 
   XLSX.writeFile(wb, 'student_import_template.xlsx');
 }
 
-// RFID numbers and student numbers already in Firestore (fresh read, not the cached table)
+// Every student already in Firestore (fresh read, not the cached table), indexed for the import check
 async function fetchExistingStudentKeys() {
   const snapshot = await getDocs(collection(db, 'students'));
-  const rfids = new Set();
-  const numbers = new Set();
+  const byNumber = new Map();   // studentNumber -> { id, ...data }
+  const byRfid = new Map();     // rfidNumber -> { id, ...data }
   snapshot.docs.forEach(d => {
-    rfids.add(d.id);
-    const n = d.data().studentNumber;
-    if (n) numbers.add(n);
+    const data = { id: d.id, ...d.data() };
+    if (data.studentNumber) byNumber.set(data.studentNumber, data);
+    if (data.rfidNumber) byRfid.set(data.rfidNumber, data);
   });
-  return { rfids, numbers };
+  return { byNumber, byRfid };
 }
 
 function normalizeImportHeader(text) {
@@ -3161,8 +3757,8 @@ function validateImportRow(raw, resolveProgram) {
     errors.push('RFID No. is required');
   } else if (/^\d+(\.\d+)?e[+-]?\d+$/i.test(rfidNumber)) {
     errors.push('RFID No. is in scientific notation (format the column as Text in Excel)');
-  } else if (!/^\d{1,32}$/.test(rfidNumber)) {
-    errors.push('RFID No. must be digits only');
+  } else if (!/^\d{1,10}$/.test(rfidNumber)) {
+    errors.push('RFID No. must be 1 to 10 digits');
   }
 
   const studentNumber = text('studentNumber').replace(/\s/g, '').toUpperCase();
@@ -3197,12 +3793,28 @@ function validateImportRow(raw, resolveProgram) {
   };
 }
 
+// The student number decides who the student is. For a student who is already in the system
+// only the RFID number changes (plus year level / A.Y. when that option is ticked).
+function planExistingStudentUpdate(existing, record, alsoUpdateYear) {
+  const changes = {};
+  if (existing.rfidNumber !== record.rfidNumber) {
+    changes.rfidNumber = record.rfidNumber;
+    changes.previousRfids = buildPreviousRfids(existing, record.rfidNumber);
+  }
+  if (alsoUpdateYear) {
+    if (existing.yearLevel !== record.yearLevel) changes.yearLevel = record.yearLevel;
+    if (existing.academicYear !== record.academicYear) changes.academicYear = record.academicYear;
+  }
+  return changes;
+}
+
 async function handleImportFile(input) {
   const file = input.files[0];
   if (!file) return;
 
   const summary = document.getElementById('importSummary');
   const confirmBtn = document.getElementById('importConfirmBtn');
+  const alsoUpdateYear = !!document.getElementById('importUpdateYear')?.checked;
   pendingImportRecords = [];
   confirmBtn.disabled = true;
   confirmBtn.textContent = 'Import';
@@ -3215,6 +3827,7 @@ async function handleImportFile(input) {
     if (file.size > IMPORT_MAX_BYTES) throw new Error('The file is too large (5 MB maximum).');
     if (!programs.length) await loadPrograms();
 
+    await loadXlsx();
     const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', raw: true });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '', blankrows: true });
@@ -3242,12 +3855,13 @@ async function handleImportFile(input) {
     const existing = await fetchExistingStudentKeys();
     const seenRfid = new Map();
     const seenNumber = new Map();
-    const records = [];
     const issues = [];
+    const candidates = [];   // valid rows, before the RFID conflict check
 
     for (let r = 1; r < matrix.length; r++) {
       const cells = matrix[r];
-      if (cells.every(c => String(c).trim() === '')) continue;   // skip blank rows
+      if (cells.every(c => String(c).trim() === '')) continue;                 // blank row
+      if (String(cells[0] ?? '').trim().startsWith('This is system-generated')) continue;   // credit line of an exported file
 
       const raw = {};
       Object.entries(columnIndex).forEach(([key, i]) => { raw[key] = cells[i]; });
@@ -3255,23 +3869,59 @@ async function handleImportFile(input) {
       const { record, errors } = validateImportRow(raw, resolveProgram);
 
       if (!errors.length) {
-        if (existing.rfids.has(record.rfidNumber)) errors.push('RFID No. is already registered');
+        if (seenNumber.has(record.studentNumber)) errors.push(`Student No. is repeated in this file (row ${seenNumber.get(record.studentNumber)})`);
         else if (seenRfid.has(record.rfidNumber)) errors.push(`RFID No. is repeated in this file (row ${seenRfid.get(record.rfidNumber)})`);
-        if (existing.numbers.has(record.studentNumber)) errors.push('Student No. is already registered');
-        else if (seenNumber.has(record.studentNumber)) errors.push(`Student No. is repeated in this file (row ${seenNumber.get(record.studentNumber)})`);
       }
 
       if (errors.length) {
         issues.push({ row: sheetRow, messages: errors });
       } else {
-        records.push(record);
-        seenRfid.set(record.rfidNumber, sheetRow);
         seenNumber.set(record.studentNumber, sheetRow);
+        seenRfid.set(record.rfidNumber, sheetRow);
+        candidates.push({ record, sheetRow });
       }
     }
 
+    // Students whose card number is being replaced by this file free up their old RFID
+    const rfidBeingReplaced = new Set();
+    candidates.forEach(({ record }) => {
+      const ex = existing.byNumber.get(record.studentNumber);
+      if (ex && ex.rfidNumber && ex.rfidNumber !== record.rfidNumber) rfidBeingReplaced.add(ex.rfidNumber);
+    });
+
+    const records = [];
+    let unchanged = 0;
+    let detailsKept = 0;
+
+    candidates.forEach(({ record, sheetRow }) => {
+      const sameNumber = existing.byNumber.get(record.studentNumber);
+      const rfidOwner = existing.byRfid.get(record.rfidNumber);
+
+      // The RFID belongs to a different student who is not getting a new card in this file
+      if (rfidOwner && (!sameNumber || rfidOwner.id !== sameNumber.id) && !rfidBeingReplaced.has(record.rfidNumber)) {
+        issues.push({ row: sheetRow, messages: [`RFID No. is already assigned to ${rfidOwner.studentNumber} (${formatFullName(rfidOwner)})`] });
+        return;
+      }
+
+      if (!sameNumber) {
+        records.push({ type: 'create', record, sheetRow });
+        return;
+      }
+
+      const changes = planExistingStudentUpdate(sameNumber, record, alsoUpdateYear);
+      if (Object.keys(changes).length === 0) {
+        unchanged++;
+        return;
+      }
+      // Name, program and gender in the file are never used for a student who already exists
+      const differs = ['surname', 'firstName', 'middleName', 'program', 'gender']
+        .some(k => String(sameNumber[k] ?? '') !== String(record[k] ?? ''));
+      if (differs) detailsKept++;
+      records.push({ type: 'update', record, docId: sameNumber.id, changes, sheetRow, oldRfid: sameNumber.rfidNumber || '' });
+    });
+
     pendingImportRecords = records;
-    renderImportSummary(records.length, issues);
+    renderImportSummary(records, issues, unchanged, detailsKept);
     confirmBtn.disabled = records.length === 0;
     confirmBtn.textContent = records.length ? `Import ${records.length} student${records.length === 1 ? '' : 's'}` : 'Import';
   } catch (err) {
@@ -3281,19 +3931,32 @@ async function handleImportFile(input) {
   }
 }
 
-function renderImportSummary(validCount, issues) {
+function renderImportSummary(records, issues, unchanged, detailsKept) {
   const summary = document.getElementById('importSummary');
   summary.classList.remove('import-error');
   summary.innerHTML = '';
 
-  const line = document.createElement('p');
-  line.textContent = `${validCount} row(s) ready to import. ${issues.length} row(s) will be skipped.`;
-  summary.appendChild(line);
+  const created = records.filter(r => r.type === 'create').length;
+  const updated = records.filter(r => r.type === 'update');
+  const rfidUpdates = updated.filter(r => 'rfidNumber' in r.changes).length;
+
+  const lines = [
+    `${created} new student(s) will be registered.`,
+    `${updated.length} existing student(s) will be updated (${rfidUpdates} new RFID number${rfidUpdates === 1 ? '' : 's'}).`
+  ];
+  if (unchanged) lines.push(`${unchanged} student(s) are already up to date.`);
+  if (detailsKept) lines.push(`${detailsKept} existing student(s) have different name/program/gender details in the file; their saved details are kept.`);
+  lines.push(`${issues.length} row(s) will be skipped.`);
+  lines.forEach(text => {
+    const line = document.createElement('p');
+    line.textContent = text;
+    summary.appendChild(line);
+  });
 
   if (issues.length) {
     const list = document.createElement('ul');
     list.className = 'import-issues';
-    issues.slice(0, 50).forEach(issue => {
+    issues.sort((a, b) => a.row - b.row).slice(0, 50).forEach(issue => {
       const li = document.createElement('li');
       li.textContent = `Row ${issue.row}: ${issue.messages.join('; ')}`;
       list.appendChild(li);
@@ -3319,26 +3982,48 @@ async function confirmImport() {
   try {
     await assertImportAllowed();
 
-    // Re-check against Firestore right before writing; someone may have registered a student meanwhile
+    // Re-check against Firestore right before writing; someone may have changed students meanwhile
     const existing = await fetchExistingStudentKeys();
-    const toWrite = pendingImportRecords.filter(r => !existing.rfids.has(r.rfidNumber) && !existing.numbers.has(r.studentNumber));
-    const skipped = pendingImportRecords.length - toWrite.length;
+    const replacing = new Set(
+      pendingImportRecords.filter(r => r.type === 'update' && 'rfidNumber' in r.changes && r.oldRfid).map(r => r.oldRfid)
+    );
+    const toWrite = [];
+    let skipped = 0;
+    pendingImportRecords.forEach(item => {
+      const { record } = item;
+      const sameNumber = existing.byNumber.get(record.studentNumber);
+      const rfidOwner = existing.byRfid.get(record.rfidNumber);
+      const rfidTaken = rfidOwner && (!sameNumber || rfidOwner.id !== sameNumber.id) && !replacing.has(record.rfidNumber);
+      if (rfidTaken || (item.type === 'create' && sameNumber) || (item.type === 'update' && !sameNumber)) {
+        skipped++;
+      } else {
+        toWrite.push(item);
+      }
+    });
     total = toWrite.length;
     const dateTime = getPhilippinesDateTimeString();
 
     for (let i = 0; i < toWrite.length; i += IMPORT_BATCH_SIZE) {
+      const chunk = toWrite.slice(i, i + IMPORT_BATCH_SIZE);
       const batch = writeBatch(db);
-      toWrite.slice(i, i + IMPORT_BATCH_SIZE).forEach(rec => {
-        batch.set(doc(db, 'students', rec.rfidNumber), { ...rec, dateTime });
+      chunk.forEach(item => {
+        if (item.type === 'create') {
+          // Student number is the document ID, so a student can never be created twice
+          batch.set(doc(db, 'students', item.record.studentNumber), { ...item.record, dateTime });
+        } else {
+          batch.update(doc(db, 'students', item.docId), item.changes);
+        }
       });
       await batch.commit();
-      written += Math.min(IMPORT_BATCH_SIZE, toWrite.length - i);
+      written += chunk.length;
       confirmBtn.textContent = `Importing ${written}/${total}...`;
     }
 
+    const newCount = toWrite.filter(i => i.type === 'create').length;
+    const updCount = toWrite.length - newCount;
     closeImportModal();
     await loadStudents();
-    showMessageModal(`Imported ${written} student(s).` + (skipped ? `\n${skipped} skipped because they were registered in the meantime.` : ''));
+    showMessageModal(`Registered ${newCount} new student(s), updated ${updCount} existing student(s).` + (skipped ? `\n${skipped} skipped because the data changed in the meantime.` : ''));
   } catch (err) {
     console.error('Import error:', err);
     showMessageModal(`Import stopped after ${written} of ${total} student(s): ${err.message}`);
@@ -3380,7 +4065,105 @@ async function saveFileWithPicker(blob, suggestedName) {
   return false; // API not supported, fallback to old method
 }
 
+// ==================== EXPORT STUDENTS IN THE IMPORT FORMAT ====================
+// Rows follow whatever filters are applied on the page. Students without a student number
+// (old students registered without an ID card) cannot be imported, so they are left out.
+async function exportStudentsForImport(type, table) {
+  const visibleIds = new Set();
+  Array.from(table.tBodies[0].rows).forEach(row => {
+    if (row.style.display === 'none') return;
+    const id = row.querySelector('.home-checkbox')?.getAttribute('data-doc-id');
+    if (id) visibleIds.add(id);
+  });
+
+  const list = allStudents.filter(st => visibleIds.has(st.id));
+  const exportable = list.filter(st => st.studentNumber && st.rfidNumber);
+  const left = list.length - exportable.length;
+  exportable.sort((a, b) => formatFullName(a).localeCompare(formatFullName(b)));
+
+  const rows = [IMPORT_COLUMNS.map(c => c.label)];
+  exportable.forEach(st => {
+    rows.push(IMPORT_COLUMNS.map(c => String(st[c.key] ?? '')));
+  });
+
+  let blob, filename;
+  if (type === 'excel') {
+    await loadXlsx();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    // Text cells keep leading zeros in the RFID number
+    for (let r = 1; r < rows.length; r++) {
+      ['A', 'B'].forEach(col => {
+        const cell = ws[col + (r + 1)];
+        if (cell) { cell.t = 's'; cell.z = '@'; }
+      });
+    }
+    ws['!cols'] = IMPORT_COLUMNS.map((c, i) => ({
+      wch: Math.max(c.label.length, ...rows.slice(1).map(r => r[i].length)) + 3
+    }));
+    XLSX.utils.sheet_add_aoa(ws, [[EXPORT_CREDIT]], { origin: { r: rows.length + 1, c: 0 } });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Students');
+    const data = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    filename = 'students.xlsx';
+  } else {
+    const csvRows = rows.concat([[], [EXPORT_CREDIT]]);
+    const csv = csvRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    filename = 'students.csv';
+  }
+
+  const usedPicker = await saveFileWithPicker(blob, filename);
+  if (!usedPicker) {
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+  if (left > 0) {
+    showMessageModal(`${left} student(s) without a student number or RFID were left out because they cannot be imported.`);
+  }
+}
+
 // ==================== EXPORT ====================
+// The on-screen log table packs two values into one cell, so exports are built from the log data
+// instead: one column per value, only the rows that pass the current filters.
+const LOG_EXPORT_COLUMNS = [
+  ['ID Number',        log => log.studentNumber],
+  ['Name',             log => log.name],
+  ['Release Date',     log => formatLogDate(log.claimedDate).replace('\n', ' ')],
+  ['Receive Date',     log => formatLogDate(log.returnedDate).replace('\n', ' ')],
+  ['A.Y.',             log => log.academicYear],
+  ['Semester',         log => log.semester],
+  ['Year Level',       log => log.yearLevel],
+  ['Course',           log => log.program],
+  ['Remarks',          log => logRemarksText(log)],
+  ['Comment',          log => log.comment],
+  ['Status',           log => log.status],
+  ['Re-releases',      log => String(log.reReleaseCount || 0)],
+  ['Re-release Date',  log => formatLogDate(log.lastReReleasedDate).replace('\n', ' ')]
+];
+
+function buildLogExportTable(table) {
+  const visibleIds = new Set([...table.tBodies[0].rows]
+    .filter(row => row.style.display !== 'none')
+    .map(row => row.querySelector('.log-checkbox').dataset.logId));
+  const exportTable = document.createElement('table');
+  exportTable.innerHTML = '<thead><tr>' + LOG_EXPORT_COLUMNS.map(([label]) => `<th>${label}</th>`).join('') + '</tr></thead><tbody></tbody>';
+  const body = exportTable.tBodies[0];
+  sortLogs(clearanceLogs, logSort.column, logSort.direction)
+    .filter(log => visibleIds.has(log.id))
+    .forEach(log => {
+      const tr = body.insertRow();
+      LOG_EXPORT_COLUMNS.forEach(([, getValue]) => { tr.insertCell().textContent = getValue(log) ?? ''; });
+    });
+  return exportTable;
+}
+
 async function exportData(type) {
   if (!type) return;
 
@@ -3398,28 +4181,22 @@ async function exportData(type) {
 
   if (!table) return;
 
-  const clone = table.cloneNode(true);
+  // Students list: Excel and CSV use the same columns as the import file, so they can be imported again
+  if (isHome && (type === 'excel' || type === 'csv')) {
+    await exportStudentsForImport(type, table);
+    return;
+  }
+
+  const clone = isLogTable ? buildLogExportTable(table) : table.cloneNode(true);
   const originalRows = table.tBodies[0].rows;
   const clonedTBody = clone.tBodies[0];
-  for (let i = clonedTBody.rows.length - 1; i >= 0; i--) {
+  for (let i = clonedTBody.rows.length - 1; i >= 0 && !isLogTable; i--) {   // log export is already filtered
     if (originalRows[i] && originalRows[i].style.display === 'none') {
       clonedTBody.deleteRow(i);
     }
   }
 
-  if (isLogTable) {
-    const headerRow = clone.querySelector('thead tr');
-    if (headerRow && headerRow.cells.length > 0) {
-      headerRow.deleteCell(0); // remove checkbox header
-      if (headerRow.cells.length > 0) headerRow.deleteCell(0); // remove RFID header
-    }
-    clone.querySelectorAll('tbody tr').forEach(row => {
-      if (row.cells.length > 0) {
-        row.deleteCell(0); // remove checkbox
-        if (row.cells.length > 0) row.deleteCell(0); // remove RFID
-      }
-    });
-  } else if (isHome) {
+  if (isHome) {
     const headerRow = clone.querySelector('thead tr');
     if (headerRow) {
       headerRow.deleteCell(0);
@@ -3434,6 +4211,7 @@ async function exportData(type) {
   }
 
   if (type === 'excel') {
+    await loadXlsx();
     const wb = XLSX.utils.book_new();
     const rows = [];
     const headerRow = [];
@@ -3504,11 +4282,6 @@ async function exportData(type) {
         else if (text === 'YEAR LEVEL') text = 'YEAR';
         headers.push(text);
       });
-    }
-
-    // Adjust headers for logs if needed (already done in clone)
-    if (isLogTable && headers.length > 4) {
-      headers[4] = "A.Y."; // After RFID removal, index 4 is ACADEMIC YEAR
     }
 
     const bodyRows = [];
@@ -3583,4 +4356,4 @@ async function exportData(type) {
       URL.revokeObjectURL(url);
     }
   }
-}
+}

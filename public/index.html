@@ -3,14 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Clearance - Login</title>
-  <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css">
+  <title>Log in - Clearance Monitoring</title>
+  <link rel="icon" type="image/svg+xml" href="Resources/logo-icon.svg">
+    <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://www.gstatic.com">
-  <link rel="preconnect" href="https://cdn.sheetjs.com">
   <link rel="dns-prefetch" href="https://www.gstatic.com">
-  <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
     import { getAuth, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
@@ -56,109 +53,119 @@
 <body class="login-page">
 <script>
   (function() {
-    const darkMode = localStorage.getItem('darkMode');
-    if (darkMode === 'enabled') {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
+    const theme = localStorage.getItem('theme') || 'system';
+    const dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.body.classList.toggle('dark-mode', dark);
   })();
 </script>
-  <div class="topbar">
-    <div class="topbar-left">
-      <div class="hamburger" onclick="toggleMobileMenu()">
-        <span></span>
-        <span></span>
-        <span></span>
+  <div class="login-shell">
+    <aside class="login-banner">
+      <img src="Resources/logo-icon-white.svg" alt="" class="banner-mark">
+      <div class="banner-brand">
+        <img src="Resources/smcmilogoonly.png" alt="St. Mary's College of Meycauayan, Inc." class="school-mark banner-school-mark">
+        <img src="Resources/logo-icon-white.svg" alt="">
+        <span>Clearance Monitoring</span>
       </div>
-      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon" loading="lazy">
-      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text" loading="lazy"> 
-    </div>
-    <div class="topbar-right">
-      <!-- In the topbar-right section, replace the existing NEED HELP div with: -->
-      <div id="helpButton" onclick="handleHelpClick()" style="display: flex; align-items: center; cursor: pointer;">
-        <span id="helpText" class="need-help-text"></span>
-        <span class="help-icon">?</span>
+      <div class="banner-copy">
+        <h2>Every clearance form, accounted for.</h2>
+        <p>Track when forms are released, returned and verified, all in one place.</p>
       </div>
-      <div onclick="toggleDarkMode()" style="display: flex; align-items: center; cursor: pointer; margin-right: 8px;">
-        <span class="darkmode-icon" id="darkModeIcon">☾</span>
-      </div>
-    </div>
-  </div>
-  <div class="login-container">
-    <div class="logo-container">
-      <img src="Resources/lightmodelogo.png" alt="Clearance Monitoring System" class="logo-light" loading="lazy">
-      <img src="Resources/darkmodelogo.png" alt="Clearance Monitoring System" class="logo-dark" loading="lazy">
-    </div>
-    <div class="field">
-      <label>USERNAME</label>
-      <input type="text" id="username" placeholder="name@example.com" autocomplete="off" onkeydown="return event.key !== ' '">
-    </div>
-    <div class="field">
-      <label>PASSWORD</label>
-      <input type="text" id="password" placeholder="Enter your password" style="-webkit-text-security: disc;" autocomplete="off" onkeydown="return event.key !== ' '">
-    </div>
-    <div class="show-password">
-      <span>SHOW PASSWORD</span>
-      <input type="checkbox" onclick="togglePassword()">
-    </div>
-    <button onclick="login()">LOGIN</button>
-    <div class="links">
-      <a href="#" onclick="showRegisterModal()">Register</a>
-      <a href="#" onclick="showForgotPasswordModal()">Forgot Password?</a>
-    </div>
-  </div>
+      <img src="Resources/smcmilogotext.png" alt="St. Mary's College of Meycauayan, Inc." class="banner-school">
+    </aside>
 
-  <!-- Error Modal -->
-  <div id="errorModal" class="modal" onclick="if(event.target === this) closeErrorModal()">
-    <div class="modal-content">
-      <p>Invalid username or password</p>
-      <button onclick="closeErrorModal()">OK</button>
-    </div>
-  </div>
-
-  <!-- Help Modal -->
-  <div id="helpModal" class="modal">
-    <div class="modal-content">
-      <p>Please contact system developer for assistance.</p>
-      <button onclick="closeHelpModal()">OK</button>
-    </div>
+    <main class="login-panel">
+      <div class="brand login-mobile-brand">
+        <img src="Resources/smcmilogoonly.png" alt="St. Mary's College of Meycauayan, Inc." class="school-mark">
+        <img src="Resources/logo-icon.svg" alt="" class="brand-mark is-light">
+        <img src="Resources/logo-icon-dark.svg" alt="" class="brand-mark is-dark">
+        <span class="brand-name">Clearance Monitoring</span>
+      </div>
+      <div class="login-container">
+        <h1 class="login-title">Log in to Clearance Monitoring</h1>
+        <p class="login-sub">Use the email address you registered with.</p>
+        <div id="loginAlert" class="form-alert" role="alert" hidden></div>
+        <div class="field">
+          <label for="username">Email</label>
+          <input type="email" id="username" placeholder="name@example.com" autocomplete="username" autocapitalize="none" spellcheck="false" onkeydown="return event.key !== ' '">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Your password" autocomplete="current-password" onkeydown="return event.key !== ' '">
+        </div>
+        <div class="login-options">
+          <div class="show-password">
+            <label for="showLoginPassword">Show password</label>
+            <input type="checkbox" id="showLoginPassword" onclick="togglePassword()">
+          </div>
+          <a href="#" onclick="showForgotPasswordModal(); return false;">Forgot password?</a>
+        </div>
+        <button id="loginButton" onclick="login()">Log in</button>
+        <p class="login-switch">Don't have an account? <a href="#" onclick="showRegisterModal(); return false;">Create an account</a></p>
+      </div>
+      <div class="footer">
+        © 2026 Clearance Monitoring.
+      </div>
+    </main>
   </div>
 
   <!-- Register Modal -->
   <div id="registerModal" class="modal">
     <div class="modal-content">
-      <h3>Register New Account</h3>
-      <input type="text" id="regSchoolId" placeholder="School ID *  (e.g. 2024-0001)" tabindex="1" maxlength="20"
-            oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')"
-            onkeydown="registerKeyNav(event)"
-            autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
-      <input type="text" id="regFirstName" placeholder="First Name *  (e.g. Juan)" tabindex="2" maxlength="64"
-            oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
-            onkeydown="registerKeyNav(event)"
-            autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
-      <input type="text" id="regLastName" placeholder="Last Name *  (e.g. Dela Cruz)" tabindex="3" maxlength="64"
-            oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
-            onkeydown="registerKeyNav(event)"
-            autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
-      <input type="email" id="regEmail" placeholder="Email *  (name@example.com)" tabindex="4"
-            onkeydown="registerKeyNav(event)"
-            autocomplete="off" spellcheck="false" autocorrect="off" readonly onfocus="this.removeAttribute('readonly')">
-      <input type="password" id="regPassword" placeholder="Password *  (at least 8 characters)" tabindex="5"
-            oninput="this.value = this.value.replace(/\s/g, ''); updatePasswordMatch()"
-            onkeydown="registerKeyNav(event)"
-            autocomplete="new-password" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
-      <input type="password" id="regConfirmPassword" placeholder="Confirm Password *" tabindex="6"
-            oninput="this.value = this.value.replace(/\s/g, ''); updatePasswordMatch()"
-            onkeydown="registerKeyNav(event)"
-            autocomplete="new-password" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+      <h3>Create an account</h3>
+      <p class="modal-desc">An administrator must approve your account before you can log in.</p>
+      <div id="registerAlert" class="form-alert" role="alert" hidden></div>
+      <div class="field">
+        <label for="regSchoolId">School ID <span class="required">*</span></label>
+        <input type="text" id="regSchoolId" placeholder="2024-0001" tabindex="1" maxlength="20"
+              oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')"
+              onkeydown="registerKeyNav(event)"
+              autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+        <div class="field-hint">Letters, numbers and dashes. 4 to 20 characters.</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="regFirstName">First name <span class="required">*</span></label>
+          <input type="text" id="regFirstName" placeholder="Juan" tabindex="2" maxlength="64"
+                oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
+                onkeydown="registerKeyNav(event)"
+                autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+        </div>
+        <div class="field">
+          <label for="regLastName">Last name <span class="required">*</span></label>
+          <input type="text" id="regLastName" placeholder="Dela Cruz" tabindex="3" maxlength="64"
+                oninput="this.value = this.value.replace(/[^\p{L}\s'-]/gu, '')"
+                onkeydown="registerKeyNav(event)"
+                autocomplete="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+        </div>
+      </div>
+      <div class="field">
+        <label for="regEmail">Email <span class="required">*</span></label>
+        <input type="email" id="regEmail" placeholder="name@example.com" tabindex="4"
+              onkeydown="registerKeyNav(event)"
+              autocomplete="off" spellcheck="false" autocorrect="off" readonly onfocus="this.removeAttribute('readonly')">
+        <div class="field-hint">We will send a verification link to this address.</div>
+      </div>
+      <div class="field">
+        <label for="regPassword">Password <span class="required">*</span></label>
+        <input type="password" id="regPassword" placeholder="At least 8 characters" tabindex="5"
+              oninput="this.value = this.value.replace(/\s/g, ''); updatePasswordMatch()"
+              onkeydown="registerKeyNav(event)"
+              autocomplete="new-password" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+      </div>
+      <div class="field">
+        <label for="regConfirmPassword">Confirm password <span class="required">*</span></label>
+        <input type="password" id="regConfirmPassword" placeholder="Re-enter your password" tabindex="6"
+              oninput="this.value = this.value.replace(/\s/g, ''); updatePasswordMatch()"
+              onkeydown="registerKeyNav(event)"
+              autocomplete="new-password" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')">
+      </div>
       <div id="passwordMatchIndicator" class="pw-match" aria-live="polite"></div>
       <div class="show-password-reg">
-        <span>SHOW PASSWORD</span>
+        <label for="showRegPassword">Show password</label>
         <input type="checkbox" id="showRegPassword" tabindex="7" onclick="toggleRegPassword()">
       </div>
       <div class="button-group">
-        <button onclick="register()" class="export-btn" tabindex="8">Register</button>
+        <button id="registerButton" onclick="register()" class="export-btn" tabindex="8">Create account</button>
         <button onclick="closeRegisterModal()" class="clear-btn" tabindex="9">Cancel</button>
       </div>
     </div>
@@ -167,12 +174,16 @@
   <!-- Forgot Password Modal -->
   <div id="forgotPasswordModal" class="modal">
     <div class="modal-content">
-      <h3>Reset Password</h3>
-      <input type="email" id="resetEmail" placeholder="Your email (name@example.com)"
-            autocomplete="off" spellcheck="false" autocorrect="off"
-            readonly onfocus="this.removeAttribute('readonly')">
+      <h3>Reset your password</h3>
+      <p class="modal-desc">Enter your email and we will send you a link to choose a new password.</p>
+      <div class="field">
+        <label for="resetEmail">Email <span class="required">*</span></label>
+        <input type="email" id="resetEmail" placeholder="name@example.com"
+              autocomplete="off" spellcheck="false" autocorrect="off"
+              readonly onfocus="this.removeAttribute('readonly')">
+      </div>
       <div class="button-group">
-        <button onclick="sendPasswordReset()" class="export-btn">Send Reset Email</button>
+        <button id="resetButton" onclick="sendPasswordReset()" class="export-btn">Send reset link</button>
         <button onclick="closeForgotPasswordModal()" class="clear-btn">Cancel</button>
       </div>
     </div>
@@ -187,10 +198,6 @@
   </div>
 
   <div class="menu-overlay" onclick="closeMobileMenu()"></div>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
-  <div class="footer">
-    © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
-  </div>
 </body>
-</html>
+</html>

@@ -7,13 +7,11 @@
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Release / Receive Clearance</title>
-  <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
+  <link rel="icon" type="image/svg+xml" href="Resources/logo-icon.svg">
   <link rel="stylesheet" href="style.css">
   <!-- Add these inside <head> after the existing links -->
   <link rel="preconnect" href="https://www.gstatic.com">
-  <link rel="preconnect" href="https://cdn.sheetjs.com">
   <link rel="dns-prefetch" href="https://www.gstatic.com">
-  <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
     import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
@@ -55,8 +53,9 @@
 <body>
   <script>
     (function() {
-      const darkMode = localStorage.getItem('darkMode');
-      if (darkMode === 'enabled') document.body.classList.add('dark-mode');
+      const theme = localStorage.getItem('theme') || 'system';
+      const dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.body.classList.toggle('dark-mode', dark);
     })();
   </script>
   <div class="topbar">
@@ -66,60 +65,58 @@
         <span></span>
         <span></span>
       </div>
-      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon" loading="lazy">
-      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text" loading="lazy"> 
-    </div>
-    <div class="topbar-right">
-      <div id="helpButton" onclick="handleHelpClick()" style="display: flex; align-items: center; cursor: pointer;">
-        <span id="helpText" class="need-help-text"></span>
-        <span class="help-icon">?</span>
-      </div>
-      <div onclick="toggleDarkMode()" style="display: flex; align-items: center; cursor: pointer; margin-right: 8px;">
-        <span class="darkmode-icon" id="darkModeIcon">☾</span>
+      <div class="brand">
+        <img src="Resources/smcmilogoonly.png" alt="St. Mary's College of Meycauayan, Inc." class="school-mark">
+        <img src="Resources/logo-icon.svg" alt="" class="brand-mark is-light">
+        <img src="Resources/logo-icon-dark.svg" alt="" class="brand-mark is-dark">
+        <span class="brand-name">Clearance Monitoring</span>
       </div>
     </div>
+    <div class="topbar-right"></div>
   </div>
   <div class="main-wrapper">
     <div class="sidebar">
-      <div class="nav" onclick="goHome()">STUDENT LIST</div>
-      <div class="nav" onclick="goRegister()">REGISTRATION</div>
-      <div class="nav" onclick="goStatusUpdate()">STATUS UPDATE</div>
-      <div class="nav" onclick="goRegistered()">CLEARANCE LOGS</div>
-      <div class="nav" onclick="goAdmin()">MANAGE PROGRAMS</div>
+      <div class="nav" onclick="goHome()">Student List</div>
+      <div class="nav" onclick="goRegister()">Registration</div>
+      <div class="nav" onclick="goStatusUpdate()">Status Update</div>
+      <div class="nav" onclick="goRegistered()">Clearance Logs</div>
+      <div class="nav" onclick="goAdmin()">Manage Programs</div>
       <div class="sidebar-spacer"></div>
-      <div class="logout" onclick="logout()">LOGOUT</div>
       <div class="sidebar-footer">
-        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
+        © 2026 Clearance Monitoring.
       </div>
     </div>
     <div class="content">
       <h2 class="page-title">Release / Receive Clearance</h2>
+      <p class="page-subtitle">Find a student to release, receive or re-release a clearance form.</p>
       <div class="status-update-card">
-        <div style="display: flex; gap: 10px; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto; flex-wrap: wrap;">
-          <input type="text" id="rfidSearch" placeholder="Scan RFID or type Student No. (e.g. C123456)"
-                style="flex:1; height:38px; padding:8px; border:1.5px solid #ddd; border-radius:8px;"
-                autocomplete="off" maxlength="32"
-                oninput="this.value = this.value.toUpperCase()">
-          <button onclick="searchStudent()" class="btn-primary" style="width:auto;">Search</button>
-          <button onclick="clearStatusUpdate()" class="clear-btn" style="width:auto;">Clear</button>
+        <div class="search-block">
+          <label for="rfidSearch">RFID or student number</label>
+          <div class="search-row-inline">
+            <input type="text" id="rfidSearch" placeholder="C123456 or 0012345678"
+                  autocomplete="off" maxlength="10" autofocus
+                  oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')"
+                  onkeydown="if (event.key === 'Enter') searchStudent()">
+            <button onclick="searchStudent()" class="btn-primary">Search</button>
+            <button onclick="clearStatusUpdate()" class="clear-btn">Clear</button>
+          </div>
+          <div class="field-hint">Scan the card, or type up to 10 letters or digits.</div>
         </div>
         <div id="studentResult" style="display: none;"></div>
       </div>
     </div>
   </div>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       checkPageAccess(['admin', 'superadmin']);
     });
   </script>
-  <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
-  <div id="logoutModal" class="modal"><div class="modal-content"><p id="logoutMessage">Are you sure you want to logout?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmLogout()">Yes</button><button onclick="closeLogoutModal()">No</button></div></div></div>
-  <div id="exportModal" class="modal"><div class="modal-content"><p>Choose export format:</p><div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;"><button class="btn-secondary" onclick="exportChosen('pdf')">PDF</button><button class="btn-secondary" onclick="exportChosen('excel')">Excel</button></div><div style="display: flex; justify-content: center;"><button class="btn-secondary" onclick="closeExportModal()">Cancel</button></div></div></div>
-  <div id="reReleaseModal" class="modal"><div class="modal-content"><p>Re-release this clearance form? Use this only when the student lost the form. It will be counted in the clearance logs.</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmReReleaseStudent()">Yes</button><button onclick="closeReReleaseModal()">No</button></div></div></div>
+  <div id="logoutModal" class="modal"><div class="modal-content"><p id="logoutMessage">Are you sure you want to logout?</p><div class="button-group"><button onclick="confirmLogout()">Yes</button><button onclick="closeLogoutModal()">No</button></div></div></div>
+  <div id="exportModal" class="modal"><div class="modal-content"><p>Choose export format:</p><div class="button-group"><button class="btn-secondary" onclick="exportChosen('pdf')">PDF</button><button class="btn-secondary" onclick="exportChosen('excel')">Excel</button></div><div class="button-group"><button class="btn-secondary" onclick="closeExportModal()">Cancel</button></div></div></div>
+  <div id="reReleaseModal" class="modal"><div class="modal-content"><p>Re-release this clearance form? Use this only when the student lost the form. It will be counted in the clearance logs.</p><label for="reReleaseComment">Comment</label><textarea id="reReleaseComment" maxlength="200" rows="2" placeholder="Optional, e.g. Lost the form, asked for a new copy" autocomplete="off"></textarea><div class="button-group"><button onclick="confirmReReleaseStudent()">Yes</button><button onclick="closeReReleaseModal()">No</button></div></div></div>
   <div id="messageModal" class="modal"><div class="modal-content"><p id="messageModalText">Message</p><button onclick="closeMessageModal()">OK</button></div></div>
   <div class="menu-overlay" onclick="closeMobileMenu()"></div>
   <button id="scrollToTopBtn" title="Go to top">↑</button>
 </body>
-</html>
+</html>

@@ -7,14 +7,11 @@
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Home Page</title>
-  <link rel="icon" type="image/svg+xml" href="Resources/icon.svg">
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="Resources/logo-icon.svg">
+    <link rel="stylesheet" href="style.css">
   <!-- Add these inside <head> after the existing links -->
   <link rel="preconnect" href="https://www.gstatic.com">
-  <link rel="preconnect" href="https://cdn.sheetjs.com">
   <link rel="dns-prefetch" href="https://www.gstatic.com">
-  <link rel="dns-prefetch" href="https://cdn.sheetjs.com">
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
     import { getAuth, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
@@ -52,13 +49,13 @@
     window.limit = limit; 
     window.writeBatch = writeBatch;
   </script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <script>
     (function() {
-      const darkMode = localStorage.getItem('darkMode');
-      if (darkMode === 'enabled') document.body.classList.add('dark-mode');
+      const theme = localStorage.getItem('theme') || 'system';
+      const dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.body.classList.toggle('dark-mode', dark);
     })();
   </script>
   <div class="topbar">
@@ -68,40 +65,36 @@
         <span></span>
         <span></span>
       </div>
-      <img src="Resources/smcmilogoonly.png" alt="SMCMI Logo" class="logo-icon" loading="lazy">
-      <img src="Resources/smcmilogotext.png" alt="St. Mary's College" class="logo-text" loading="lazy"> 
-    </div>
-    <div class="topbar-right">
-      <div id="helpButton" onclick="handleHelpClick()" style="display: flex; align-items: center; cursor: pointer;">
-        <span id="helpText" class="need-help-text"></span>
-        <span class="help-icon">?</span>
-      </div>
-      <div onclick="toggleDarkMode()" style="display: flex; align-items: center; cursor: pointer; margin-right: 8px;">
-        <span class="darkmode-icon" id="darkModeIcon">☾</span>
+      <div class="brand">
+        <img src="Resources/smcmilogoonly.png" alt="St. Mary's College of Meycauayan, Inc." class="school-mark">
+        <img src="Resources/logo-icon.svg" alt="" class="brand-mark is-light">
+        <img src="Resources/logo-icon-dark.svg" alt="" class="brand-mark is-dark">
+        <span class="brand-name">Clearance Monitoring</span>
       </div>
     </div>
+    <div class="topbar-right"></div>
   </div>
   <div class="main-wrapper">
     <div class="sidebar">
-      <div class="nav" onclick="goHome()">STUDENT LIST</div>
-      <div class="nav" onclick="goRegister()">REGISTRATION</div>
-      <div class="nav" onclick="goStatusUpdate()">STATUS UPDATE</div>
-      <div class="nav" onclick="goRegistered()">CLEARANCE LOGS</div>
-      <div class="nav" onclick="goAdmin()">MANAGE PROGRAMS</div>
+      <div class="nav" onclick="goHome()">Student List</div>
+      <div class="nav" onclick="goRegister()">Registration</div>
+      <div class="nav" onclick="goStatusUpdate()">Status Update</div>
+      <div class="nav" onclick="goRegistered()">Clearance Logs</div>
+      <div class="nav" onclick="goAdmin()">Manage Programs</div>
       <div class="sidebar-spacer"></div>
-      <div class="logout" onclick="logout()">LOGOUT</div>
       <div class="sidebar-footer">
-        © 2026 Clearance Monitoring System.<br>Developed by A. Ancheta.
+        © 2026 Clearance Monitoring.
       </div>
     </div>
     <div class="content">
       <h2 class="page-title">Student List</h2>
+      <p class="page-subtitle">Browse, filter and manage registered students.</p>
       <!-- FILTER BAR matching clearance tracking page design -->
       <div class="filter-bar" style="justify-content: space-between;">
         <!-- Left section: search and filter dropdowns -->
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           <div class="search-wrapper" style="margin:0; min-width: 200px;">
-            <input type="text" id="search" placeholder="Search name, ID number or RFID" onkeyup="applyFilters()" autocomplete="off">
+            <input type="text" id="search" placeholder="Search name, ID number or RFID" oninput="debounceFilters()" autocomplete="off">
             <span class="search-icon">
               <svg viewBox="0 0 24 24">
                 <circle cx="11" cy="11" r="7"></circle>
@@ -158,14 +151,14 @@
           <thead>
             <tr>
               <th style="width: 30px;"><input type="checkbox" id="selectAllHome" onchange="toggleSelectAllHome(this)"></th>
-              <th>RFID NO.</th>
-              <th>STUDENT NO.</th>
-              <th>NAME</th>
-              <th>COURSE</th>
-              <th>YEAR LEVEL</th>
+              <th>RFID No.</th>
+              <th>Student No.</th>
+              <th>Name</th>
+              <th>Course</th>
+              <th>Year Level</th>
               <th>A.Y.</th>          <!-- new column -->
-              <th>GENDER</th>
-              <th>DATE</th>
+              <th>Gender</th>
+              <th>Date</th>
             </tr>
           </thead>
           <tbody>
@@ -185,29 +178,33 @@
       });
     });
   </script>
-  <div id="helpModal" class="modal"><div class="modal-content"><p>Please contact system developer for assistance.</p><button onclick="closeHelpModal()">OK</button></div></div>
-  <div id="logoutModal" class="modal"><div class="modal-content"><p id="logoutMessage">Are you sure you want to logout?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmLogout()">Yes</button><button onclick="closeLogoutModal()">No</button></div></div></div>
+  <div id="logoutModal" class="modal"><div class="modal-content"><p id="logoutMessage">Are you sure you want to logout?</p><div class="button-group"><button onclick="confirmLogout()">Yes</button><button onclick="closeLogoutModal()">No</button></div></div></div>
   <div id="exportModal" class="modal">
     <div class="modal-content">
       <p>Choose export format:</p>
-      <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
+      <div class="button-group">
         <button class="btn-secondary" onclick="exportChosen('pdf')">PDF</button>
         <button class="btn-secondary" onclick="exportChosen('excel')">Excel</button>
         <button class="btn-secondary" onclick="exportChosen('csv')">CSV</button>   <!-- new -->
       </div>
-      <div style="display: flex; justify-content: center;">
+      <div class="button-group">
         <button class="btn-secondary" onclick="closeExportModal()">Cancel</button>
       </div>
     </div>
   </div>  
-  <div id="confirmModal" class="modal"><div class="modal-content"><p id="confirmMessage">Are you sure?</p><div style="display: flex; gap: 10px; justify-content: center;"><button onclick="confirmDelete()">Yes</button><button onclick="closeConfirmModal()">No</button></div></div></div>
+  <div id="confirmModal" class="modal"><div class="modal-content"><p id="confirmMessage">Are you sure?</p><div class="button-group"><button onclick="confirmDelete()">Yes</button><button onclick="closeConfirmModal()">No</button></div></div></div>
   <div id="importModal" class="modal">
     <div class="modal-content import-modal">
       <h3>Import Students</h3>
       <p class="import-help">Upload an Excel (.xlsx, .xls) or CSV file. <a href="#" onclick="downloadImportTemplate(); return false;">Download the template</a></p>
+      <p class="import-help">A Student No. that is already in the system is <b>not</b> replaced: only its RFID No. is updated to the new ID card. The exported Excel/CSV can be imported here too.</p>
+      <label class="import-help" style="display:block; margin:6px 0;">
+        <input type="checkbox" id="importUpdateYear" onchange="reprocessImportFile()">
+        Also update Year Level and A.Y. of students already in the system
+      </label>
       <input type="file" id="importFile" accept=".xlsx,.xls,.csv" onchange="handleImportFile(this)">
       <div id="importSummary" class="import-summary" style="display: none;"></div>
-      <div style="display: flex; gap: 10px; justify-content: center;">
+      <div class="button-group">
         <button id="importConfirmBtn" onclick="confirmImport()" disabled>Import</button>
         <button onclick="closeImportModal()">Cancel</button>
       </div>
@@ -218,4 +215,4 @@
   <button id="scrollToTopBtn" title="Go to top">↑</button>
   <div id="printContainer" style="display: none;"></div>
 </body>
-</html>
+</html>
